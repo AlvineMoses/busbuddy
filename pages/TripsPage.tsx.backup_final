@@ -107,7 +107,7 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  </div>
  </div>
 
- <button onClick={() => {}} className="px-6 py-2.5 text-white rounded-xl text-sm font-bold hover:scale-105 transition-transform shadow-lg flex items-center gap-2" style={{ backgroundColor: colors.primary }}>
+ <button onClick={() => {}} className="px-6 py-2.5 text-white rounded-xl text-sm font-bold hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
  <Filter size={14} /> Apply
  </button>
  </div>
@@ -300,7 +300,7 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  </div>
  <div>
  <p className="font-bold text-xl text-brand-black">{selectedTrip.driverName}</p>
- <p className="text-xs font-bold colors.statusActive uppercase tracking-widest mt-1">Authorized</p>
+ <p className="text-xs font-bold text-themed-1fd701 uppercase tracking-widest mt-1">Authorized</p>
  </div>
  </div>
  </div>
@@ -350,7 +350,7 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  </div>
 
  <div className="p-8 border-t border-gray-100 bg-white z-10">
- <button onClick={startPlayback} className="w-full py-5 text-white rounded-full text-base font-bold shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-3" style={{ backgroundColor: colors.primary }}>
+ <button onClick={startPlayback} className="w-full py-5 text-white rounded-full text-base font-bold shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-3">
  <MapPin size={20} /> Playback GPS Route
  </button>
  </div>

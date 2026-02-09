@@ -224,7 +224,7 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
 
  {/* Export */}
  <div className="flex items-end">
- <button className="w-full px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-200 text-gray-600 hover:text-brand-lilac font-bold transition-all flex items-center justify-center gap-2">
+ <button className="w-full px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border- text-gray-600 hover:text- font-bold transition-all flex items-center justify-center gap-2">
  <Download size={18} />
  Export
  </button>
@@ -293,7 +293,7 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  </td>
  <td className="px-8 py-5">
  <div className="flex items-center gap-2">
- <button onClick={() => openEditModal(shift)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-brand-lilac transition-colors">
+ <button onClick={() => openEditModal(shift)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text- transition-colors">
  <Edit2 size={16} />
  </button>
  <button onClick={() => handleClone(shift)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-blue-600 transition-colors">
@@ -354,7 +354,7 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  <label className="block text-sm font-bold text-gray-600 mb-1">Days</label>
  <div className="flex flex-wrap gap-2">
  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
- <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${(shiftForm.days || []).includes(day) ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{day}</button>
+ <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${(shiftForm.days || []).includes(day) ? 'bg- text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{day}</button>
  ))}
  </div>
  </div>
@@ -373,7 +373,7 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  </div>
 
  <div className="flex items-center gap-3 mt-6">
- <button onClick={handleSave} className="flex-1 text-white py-3 rounded-2xl font-bold transition-colors" style={{ backgroundColor: colors.primary }}>{editingShift ? 'Save Changes' : 'Create Shift'}</button>
+ <button onClick={handleSave} className="flex-1 text-white py-3 rounded-2xl font-bold hover:bg-themed-e63200 transition-colors">{editingShift ? 'Save Changes' : 'Create Shift'}</button>
  <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
  </div>
  </div>

@@ -169,7 +169,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  onClick={() => setActiveTab('routes')}
  className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
  activeTab === 'routes'
- ? 'text-white shadow-lg'
+ ? 'bg- text-white shadow-lg '
  : 'text-gray-400 hover:text-brand-black'
  }`}
  >
@@ -179,7 +179,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  onClick={() => setActiveTab('stops')}
  className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
  activeTab === 'stops'
- ? 'text-white shadow-lg'
+ ? 'bg- text-white shadow-lg '
  : 'text-gray-400 hover:text-brand-black'
  }`}
  >
@@ -189,7 +189,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  onClick={() => setActiveTab('trips')}
  className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
  activeTab === 'trips'
- ? 'text-white shadow-lg'
+ ? 'bg- text-white shadow-lg '
  : 'text-gray-400 hover:text-brand-black'
  }`}
  >
@@ -209,7 +209,6 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  <button 
  onClick={() => setIsCreateModalOpen(true)}
  className="text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl transition-all flex items-center gap-2"
- style={{ backgroundColor: colors.primary }}
  >
  <Plus size={18} strokeWidth={2} /> <span>Create Route</span>
  </button>

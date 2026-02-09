@@ -1,3 +1,30 @@
+@import "tailwindcss";
+
+/* Custom theme — migrated from inline tailwind.config CDN */
+@theme {
+  --font-sans: 'Urbanist', sans-serif;
+  --font-urbanist: 'Urbanist', sans-serif;
+
+  --color-brand-green: #1fd701;
+  --color-brand-amber: #ff9d00;
+  --color-brand-lilac: #bda8ff;
+  --color-brand-orange: #FF6106;
+  --color-brand-black: #0f172a;
+  --color-brand-white: #ffffff;
+  --color-brand-surface: #f8fafc;
+
+  --shadow-soft-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
+  --shadow-float: 0 8px 30px rgba(0, 0, 0, 0.04);
+  --shadow-inner-light: inset 0 2px 4px 0 rgba(255, 255, 255, 0.3);
+
+  --animate-expand: expand 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes expand {
+    0% { width: 40px; opacity: 0.5; }
+    100% { width: 100%; opacity: 1; }
+  }
+}
+
 /* BusBudd Global Styles */
 
 /* Base Animations */

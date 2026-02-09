@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Provider, useDispatch } from 'react-redux';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
@@ -8,18 +9,27 @@ import { SchoolsPage } from './pages/SchoolsPage';
 import { OperationsPage } from './pages/OperationsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ToastContainer } from './components/ToastContainer';
 import { User, UserRole } from './types';
 import { SCHOOLS, MOCK_ROUTES, MOCK_TRIPS } from './services/mockData';
 import useAppStore from './src/store/AppStore';
+import store from './src/store';
+import { fetchSettings } from './src/store/slices/settingsSlice';
 
 function AppContent() {
   const { auth, ui, setSelectedSchool, setUser, logout } = useAppStore();
+  const dispatch = useDispatch();
   const currentUser = auth.user;
   const currentSchoolId = ui.selectedSchoolId;
   const navigate = useNavigate();
   const location = useLocation();
 
   const currentSchool = SCHOOLS.find(s => s.id === currentSchoolId) || null;
+
+  // SMART DATA-FLOW: Load settings from localStorage on app startup
+  useEffect(() => {
+    dispatch(fetchSettings() as any);
+  }, [dispatch]);
 
   useEffect(() => {
     if (currentUser?.role === UserRole.SCHOOL_ADMIN && currentUser.schoolId) {
@@ -73,6 +83,7 @@ function AppContent() {
       onLogout={handleLogout}
       notifications={ui.notifications || []}
     >
+      <ToastContainer />
       <Routes>
         <Route path="/dashboard" element={<Dashboard routes={filteredRoutes} user={currentUser} onNavigate={(page: string) => navigate(`/${page}`)} />} />
         <Route path="/routes" element={<RoutesPage routes={filteredRoutes} schools={SCHOOLS} currentSchoolId={currentSchoolId || undefined} trips={filteredTrips} />} />
@@ -88,9 +99,11 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <Provider store={store}>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </Provider>
   );
 }
 

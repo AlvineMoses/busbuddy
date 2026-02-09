@@ -12,19 +12,6 @@ export default defineConfig(({ mode }) => {
         headers: {
           'Access-Control-Allow-Origin': '*',
         },
-        proxy: {
-          // Proxy Google Maps API requests through the dev server
-          // so the Referer header sent to Google is corp.little.global
-          '/google-maps-proxy': {
-            target: 'https://maps.googleapis.com',
-            changeOrigin: true,
-            rewrite: (path: string) => path.replace(/^\/google-maps-proxy/, ''),
-            headers: {
-              'Referer': 'https://corp.little.global/',
-              'Origin': 'https://corp.little.global',
-            },
-          },
-        },
       },
       plugins: [tailwindcss(), react()],
       define: {

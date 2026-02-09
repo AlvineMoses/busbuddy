@@ -87,7 +87,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  onClick={() => setActiveTab('institutions')}
  className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
  activeTab === 'institutions'
- ? 'text-white shadow-lg'
+ ? 'bg- text-white shadow-lg '
  : 'text-gray-400 hover:text-brand-black'
  }`}
  >
@@ -97,7 +97,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  onClick={() => setActiveTab('students')}
  className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
  activeTab === 'students'
- ? 'text-white shadow-lg'
+ ? 'bg- text-white shadow-lg '
  : 'text-gray-400 hover:text-brand-black'
  }`}
  >

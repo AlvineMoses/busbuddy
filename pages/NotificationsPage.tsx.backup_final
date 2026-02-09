@@ -130,7 +130,7 @@ export const NotificationsPage: React.FC = () => {
  {unreadCount > 0 && (
  <button 
  onClick={markAllAsRead}
- className="px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-200 text-gray-600 hover:text-brand-lilac font-bold transition-all flex items-center gap-2"
+ className="px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border- text-gray-600 hover:text- font-bold transition-all flex items-center gap-2"
  >
  <Check size={18} />
  Mark All as Read

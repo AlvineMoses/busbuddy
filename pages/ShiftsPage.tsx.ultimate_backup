@@ -373,7 +373,7 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  </div>
 
  <div className="flex items-center gap-3 mt-6">
- <button onClick={handleSave} className="flex-1 text-white py-3 rounded-2xl font-bold transition-colors" style={{ backgroundColor: colors.primary }}>{editingShift ? 'Save Changes' : 'Create Shift'}</button>
+ <button onClick={handleSave} className="flex-1 text-white py-3 rounded-2xl font-bold hover:bg-themed-e63200 transition-colors">{editingShift ? 'Save Changes' : 'Create Shift'}</button>
  <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
  </div>
  </div>

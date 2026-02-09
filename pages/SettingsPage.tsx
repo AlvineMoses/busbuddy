@@ -1,5 +1,23 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { Bell, Shield, Save, User, Check, AlertCircle, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, ToggleRight, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, Monitor, Upload, CloudUpload } from 'lucide-react';
+import { 
+  fetchSettings, 
+  updateSettings, 
+  uploadImage,
+  setPlatformName,
+  setColors,
+  setLoginHeroImage,
+  setHeroMode,
+  setLogoMode,
+  setLogoUrls,
+  addTestimonial,
+  updateTestimonial,
+  togglePermission,
+  setPermissionGroups
+} from '../src/store/slices/settingsSlice';
+import { addToast } from '../src/store/slices/uiSlice';
+import { getUploadedFileUrl } from '../src/services/fileUploadService';
 
 interface Permission {
   id: string;
@@ -11,7 +29,7 @@ interface Permission {
 
 interface PermissionGroup {
   category: string;
-  icon: any;
+  iconName: string; // Store icon name as string, not component
   permissions: Permission[];
 }
 
@@ -24,105 +42,257 @@ interface Testimonial {
 }
 
 export const SettingsPage: React.FC = () => {
+  const dispatch = useDispatch<any>();
+  const settings = useSelector((state: any) => state.settings);
   const [activeTab, setActiveTab] = useState('general');
 
-  // Appearance State
-  const [platformName, setPlatformName] = useState("Bus Buddy");
-  
-  // Color Scheme
-  const [colors, setColors] = useState({
-      primary: '#ff3600',
-      secondary: '#1fd701',
-      surface: '#f8fafc'
-  });
-
-  // Login Config
-  const [loginHeroImage, setLoginHeroImage] = useState("https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2576&auto=format&fit=crop");
-  const [heroMode, setHeroMode] = useState<'url' | 'upload'>('url');
-  
-  // Logo Config
-  const [logoMode, setLogoMode] = useState<'url' | 'upload'>('url');
-  const [logoUrls, setLogoUrls] = useState({ light: '', dark: '' });
-
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([
-    { id: '1', name: 'Riaot Escanor', role: 'Project Manager at Google', text: 'I Landed Multiple Projects Within A Couple Of Days - With This Tool. Definitely My Go To Freelance Platform Now!', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=2574&auto=format&fit=crop' }
-  ]);
-
-  // Comprehensive Permission Matrix
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([
-    {
-      category: "Transport Operations",
-      icon: MapIcon,
-      permissions: [
-        { id: 'op_1', name: 'Route Management', description: 'Create, edit, and archive transport routes', admin: true, schoolAdmin: true },
-        { id: 'op_2', name: 'Live Monitoring', description: 'Access real-time fleet tracking map', admin: true, schoolAdmin: true },
-        { id: 'op_3', name: 'Trip Auditing', description: 'View and edit historical trip logs', admin: true, schoolAdmin: true },
-        { id: 'op_4', name: 'Manual Override', description: 'Force complete/cancel active trips', admin: true, schoolAdmin: false },
-      ]
-    },
-    {
-      category: "Fleet & Staff",
-      icon: Bus,
-      permissions: [
-        { id: 'fl_1', name: 'Driver Registry', description: 'Onboard and manage driver profiles', admin: true, schoolAdmin: true },
-        { id: 'fl_2', name: 'Vehicle Assignment', description: 'Assign buses to routes/drivers', admin: true, schoolAdmin: true },
-        { id: 'fl_3', name: 'Document Compliance', description: 'Verify licenses and insurance docs', admin: true, schoolAdmin: false },
-      ]
-    },
-    {
-      category: "Module Assignment",
-      icon: Layers,
-      permissions: [
-        { id: 'mod_1', name: 'Finance Module', description: 'Access to billing and contracts', admin: false, schoolAdmin: false },
-        { id: 'mod_2', name: 'Safety Center', description: 'Incident reporting and analysis dashboard', admin: true, schoolAdmin: true },
-        { id: 'mod_3', name: 'Advanced Analytics', description: 'Business intelligence reports', admin: true, schoolAdmin: false },
-      ]
-    }
-  ]);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const togglePermission = (groupIdx: number, permId: string, role: 'admin' | 'schoolAdmin') => {
-    const newGroups = [...permissionGroups];
-    const group = newGroups[groupIdx];
-    const permIndex = group.permissions.findIndex(p => p.id === permId);
-    
-    if (permIndex !== -1) {
-      group.permissions[permIndex][role] = !group.permissions[permIndex][role];
-      setPermissionGroups(newGroups);
-    }
+  // Icon mapper: string name -> React component
+  const getIcon = (iconName: string) => {
+    const iconMap: Record<string, any> = {
+      MapIcon,
+      Bus,
+      Layers,
+      Shield,
+      Users,
+      PieChart,
+      Wallet,
+      Server,
+      Code,
+    };
+    return iconMap[iconName] || Shield;
   };
 
-  const handleSave = () => {
-    alert("Preferences saved successfully!");
+  // Local refs
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
+  const logoLightFileInputRef = useRef<HTMLInputElement>(null);
+  const logoDarkFileInputRef = useRef<HTMLInputElement>(null);
+  const logoPlatformFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    dispatch(fetchSettings());
+  }, [dispatch]);
+
+  // Initialize permission groups if empty
+  useEffect(() => {
+    if (settings.permissionGroups.length === 0) {
+      dispatch(setPermissionGroups([
+        {
+          category: "Transport Operations",
+          iconName: "MapIcon",
+          permissions: [
+            { id: 'op_1', name: 'Route Management', description: 'Create, edit, and archive transport routes', admin: true, schoolAdmin: true },
+            { id: 'op_2', name: 'Live Monitoring', description: 'Access real-time fleet tracking map', admin: true, schoolAdmin: true },
+            { id: 'op_3', name: 'Trip Auditing', description: 'View and edit historical trip logs', admin: true, schoolAdmin: true },
+            { id: 'op_4', name: 'Manual Override', description: 'Force complete/cancel active trips', admin: true, schoolAdmin: false },
+          ]
+        },
+        {
+          category: "Fleet & Staff",
+          iconName: "Bus",
+          permissions: [
+            { id: 'fl_1', name: 'Driver Registry', description: 'Onboard and manage driver profiles', admin: true, schoolAdmin: true },
+            { id: 'fl_2', name: 'Vehicle Assignment', description: 'Assign buses to routes/drivers', admin: true, schoolAdmin: true },
+            { id: 'fl_3', name: 'Document Compliance', description: 'Verify licenses and insurance docs', admin: true, schoolAdmin: false },
+          ]
+        },
+        {
+          category: "Module Assignment",
+          iconName: "Layers",
+          permissions: [
+            { id: 'mod_1', name: 'Finance Module', description: 'Access to billing and contracts', admin: false, schoolAdmin: false },
+            { id: 'mod_2', name: 'Safety Center', description: 'Incident reporting and analysis dashboard', admin: true, schoolAdmin: true },
+            { id: 'mod_3', name: 'Advanced Analytics', description: 'Business intelligence reports', admin: true, schoolAdmin: false },
+          ]
+        }
+      ]));
+    }
+  }, [dispatch, settings.permissionGroups.length]);
+
+  const handlePermissionToggle = (groupIdx: number, permId: string, role: 'admin' | 'schoolAdmin') => {
+    dispatch(togglePermission({ groupIdx, permId, role }));
+  };
+
+  const handleSave = async () => {
+    console.log('💾💾💾 SAVE BUTTON CLICKED!!!');
+    console.log('Current settings state:', settings);
+    
+    try {
+      const dataToSave = {
+        platformName: settings.platformName,
+        colors: settings.colors,
+        loginHeroImage: settings.loginHeroImage,
+        heroMode: settings.heroMode,
+        uploadedHeroImage: settings.uploadedHeroImage,
+        logoMode: settings.logoMode,
+        logoUrls: settings.logoUrls,
+        uploadedLogos: settings.uploadedLogos,
+        testimonials: settings.testimonials,
+        permissionGroups: settings.permissionGroups
+      };
+      
+      console.log('💾 Settings Save - Preparing to save:', dataToSave);
+      console.log('📸 Settings Save - Current logoUrls:', settings.logoUrls);
+      console.log('📸 Settings Save - Current uploadedLogos:', settings.uploadedLogos);
+      
+      // @ts-ignore - async thunk from JS file
+      await (dispatch as any)(updateSettings(dataToSave)).unwrap();
+      
+      console.log('✅ Settings Save - Successfully saved!');
+      
+      dispatch(addToast({
+        message: 'Settings saved successfully!',
+        type: 'success',
+        duration: 5000
+      }));
+    } catch (error) {
+      console.error('❌ Settings Save - Failed:', error);
+      dispatch(addToast({
+        message: `Failed to save settings: ${error}`,
+        type: 'error',
+        duration: 5000
+      }));
+    }
   };
 
   const handleCreateRole = () => {
-    alert("Role Creation Wizard would open here.");
+    dispatch(addToast({
+      message: 'Role Creation Wizard would open here.',
+      type: 'info',
+      duration: 3000
+    }));
   };
 
-  const [uploadTarget, setUploadTarget] = useState('');
-
-  const handleUploadSimulate = (label: string) => {
-    setUploadTarget(label);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Hero Image Upload
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      // Preview the uploaded image based on target
-      alert(`${uploadTarget} uploaded: ${file.name}`);
-    };
-    reader.readAsDataURL(file);
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      dispatch(addToast({
+        message: 'Please select a valid image file',
+        type: 'error',
+        duration: 5000
+      }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      dispatch(addToast({
+        message: 'Image size must be less than 5MB',
+        type: 'error',
+        duration: 5000
+      }));
+      return;
+    }
+
+    try {
+      // @ts-ignore - async thunk from JS file
+      await (dispatch as any)(uploadImage({ file, type: 'hero' })).unwrap();
+      dispatch(addToast({
+        message: `Hero image "${file.name}" uploaded successfully!`,
+        type: 'success',
+        duration: 5000
+      }));
+    } catch (error) {
+      dispatch(addToast({
+        message: `Failed to upload image: ${error}`,
+        type: 'error',
+        duration: 5000
+      }));
+    }
+
+    e.target.value = '';
+  };
+
+  // Logo Upload Handlers
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, mode: 'light' | 'dark' | 'platform') => {
+    console.log('🚀🚀🚀 LOGO UPLOAD TRIGGERED!!! Mode:', mode);
+    
+    const file = e.target.files?.[0];
+    if (!file) {
+      console.log('❌ No file selected');
+      return;
+    }
+
+    console.log(`🎨 Logo Upload - Starting upload for ${mode} mode:`, { fileName: file.name, fileSize: file.size, fileType: file.type });
+
+    if (!file.type.startsWith('image/')) {
+      console.error('❌ Logo Upload - Invalid file type:', file.type);
+      dispatch(addToast({
+        message: 'Please select a valid image file',
+        type: 'error',
+        duration: 5000
+      }));
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      console.error('❌ Logo Upload - File too large:', file.size);
+      dispatch(addToast({
+        message: 'Logo size must be less than 2MB',
+        type: 'error',
+        duration: 5000
+      }));
+      return;
+    }
+
+    try {
+      console.log(`📤 Logo Upload - Dispatching uploadImage thunk for logo-${mode}...`);
+      // @ts-ignore - async thunk from JS file
+      const result = await (dispatch as any)(uploadImage({ file, type: `logo-${mode}` })).unwrap();
+      console.log(`✅ Logo Upload - Upload successful for logo-${mode}:`, result);
+      console.log(`📊 Logo Upload - Current logoUrls state:`, settings.logoUrls);
+      dispatch(addToast({
+        message: `${mode === 'platform' ? 'Platform' : mode === 'light' ? 'Light' : 'Dark'} mode logo uploaded successfully!`,
+        type: 'success',
+        duration: 5000
+      }));
+    } catch (error) {
+      console.error(`❌ Logo Upload - Failed for logo-${mode}:`, error);
+      dispatch(addToast({
+        message: `Failed to upload logo: ${error}`,
+        type: 'error',
+        duration: 5000
+      }));
+    }
+
     e.target.value = '';
   };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+      {/* Hidden file inputs */}
+      <input 
+        type="file" 
+        ref={heroFileInputRef} 
+        onChange={handleHeroImageUpload} 
+        accept="image/*" 
+        className="hidden" 
+      />
+      <input 
+        type="file" 
+        ref={logoLightFileInputRef} 
+        onChange={(e) => handleLogoUpload(e, 'light')} 
+        accept="image/*" 
+        className="hidden" 
+      />
+      <input 
+        type="file" 
+        ref={logoDarkFileInputRef} 
+        onChange={(e) => handleLogoUpload(e, 'dark')} 
+        accept="image/*" 
+        className="hidden" 
+      />
+      <input 
+        type="file" 
+        ref={logoPlatformFileInputRef} 
+        onChange={(e) => handleLogoUpload(e, 'platform')} 
+        accept="image/*" 
+        className="hidden" 
+      />
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
@@ -131,9 +301,11 @@ export const SettingsPage: React.FC = () => {
         </div>
         <button 
             onClick={handleSave}
-            className="bg-brand-black hover:bg-gray-900 text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl shadow-brand-black/20 transition-all flex items-center gap-2"
+            disabled={settings.loading}
+            className="bg-brand-black hover:bg-gray-900 text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl shadow-brand-black/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Save size={18} strokeWidth={2} /> <span>Save Changes</span>
+          <Save size={18} strokeWidth={2} /> 
+          <span>{settings.loading ? 'Saving...' : 'Save Changes'}</span>
         </button>
       </div>
 
@@ -226,8 +398,8 @@ export const SettingsPage: React.FC = () => {
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Platform Name</label>
                             <input 
                                 type="text" 
-                                value={platformName}
-                                onChange={(e) => setPlatformName(e.target.value)}
+                                value={settings.platformName}
+                                onChange={(e) => dispatch(setPlatformName(e.target.value))}
                                 className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
                             />
                         </div>
@@ -239,16 +411,16 @@ export const SettingsPage: React.FC = () => {
                                 <div className="p-4 rounded-2xl border border-gray-200 bg-gray-50 flex items-center gap-4">
                                     <input 
                                         type="color" 
-                                        value={colors.primary}
-                                        onChange={(e) => setColors({ ...colors, primary: e.target.value })}
+                                        value={settings.colors.primary}
+                                        onChange={(e) => dispatch(setColors({ primary: e.target.value }))}
                                         className="w-10 h-10 rounded-full cursor-pointer border-none p-0 overflow-hidden shadow-sm"
                                     />
                                     <div className="flex-1">
                                         <p className="text-[10px] font-bold text-gray-400 uppercase">Primary</p>
                                         <input 
                                             type="text" 
-                                            value={colors.primary}
-                                            onChange={(e) => setColors({ ...colors, primary: e.target.value })}
+                                            value={settings.colors.primary}
+                                            onChange={(e) => dispatch(setColors({ primary: e.target.value }))}
                                             className="w-full bg-transparent text-sm font-bold text-brand-black outline-none uppercase mt-1"
                                         />
                                     </div>
@@ -257,16 +429,16 @@ export const SettingsPage: React.FC = () => {
                                 <div className="p-4 rounded-2xl border border-gray-200 bg-gray-50 flex items-center gap-4">
                                     <input 
                                         type="color" 
-                                        value={colors.secondary}
-                                        onChange={(e) => setColors({ ...colors, secondary: e.target.value })}
+                                        value={settings.colors.secondary}
+                                        onChange={(e) => dispatch(setColors({ secondary: e.target.value }))}
                                         className="w-10 h-10 rounded-full cursor-pointer border-none p-0 overflow-hidden shadow-sm"
                                     />
                                     <div className="flex-1">
                                         <p className="text-[10px] font-bold text-gray-400 uppercase">Secondary</p>
                                         <input 
                                             type="text" 
-                                            value={colors.secondary}
-                                            onChange={(e) => setColors({ ...colors, secondary: e.target.value })}
+                                            value={settings.colors.secondary}
+                                            onChange={(e) => dispatch(setColors({ secondary: e.target.value }))}
                                             className="w-full bg-transparent text-sm font-bold text-brand-black outline-none uppercase mt-1"
                                         />
                                     </div>
@@ -275,16 +447,16 @@ export const SettingsPage: React.FC = () => {
                                 <div className="p-4 rounded-2xl border border-gray-200 bg-gray-50 flex items-center gap-4">
                                     <input 
                                         type="color" 
-                                        value={colors.surface}
-                                        onChange={(e) => setColors({ ...colors, surface: e.target.value })}
+                                        value={settings.colors.surface}
+                                        onChange={(e) => dispatch(setColors({ surface: e.target.value }))}
                                         className="w-10 h-10 rounded-full cursor-pointer border-none p-0 overflow-hidden shadow-sm"
                                     />
                                     <div className="flex-1">
                                         <p className="text-[10px] font-bold text-gray-400 uppercase">Surface/BG</p>
                                         <input 
                                             type="text" 
-                                            value={colors.surface}
-                                            onChange={(e) => setColors({ ...colors, surface: e.target.value })}
+                                            value={settings.colors.surface}
+                                            onChange={(e) => dispatch(setColors({ surface: e.target.value }))}
                                             className="w-full bg-transparent text-sm font-bold text-brand-black outline-none uppercase mt-1"
                                         />
                                     </div>
@@ -298,14 +470,14 @@ export const SettingsPage: React.FC = () => {
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Platform Logo</label>
                                 <div className="flex bg-gray-100 rounded-full p-1">
                                     <button 
-                                        onClick={() => setLogoMode('url')}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${logoMode === 'url' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
+                                        onClick={() => dispatch(setLogoMode('url'))}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${settings.logoMode === 'url' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
                                     >
                                         URL
                                     </button>
                                     <button 
-                                        onClick={() => setLogoMode('upload')}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${logoMode === 'upload' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
+                                        onClick={() => dispatch(setLogoMode('upload'))}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${settings.logoMode === 'upload' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
                                     >
                                         Upload
                                     </button>
@@ -316,45 +488,100 @@ export const SettingsPage: React.FC = () => {
                                 {/* Light Mode Logo */}
                                 <div className="space-y-2">
                                     <span className="text-[10px] font-bold text-gray-400 uppercase">Light Mode Logo</span>
-                                    {logoMode === 'url' ? (
+                                    {settings.logoMode === 'url' ? (
                                         <input 
                                             type="text" 
                                             placeholder="https://... (Light)"
-                                            value={logoUrls.light}
-                                            onChange={(e) => setLogoUrls({ ...logoUrls, light: e.target.value })}
+                                            value={settings.logoUrls.light}
+                                            onChange={(e) => dispatch(setLogoUrls({ light: e.target.value }))}
                                             className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
                                         />
                                     ) : (
-                                        <button 
-                                            onClick={() => handleUploadSimulate('Light Mode Logo')}
-                                            className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-lilac hover:text-brand-lilac hover:bg-brand-lilac/5 transition-all"
-                                        >
-                                            <CloudUpload size={24} />
-                                            <span className="text-xs font-bold">Upload Light Logo</span>
-                                        </button>
+                                        <div className="space-y-2">
+                                            <button 
+                                                onClick={() => logoLightFileInputRef.current?.click()}
+                                                disabled={settings.uploadProgress['logo-light']}
+                                                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-lilac hover:text-brand-lilac hover:bg-brand-lilac/5 transition-all disabled:opacity-50 disabled:cursor-wait"
+                                            >
+                                                <CloudUpload size={24} />
+                                                <span className="text-xs font-bold">
+                                                    {settings.uploadProgress['logo-light'] ? 'Uploading...' : 'Upload Light Logo'}
+                                                </span>
+                                            </button>
+                                            {settings.uploadedLogos.light && (
+                                                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                                                    <img src={getUploadedFileUrl(settings.uploadedLogos.light)} alt="Light logo preview" className="w-12 h-12 object-contain rounded" />
+                                                    <span className="text-xs text-gray-500 font-medium flex-1 truncate">Uploaded</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                                 {/* Dark Mode Logo */}
                                 <div className="space-y-2">
                                     <span className="text-[10px] font-bold text-gray-400 uppercase">Dark Mode Logo</span>
-                                    {logoMode === 'url' ? (
+                                    {settings.logoMode === 'url' ? (
                                         <input 
                                             type="text" 
                                             placeholder="https://... (Dark)"
-                                            value={logoUrls.dark}
-                                            onChange={(e) => setLogoUrls({ ...logoUrls, dark: e.target.value })}
+                                            value={settings.logoUrls.dark}
+                                            onChange={(e) => dispatch(setLogoUrls({ dark: e.target.value }))}
                                             className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
                                         />
                                     ) : (
-                                        <button 
-                                            onClick={() => handleUploadSimulate('Dark Mode Logo')}
-                                            className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-black hover:text-brand-black hover:bg-gray-50 transition-all bg-gray-50"
-                                        >
-                                            <CloudUpload size={24} />
-                                            <span className="text-xs font-bold">Upload Dark Logo</span>
-                                        </button>
+                                        <div className="space-y-2">
+                                            <button 
+                                                onClick={() => logoDarkFileInputRef.current?.click()}
+                                                disabled={settings.uploadProgress['logo-dark']}
+                                                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-black hover:text-brand-black hover:bg-gray-50 transition-all bg-gray-50 disabled:opacity-50 disabled:cursor-wait"
+                                            >
+                                                <CloudUpload size={24} />
+                                                <span className="text-xs font-bold">
+                                                    {settings.uploadProgress['logo-dark'] ? 'Uploading...' : 'Upload Dark Logo'}
+                                                </span>
+                                            </button>
+                                            {settings.uploadedLogos.dark && (
+                                                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 border border-gray-200">
+                                                    <img src={getUploadedFileUrl(settings.uploadedLogos.dark)} alt="Dark logo preview" className="w-12 h-12 object-contain rounded bg-gray-800" />
+                                                    <span className="text-xs text-gray-500 font-medium flex-1 truncate">Uploaded</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
+                            </div>
+                            
+                            {/* Platform/Navigation Logo */}
+                            <div className="space-y-2 pt-4 border-t border-gray-100">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase">Navigation Logo (Used in header & login)</span>
+                                {settings.logoMode === 'url' ? (
+                                    <input 
+                                        type="text" 
+                                        placeholder="https://... (Platform Logo)"
+                                        value={settings.logoUrls.platform || ''}
+                                        onChange={(e) => dispatch(setLogoUrls({ platform: e.target.value }))}
+                                        className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+                                    />
+                                ) : (
+                                    <div className="space-y-2">
+                                        <button 
+                                            onClick={() => logoPlatformFileInputRef.current?.click()}
+                                            disabled={settings.uploadProgress['logo-platform']}
+                                            className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-black hover:text-brand-black hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-wait"
+                                        >
+                                            <CloudUpload size={24} />
+                                            <span className="text-xs font-bold">
+                                                {settings.uploadProgress['logo-platform'] ? 'Uploading...' : 'Upload Platform Logo'}
+                                            </span>
+                                        </button>
+                                        {settings.uploadedLogos.platform && (
+                                            <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                                                <img src={getUploadedFileUrl(settings.uploadedLogos.platform)} alt="Platform logo preview" className="w-12 h-12 object-contain rounded" />
+                                                <span className="text-xs text-gray-500 font-medium flex-1 truncate">Uploaded</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -373,34 +600,38 @@ export const SettingsPage: React.FC = () => {
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Hero Image</label>
                                 <div className="flex bg-gray-100 rounded-full p-1">
                                     <button 
-                                        onClick={() => setHeroMode('url')}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${heroMode === 'url' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
+                                        onClick={() => dispatch(setHeroMode('url'))}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${settings.heroMode === 'url' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
                                     >
                                         URL
                                     </button>
                                     <button 
-                                        onClick={() => setHeroMode('upload')}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${heroMode === 'upload' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
+                                        onClick={() => dispatch(setHeroMode('upload'))}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${settings.heroMode === 'upload' ? 'bg-white shadow-sm text-brand-black' : 'text-gray-500'}`}
                                     >
                                         Upload
                                     </button>
                                 </div>
                             </div>
                             
-                            {heroMode === 'url' ? (
+                            {settings.heroMode === 'url' ? (
                                 <input 
                                     type="text" 
-                                    value={loginHeroImage}
-                                    onChange={(e) => setLoginHeroImage(e.target.value)}
+                                    value={settings.loginHeroImage}
+                                    onChange={(e) => dispatch(setLoginHeroImage(e.target.value))}
                                     className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+                                    placeholder="https://your-image-url.com/image.jpg"
                                 />
                             ) : (
                                 <button 
-                                    onClick={() => handleUploadSimulate('Login Hero Image')}
-                                    className="w-full py-8 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-orange hover:text-brand-orange hover:bg-brand-orange/5 transition-all"
+                                    onClick={() => heroFileInputRef.current?.click()}
+                                    disabled={settings.uploadProgress['hero']}
+                                    className="w-full py-8 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-orange hover:text-brand-orange hover:bg-brand-orange/5 transition-all disabled:opacity-50 disabled:cursor-wait"
                                 >
                                     <CloudUpload size={32} />
-                                    <span className="text-sm font-bold">Click to Upload Hero Image</span>
+                                    <span className="text-sm font-bold">
+                                        {settings.uploadProgress['hero'] ? 'Uploading...' : 'Click to Upload Hero Image'}
+                                    </span>
                                 </button>
                             )}
 
@@ -409,8 +640,15 @@ export const SettingsPage: React.FC = () => {
                             </div>
                         </div>
                         <div className="aspect-video rounded-[2rem] overflow-hidden border border-gray-200 shadow-md relative group">
-                            {heroMode === 'url' && loginHeroImage ? (
-                                <img src={loginHeroImage} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Login Preview" />
+                            {settings.loginHeroImage ? (
+                                <img 
+                                    src={getUploadedFileUrl(settings.loginHeroImage)} 
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                    alt="Login Preview"
+                                    onError={(e) => {
+                                        e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-family="sans-serif"%3EInvalid URL%3C/text%3E%3C/svg%3E';
+                                    }}
+                                />
                             ) : (
                                 <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold">Preview Area</div>
                             )}
@@ -428,35 +666,58 @@ export const SettingsPage: React.FC = () => {
                         <MessageSquare className="text-brand-green" size={24}/> Testimonials
                     </h3>
                     
-                    {testimonials.map((t, idx) => (
+                    {settings.testimonials.map((t: any, idx: number) => (
                         <div key={t.id} className="p-6 rounded-[2rem] bg-gray-50 border border-gray-200 space-y-4 relative">
                             <div className="absolute top-4 right-4 text-gray-300 font-bold text-6xl opacity-20 select-none">“</div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Person Name</label>
-                                    <input type="text" defaultValue={t.name} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold" />
+                                    <input 
+                                        type="text" 
+                                        value={t.name} 
+                                        onChange={(e) => dispatch(updateTestimonial({ id: t.id, field: 'name', value: e.target.value }))}
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Role / Title</label>
-                                    <input type="text" defaultValue={t.role} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold" />
+                                    <input 
+                                        type="text" 
+                                        value={t.role} 
+                                        onChange={(e) => dispatch(updateTestimonial({ id: t.id, field: 'role', value: e.target.value }))}
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold" 
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Quote Text</label>
-                                <textarea rows={3} defaultValue={t.text} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium resize-none" />
+                                <textarea 
+                                    rows={3} 
+                                    value={t.text} 
+                                    onChange={(e) => dispatch(updateTestimonial({ id: t.id, field: 'text', value: e.target.value }))}
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium resize-none" 
+                                />
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
-                                    <img src={t.avatar} className="w-full h-full object-cover" />
+                                    <img src={t.avatar} className="w-full h-full object-cover" alt={t.name} />
                                 </div>
                                 <div className="flex-1 space-y-2">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Avatar URL</label>
-                                    <input type="text" defaultValue={t.avatar} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-mono text-gray-500" />
+                                    <input 
+                                        type="text" 
+                                        value={t.avatar} 
+                                        onChange={(e) => dispatch(updateTestimonial({ id: t.id, field: 'avatar', value: e.target.value }))}
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs font-mono text-gray-500" 
+                                    />
                                 </div>
                             </div>
                         </div>
                     ))}
-                    <button onClick={() => setTestimonials([...testimonials, { id: String(Date.now()), name: '', role: '', text: '', avatar: 'https://ui-avatars.com/api/?name=New&background=random' }])} className="w-full py-4 border-2 border-dashed border-gray-300 rounded-[2rem] text-gray-400 font-bold text-sm hover:border-brand-black hover:text-brand-black transition-all flex items-center justify-center gap-2">
+                    <button 
+                        onClick={() => dispatch(addTestimonial())} 
+                        className="w-full py-4 border-2 border-dashed border-gray-300 rounded-[2rem] text-gray-400 font-bold text-sm hover:border-brand-black hover:text-brand-black transition-all flex items-center justify-center gap-2"
+                    >
                         <Plus size={18} /> Add New Testimonial
                     </button>
                 </div>
@@ -488,11 +749,11 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               <div className="grid gap-12">
-                {permissionGroups.map((group, groupIdx) => (
+                {settings.permissionGroups.map((group: any, groupIdx: number) => (
                   <div key={group.category} className="space-y-4">
                      <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">
-                          <group.icon size={16} />
+                          {React.createElement(getIcon(group.iconName), { size: 16 })}
                         </div>
                         <h4 className="text-lg font-bold text-brand-black uppercase tracking-wide">{group.category}</h4>
                      </div>
@@ -507,7 +768,7 @@ export const SettingsPage: React.FC = () => {
                               </tr>
                            </thead>
                            <tbody className="divide-y divide-gray-50">
-                              {group.permissions.map((perm) => (
+                              {group.permissions.map((perm: any) => (
                                  <tr key={perm.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-8 py-5">
                                        <p className="font-bold text-brand-black text-sm">{perm.name}</p>
@@ -515,7 +776,7 @@ export const SettingsPage: React.FC = () => {
                                     </td>
                                     <td className="px-8 py-5 text-center">
                                        <button 
-                                         onClick={() => togglePermission(groupIdx, perm.id, 'admin')}
+                                         onClick={() => handlePermissionToggle(groupIdx, perm.id, 'admin')}
                                          className={`w-12 h-7 rounded-full relative transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-black/20 ${perm.admin ? 'bg-brand-black' : 'bg-gray-200'}`}
                                        >
                                           <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm flex items-center justify-center ${perm.admin ? 'translate-x-5' : 'translate-x-0'}`}>
@@ -525,7 +786,7 @@ export const SettingsPage: React.FC = () => {
                                     </td>
                                     <td className="px-8 py-5 text-center">
                                        <button 
-                                         onClick={() => togglePermission(groupIdx, perm.id, 'schoolAdmin')}
+                                         onClick={() => handlePermissionToggle(groupIdx, perm.id, 'schoolAdmin')}
                                          className={`w-12 h-7 rounded-full relative transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-lilac/20 ${perm.schoolAdmin ? 'bg-brand-lilac' : 'bg-gray-200'}`}
                                        >
                                           <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm flex items-center justify-center ${perm.schoolAdmin ? 'translate-x-5' : 'translate-x-0'}`}>

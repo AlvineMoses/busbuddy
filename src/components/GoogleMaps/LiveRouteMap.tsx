@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { Plus, Minus, X, User, Phone, FileText, Gauge, Activity } from 'lucide-react';
 import { TransportRoute } from '../../../types';
+import { useTheme, getStatusColor } from '../../hooks/useTheme';
 
 interface LiveRouteMapProps {
   routes: TransportRoute[];
@@ -9,38 +10,6 @@ interface LiveRouteMapProps {
 }
 
 const GOOGLE_MAPS_API_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
-
-// In dev, load Google Maps JS API through our Vite proxy so the Referer header
-// is rewritten to corp.little.global (the allowed referrer in Google Cloud Console).
-// In production, load directly from Google.
-const isDev = (import.meta as any).env?.DEV;
-const MAPS_SCRIPT_BASE = isDev
-  ? '/google-maps-proxy/maps/api/js'
-  : 'https://maps.googleapis.com/maps/api/js';
-
-/**
- * Manually bootstrap the Google Maps JS API through our proxy.
- * @vis.gl/react-google-maps will detect window.google.maps.importLibrary
- * and skip its own script-loading logic.
- */
-function loadMapsViaProxy(apiKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).google?.maps?.importLibrary) {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = `${MAPS_SCRIPT_BASE}?key=${apiKey}&libraries=maps,marker&callback=__gmapsLoaded&v=weekly`;
-    script.async = true;
-    script.defer = true;
-    (window as any).__gmapsLoaded = () => {
-      delete (window as any).__gmapsLoaded;
-      resolve();
-    };
-    script.onerror = () => reject(new Error('Failed to load Google Maps'));
-    document.head.appendChild(script);
-  });
-}
 
 // Default center (adjust to your location)
 const DEFAULT_CENTER = { lat: -1.286389, lng: 36.817223 }; // Nairobi, Kenya
@@ -65,18 +34,20 @@ const MapControls = ({ onZoomIn, onZoomOut }: { onZoomIn: () => void; onZoomOut:
 };
 
 const MapLegend = () => {
+  const { colors } = useTheme();
+  
   return (
     <div className="absolute bottom-8 left-8 bg-white/80 backdrop-blur-xl px-2 py-2 rounded-full shadow-float border border-white flex gap-4 items-center z-10">
       <div className="flex items-center gap-2 px-3">
-        <div className="w-2 h-2 rounded-full bg-[#1fd701] shadow-[0_0_10px_#1fd701]"></div>
+        <div className="w-2 h-2 rounded-full shadow-[0_0_10px_rgba(31,215,1,0.5)]" style={{ backgroundColor: colors.statusActive }}></div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Normal</span>
       </div>
       <div className="flex items-center gap-2 px-3">
-        <div className="w-2 h-2 rounded-full bg-[#ff9d00]"></div>
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.statusWarning }}></div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Delay</span>
       </div>
       <div className="flex items-center gap-2 px-3">
-        <div className="w-2 h-2 rounded-full bg-[#FF6106]"></div>
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.statusCompleted }}></div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Alert</span>
       </div>
     </div>
@@ -90,6 +61,8 @@ const RouteDetailsPanel = ({
   route: TransportRoute | null; 
   onClose: () => void;
 }) => {
+  const { colors } = useTheme();
+  
   if (!route) return null;
 
   return (
@@ -142,13 +115,13 @@ const RouteDetailsPanel = ({
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 rounded-2xl bg-[#bda8ff]/5 border border-[#bda8ff]/20">
-            <Gauge size={20} className="text-brand-lilac mb-2" />
+          <div className="p-4 rounded-2xl border" style={{ backgroundColor: `${colors.statusScheduled}0D`, borderColor: `${colors.statusScheduled}33` }}>
+            <Gauge size={20} className="mb-2" style={{ color: colors.statusScheduled }} />
             <p className="text-2xl font-bold text-brand-black">45 <span className="text-xs text-gray-400 font-medium">km/h</span></p>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avg Speed</p>
           </div>
-          <div className="p-4 rounded-2xl bg-[#1fd701]/5 border border-[#1fd701]/20">
-            <Activity size={20} className="text-[#1fd701] mb-2" />
+          <div className="p-4 rounded-2xl border" style={{ backgroundColor: `${colors.statusActive}0D`, borderColor: `${colors.statusActive}33` }}>
+            <Activity size={20} className="mb-2" style={{ color: colors.statusActive }} />
             <p className="text-2xl font-bold text-brand-black">98%</p>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Efficiency</p>
           </div>
@@ -160,6 +133,7 @@ const RouteDetailsPanel = ({
 
 const LiveRouteMapInner = ({ routes }: { routes: TransportRoute[] }) => {
   const map = useMap();
+  const { colors } = useTheme();
   const [selectedRoute, setSelectedRoute] = useState<TransportRoute | null>(null);
 
   const handleZoomIn = useCallback(() => {
@@ -188,10 +162,10 @@ const LiveRouteMapInner = ({ routes }: { routes: TransportRoute[] }) => {
 
   const getMarkerColor = (health: string) => {
     switch (health) {
-      case 'NORMAL': return '#1fd701';
-      case 'DELAYED': return '#ff9d00';
-      case 'ALERT': return '#FF6106';
-      default: return '#1fd701';
+      case 'NORMAL': return colors.statusActive;
+      case 'DELAYED': return colors.statusWarning;
+      case 'ALERT': return colors.statusCompleted;
+      default: return colors.statusActive;
     }
   };
 
@@ -277,29 +251,8 @@ const MapFallback = ({ routes }: { routes: TransportRoute[] }) => (
 );
 
 export const LiveRouteMap: React.FC<LiveRouteMapProps> = ({ routes, onNavigate }) => {
-  const [mapsReady, setMapsReady] = useState(false);
-  const [mapsError, setMapsError] = useState(false);
-
-  useEffect(() => {
-    if (!GOOGLE_MAPS_API_KEY) return;
-    loadMapsViaProxy(GOOGLE_MAPS_API_KEY)
-      .then(() => setMapsReady(true))
-      .catch(() => setMapsError(true));
-  }, []);
-
-  if (!GOOGLE_MAPS_API_KEY || mapsError) {
+  if (!GOOGLE_MAPS_API_KEY) {
     return <MapFallback routes={routes} />;
-  }
-
-  if (!mapsReady) {
-    return (
-      <div className="relative w-full h-full bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden border border-white/60 shadow-soft-xl flex items-center justify-center">
-        <div className="text-center p-8">
-          <div className="w-8 h-8 border-3 border-gray-200 border-t-[#ff3600] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm font-bold text-gray-400">Loading map…</p>
-        </div>
-      </div>
-    );
   }
 
   return (

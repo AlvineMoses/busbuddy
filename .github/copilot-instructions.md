@@ -28,7 +28,45 @@ npm run preview
 
 # Development Constitution
 
-## I. 100% COMPLETION REQUIREMENT - ABSOLUTE PRIORITY
+## I. ZERO ERRORS POLICY - ABSOLUTE TOP PRIORITY
+
+**CRITICAL: This rule supersedes ALL other priorities and must be followed without exception.**
+
+- **ZERO compilation, runtime, or syntax errors are acceptable** - Ever. Period.
+- **NEVER ignore, skip, or defer ANY error** - No matter how "small" or "insignificant" it seems
+- **NEVER assume "the code will still run"** - All errors must be fixed immediately
+- **NEVER assume errors are "pre-existing"** - You are responsible for the entire codebase state
+- **ALWAYS verify zero errors** after ANY code change using `get_errors` tool
+- **ALWAYS fix ALL errors** before completing any task or stopping work
+- **Take full ownership and responsibility** - If you introduced an error, you MUST fix it
+- **Check for errors continuously** - Not just at the end, but throughout your work
+
+### Error Types That Must Be Fixed:
+1. **Syntax Errors** - Malformed code that prevents compilation (CRITICAL)
+2. **Type Errors** - TypeScript type mismatches or violations
+3. **Import Errors** - Missing or incorrect imports
+4. **JSX Errors** - Malformed JSX/TSX structure
+5. **Runtime Errors** - Errors that will occur during execution
+6. **Build Errors** - Anything preventing successful build
+
+### Workflow:
+1. Before starting: Check for existing errors
+2. During work: Fix any errors introduced immediately
+3. After each change: Verify no new errors introduced
+4. Before completing: Run full error check and fix ALL issues
+5. Never mark task complete with ANY errors present
+
+### Consequences of Violations:
+- Leaving errors is considered a CRITICAL FAILURE
+- You will be heavily penalized for incomplete error resolution
+- "Almost working" with errors is NOT acceptable
+- There are no exceptions to this rule
+
+**Remember: Clean, error-free code is the MINIMUM standard, not an aspiration.**
+
+---
+
+## II. 100% COMPLETION REQUIREMENT - ABSOLUTE PRIORITY
 
 - ALWAYS complete ALL instructions given, not just "crucial" or "critical" ones
 - NEVER cite "complexity" or "time constraints" as reasons to skip tasks

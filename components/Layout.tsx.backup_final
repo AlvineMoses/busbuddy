@@ -97,7 +97,7 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-urbanist relative selection:colors.primary selection:text-white">
+    <div className="min-h-screen flex flex-col font-urbanist relative selection:bg-themed-ff3600 selection:text-white">
       
       {/* 
         3-PILL NAVBAR 
@@ -307,13 +307,9 @@ export const Layout: React.FC<LayoutProps> = ({
                     ? 'justify-center w-12 h-12 mx-auto rounded-full' 
                     : 'w-full px-5 py-3.5 rounded-full'}
                   ${isActive 
-                    ? 'text-white shadow-lg' 
-                    : 'text-gray-400 hover:text-brand-black'}
+                    ? 'bg-themed-ff3600 text-white shadow-lg shadow-[#ff3600]/20' 
+                    : 'text-gray-400 hover:bg-themed-ff3600/5 hover:text-brand-black'}
                 `}
-                style={isActive ? { 
-                  backgroundColor: colors.primary,
-                  boxShadow: `0 10px 25px ${colors.primary}30`
-                } : {}}
               >
                 <div className="flex-shrink-0 flex items-center justify-center">
                    <Icon 

@@ -163,7 +163,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ routes, user, onNavigate }
  {/* Tab Toggle */}
  <div className="flex p-1.5 bg-gray-100/50 rounded-2xl mb-6">
  <button onClick={() => setFeedTab('fleet')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${feedTab === 'fleet' ? 'shadow-sm text-white' : 'text-gray-400 hover:text-gray-600'}`}>Fleet Status</button>
- <button onClick={() => setFeedTab('drivers')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${feedTab === 'drivers' ? 'shadow-sm text-white' : 'text-gray-400 hover:text-gray-600'}`} style={feedTab === "drivers" ? { backgroundColor: colors.primary } : {}}>Drivers</button>
+ <button onClick={() => setFeedTab('drivers')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${feedTab === 'drivers' ? 'shadow-sm text-white' : 'text-gray-400 hover:text-gray-600'}`}>Drivers</button>
  </div>
  
  {/* Subtabs for Drivers */}

@@ -238,7 +238,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({ currentUser, s
 
  {/* Export */}
  <div className="flex items-end">
- <button className="w-full px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-200 text-gray-600 hover:text-brand-lilac font-bold transition-all flex items-center justify-center gap-2">
+ <button className="w-full px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border- text-gray-600 hover:text- font-bold transition-all flex items-center justify-center gap-2">
  <Download size={18} />
  Export
  </button>
@@ -304,7 +304,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({ currentUser, s
  </td>
  <td className="px-8 py-5">
  <div className="flex items-center gap-2">
- <button onClick={() => openEditModal(assignment)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-brand-lilac transition-colors">
+ <button onClick={() => openEditModal(assignment)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text- transition-colors">
  <Edit2 size={16} />
  </button>
  <button onClick={() => handleDelete(assignment.id)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-red-600 transition-colors">
@@ -382,7 +382,7 @@ export const AssignmentsPage: React.FC<AssignmentsPageProps> = ({ currentUser, s
  </div>
 
  <div className="flex items-center gap-3 mt-6">
- <button onClick={handleSave} className="flex-1 text-white py-3 rounded-2xl font-bold transition-colors" style={{ backgroundColor: colors.primary }}>{editingAssignment ? 'Save Changes' : 'Create Assignment'}</button>
+ <button onClick={handleSave} className="flex-1 text-white py-3 rounded-2xl font-bold hover:bg-themed-e63200 transition-colors">{editingAssignment ? 'Save Changes' : 'Create Assignment'}</button>
  <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
  </div>
  </div>
