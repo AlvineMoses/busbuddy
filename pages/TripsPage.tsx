@@ -52,11 +52,11 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
   return (
     <div className="space-y-10 animate-in fade-in duration-700" onClick={() => setOpenActionId(null)}>
       
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         {showHeader ? (
             <div>
-                <h1 className="text-5xl font-medium text-brand-black tracking-tight">Trip History</h1>
-                <p className="text-gray-500 font-light mt-2 text-lg">Detailed audit logs and playback.</p>
+                <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Trip History</h1>
+                <p className="text-gray-500 font-normal text-xl">Detailed audit logs and playback.</p>
             </div>
         ) : <div className="hidden md:block"></div> /* Spacer to keep flex layout balanced if needed, or just empty */}
         

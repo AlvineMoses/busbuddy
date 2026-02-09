@@ -109,10 +109,10 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
-          <h1 className="text-5xl font-medium text-brand-black tracking-tight">Settings</h1>
-          <p className="text-gray-500 font-light mt-2 text-lg">Configure platform preferences and permissions.</p>
+          <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Settings</h1>
+          <p className="text-gray-500 font-normal text-xl">Configure platform preferences and permissions.</p>
         </div>
         <button 
             onClick={handleSave}

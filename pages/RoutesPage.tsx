@@ -144,10 +144,10 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700" onClick={() => setOpenActionId(null)}>
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
-          <h1 className="text-5xl font-medium text-brand-black tracking-tight">Routes</h1>
-          <p className="text-gray-500 font-light mt-2 text-lg mb-6">Manage transport corridors and schedules.</p>
+          <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Routes</h1>
+          <p className="text-gray-500 font-normal text-xl mb-6">Manage transport corridors and schedules.</p>
           
           {/* Pill Toggle - Moved below text */}
           <div className="inline-flex p-1.5 bg-white rounded-full border border-gray-100 shadow-sm">

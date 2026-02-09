@@ -89,3 +89,29 @@ export const NOTIFICATIONS: Notification[] = [
   { id: 'N3', title: 'System Maintenance', message: 'Scheduled maintenance tonight at 2 AM.', type: NotificationType.SYSTEM, timestamp: '2 hours ago', read: true },
   { id: 'N4', title: 'Attendance Marked', message: 'Morning attendance completed for City High.', type: NotificationType.ATTENDANCE, timestamp: '3 hours ago', read: true },
 ];
+
+// Drivers mock data (moved from DriversPage.tsx)
+export const MOCK_DRIVERS = [
+  { id: 'D1', name: 'James Wilson', vehicle: 'Toyota Coaster (BUS-101)', phone: '+1 234 567 890', email: 'james.w@transport.com', license: 'EXP-2025', status: 'ON_TRIP', avatar: 'https://picsum.photos/150', corporate: 'TechCorp Inc.' },
+  { id: 'D2', name: 'Robert Chen', vehicle: 'Mercedes Sprinter (BUS-102)', phone: '+1 234 567 891', email: 'robert.c@transport.com', license: 'EXP-2024', status: 'AVAILABLE', avatar: 'https://picsum.photos/151', corporate: 'City Schools' },
+  { id: 'D3', name: 'Sarah Miller', vehicle: 'Ford Transit (BUS-205)', phone: '+1 234 567 892', email: 'sarah.m@transport.com', license: 'EXP-2026', status: 'OFF_DUTY', avatar: 'https://picsum.photos/152', corporate: 'Global Logistics' },
+  { id: 'D4', name: 'David Kim', vehicle: 'Unassigned', phone: '+1 234 567 893', email: 'david.k@transport.com', license: 'PENDING', status: 'PENDING', avatar: 'https://picsum.photos/153', corporate: 'Unassigned' },
+];
+
+// Students mock data (moved from StudentsPage.tsx)
+export const MOCK_STUDENTS = [
+  { id: 'ST1', name: 'Alice Johnson', school: 'International Academy', grade: '5th Grade', guardian: 'Martha Johnson', status: 'ON_BOARD' },
+  { id: 'ST2', name: 'Bob Smith', school: 'City High School', grade: '10th Grade', guardian: 'John Smith', status: 'DROPPED_OFF' },
+  { id: 'ST3', name: 'Charlie Brown', school: 'Valley Elementary', grade: '2nd Grade', guardian: 'Snoopy Brown', status: 'ABSENT' },
+  { id: 'ST4', name: 'Daisy Ridley', school: 'International Academy', grade: '5th Grade', guardian: 'Mark Ridley', status: 'WAITING' },
+  { id: 'ST5', name: 'Ethan Hunt', school: 'City High School', grade: '12th Grade', guardian: 'Tom Hunt', status: 'DROPPED_OFF' },
+];
+
+// Live drivers for dashboard (moved from Dashboard.tsx)
+export const MOCK_LIVE_DRIVERS = [
+  { id: 'D1', name: 'James Wilson', status: 'ON_TRIP', vehicle: 'BUS-101', avatar: 'https://picsum.photos/150' },
+  { id: 'D2', name: 'Robert Chen', status: 'ONLINE', vehicle: 'BUS-102', avatar: 'https://picsum.photos/151' },
+  { id: 'D3', name: 'Sarah Miller', status: 'OFFLINE', vehicle: '-', avatar: 'https://picsum.photos/152' },
+  { id: 'D4', name: 'David Kim', status: 'ONLINE', vehicle: 'BUS-206', avatar: 'https://picsum.photos/153' },
+  { id: 'D5', name: 'Lisa Ray', status: 'ON_TRIP', vehicle: 'BUS-207', avatar: 'https://picsum.photos/154' },
+];

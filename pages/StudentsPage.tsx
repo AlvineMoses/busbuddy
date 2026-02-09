@@ -135,7 +135,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
       />
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         {showHeader ? (
             <div>
                 <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Students</h1>

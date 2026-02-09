@@ -73,10 +73,10 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700" onClick={() => setOpenActionId(null)}>
       
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
-          <h1 className="text-5xl font-medium text-brand-black tracking-tight">Schools</h1>
-          <p className="text-gray-500 font-light mt-2 text-lg mb-6">Contract management and institution oversight.</p>
+          <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Schools</h1>
+          <p className="text-gray-500 font-normal text-xl mb-6">Contract management and institution oversight.</p>
           
           {/* Super Admin Tabs - Moved below text */}
           {currentUser.role === UserRole.SUPER_ADMIN && (
