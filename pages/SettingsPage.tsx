@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { Bell, Shield, Save, User, Check, AlertCircle, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, ToggleRight, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, Monitor, Upload, CloudUpload } from 'lucide-react';
 import { 
   fetchSettings, 
@@ -299,46 +300,50 @@ export const SettingsPage: React.FC = () => {
           <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Settings</h1>
           <p className="text-gray-500 font-normal text-xl">Configure platform preferences and permissions.</p>
         </div>
-        <button 
+        <ThemedButton 
+            variant="primary"
             onClick={handleSave}
             disabled={settings.loading}
-            className="bg-brand-black hover:bg-gray-900 text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl shadow-brand-black/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            icon={Save}
         >
-          <Save size={18} strokeWidth={2} /> 
-          <span>{settings.loading ? 'Saving...' : 'Save Changes'}</span>
-        </button>
+          {settings.loading ? 'Saving...' : 'Save Changes'}
+        </ThemedButton>
       </div>
 
       <div className="flex p-1.5 bg-white rounded-full w-fit border border-gray-100 shadow-sm flex-wrap">
         <button
           onClick={() => setActiveTab('general')}
           className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
-            activeTab === 'general' ? 'bg-brand-lilac text-brand-black shadow-lg shadow-brand-lilac/20' : 'text-gray-400 hover:text-brand-black'
+            activeTab === 'general' ? 'text-white shadow-lg' : 'text-gray-400 hover:text-brand-black'
           }`}
+          style={activeTab === 'general' ? { backgroundColor: settings.colors.primary } : undefined}
         >
           General
         </button>
         <button
           onClick={() => setActiveTab('appearance')}
           className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
-            activeTab === 'appearance' ? 'bg-brand-lilac text-brand-black shadow-lg shadow-brand-lilac/20' : 'text-gray-400 hover:text-brand-black'
+            activeTab === 'appearance' ? 'text-white shadow-lg' : 'text-gray-400 hover:text-brand-black'
           }`}
+          style={activeTab === 'appearance' ? { backgroundColor: settings.colors.primary } : undefined}
         >
           Appearance
         </button>
         <button
           onClick={() => setActiveTab('roles')}
           className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
-            activeTab === 'roles' ? 'bg-brand-lilac text-brand-black shadow-lg shadow-brand-lilac/20' : 'text-gray-400 hover:text-brand-black'
+            activeTab === 'roles' ? 'text-white shadow-lg' : 'text-gray-400 hover:text-brand-black'
           }`}
+          style={activeTab === 'roles' ? { backgroundColor: settings.colors.primary } : undefined}
         >
           Roles & Permissions
         </button>
         <button
           onClick={() => setActiveTab('system')}
           className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
-            activeTab === 'system' ? 'bg-brand-lilac text-brand-black shadow-lg shadow-brand-lilac/20' : 'text-gray-400 hover:text-brand-black'
+            activeTab === 'system' ? 'text-white shadow-lg' : 'text-gray-400 hover:text-brand-black'
           }`}
+          style={activeTab === 'system' ? { backgroundColor: settings.colors.primary } : undefined}
         >
           System
         </button>
@@ -714,12 +719,9 @@ export const SettingsPage: React.FC = () => {
                             </div>
                         </div>
                     ))}
-                    <button 
-                        onClick={() => dispatch(addTestimonial())} 
-                        className="w-full py-4 border-2 border-dashed border-gray-300 rounded-[2rem] text-gray-400 font-bold text-sm hover:border-brand-black hover:text-brand-black transition-all flex items-center justify-center gap-2"
-                    >
-                        <Plus size={18} /> Add New Testimonial
-                    </button>
+                    <ThemedButton variant="ghost" onClick={() => dispatch(addTestimonial())} icon={Plus} fullWidth className="py-4 border-2 border-dashed border-gray-300">
+                        Add New Testimonial
+                    </ThemedButton>
                 </div>
 
             </div>
@@ -735,12 +737,9 @@ export const SettingsPage: React.FC = () => {
                    <p className="text-gray-500 mt-2 text-sm">Define capabilities and module access for standard admin roles.</p>
                  </div>
                  <div className="flex items-center gap-4">
-                    <button 
-                        onClick={handleCreateRole}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-bold transition-colors text-brand-black"
-                    >
-                       <Plus size={14} /> Create New Role
-                    </button>
+                    <ThemedButton variant="cancel" onClick={handleCreateRole} icon={Plus}>
+                       Create New Role
+                    </ThemedButton>
                     <div className="flex items-center gap-6 text-sm bg-gray-50 px-6 py-3 rounded-full">
                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-brand-black shadow-sm"></span> <span className="font-bold text-brand-black">Admin (Ops)</span></div>
                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-brand-lilac shadow-sm"></span> <span className="font-bold text-brand-black">School Admin</span></div>

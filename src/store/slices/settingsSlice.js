@@ -11,7 +11,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { settingsService } from '../../services/UnifiedApiService';
-import { uploadFile, getUploadedFileUrl } from '../../services/fileUploadService';
+import { uploadFile } from '../../services/fileUploadService';
 
 // ============================================
 // ASYNC THUNKS
@@ -54,20 +54,15 @@ export const uploadImage = createAsyncThunk(
   'settings/uploadImage',
   async ({ file, type }, { rejectWithValue }) => {
     try {
-      console.log(`📤 uploadImage thunk - Starting:`, { fileName: file.name, type });
-      
-      // Upload file to /public/uploads/ and get path
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type); // 'hero', 'logo-light', 'logo-dark'
+
+      // Use fileUploadService to store in localStorage (simulates /public/uploads/)
       const publicPath = await uploadFile(file, type);
-      
-      console.log(`✅ uploadImage thunk - File uploaded successfully:`, { type, publicPath });
-      
-      return {
-        type,
-        url: publicPath, // Now stores path like '/uploads/logo-platform-1234567890.png'
-        fileName: file.name
-      };
+      return { type, url: publicPath, fileName: file.name };
     } catch (error) {
-      console.error(`❌ uploadImage thunk - Error:`, error);
       return rejectWithValue(error.message);
     }
   }
@@ -81,14 +76,9 @@ const initialState = {
   // Data
   platformName: 'Bus Buddy',
   colors: {
-    primary: '#ff3600',      // Main brand color (buttons, focus, active states)
-    secondary: '#1fd701',    // Secondary/success color
-    surface: '#f8fafc',      // Background surface color
-    // Status colors for trips/routes
-    statusActive: '#1fd701',    // Active/In Progress (green)
-    statusScheduled: '#bda8ff', // Scheduled (purple)
-    statusWarning: '#ff9d00',   // Warning/Delayed (orange)
-    statusCompleted: '#FF6106'  // Completed/Cancelled (red-orange)
+    primary: '#ff3600',
+    secondary: '#1fd701',
+    surface: '#f8fafc'
   },
   loginHeroImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2576&auto=format&fit=crop',
   heroMode: 'url', // 'url' or 'upload'
@@ -98,7 +88,7 @@ const initialState = {
   logoUrls: {
     light: '',
     dark: '',
-    platform: '' // Platform logo for navigation
+    platform: ''
   },
   uploadedLogos: {
     light: null,
@@ -239,36 +229,28 @@ const settingsSlice = createSlice({
     builder
       .addCase(uploadImage.pending, (state, action) => {
         const { type } = action.meta.arg;
-        console.log(`⏳ Redux - uploadImage.pending for ${type}`);
         state.uploadProgress[type] = true;
       })
       .addCase(uploadImage.fulfilled, (state, action) => {
         const { type, url } = action.payload;
-        console.log(`✅ Redux - uploadImage.fulfilled for ${type}:`, url);
         state.uploadProgress[type] = false;
         
         if (type === 'hero') {
           state.uploadedHeroImage = url;
           state.loginHeroImage = url;
-          console.log(`📸 Redux - Updated hero image`);
         } else if (type === 'logo-light') {
           state.uploadedLogos.light = url;
           state.logoUrls.light = url;
-          console.log(`📸 Redux - Updated logo-light`);
         } else if (type === 'logo-dark') {
           state.uploadedLogos.dark = url;
           state.logoUrls.dark = url;
-          console.log(`📸 Redux - Updated logo-dark`);
         } else if (type === 'logo-platform') {
           state.uploadedLogos.platform = url;
           state.logoUrls.platform = url;
-          console.log(`📸 Redux - Updated logo-platform to:`, url);
-          console.log(`📸 Redux - Current logoUrls state:`, state.logoUrls);
         }
       })
       .addCase(uploadImage.rejected, (state, action) => {
         const { type } = action.meta.arg;
-        console.error(`❌ Redux - uploadImage.rejected for ${type}:`, action.payload);
         state.uploadProgress[type] = false;
         state.error = action.payload;
       });

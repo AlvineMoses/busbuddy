@@ -16,7 +16,6 @@
  */
 
 import React, { InputHTMLAttributes, ButtonHTMLAttributes, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { useTheme } from '../hooks/useTheme';
 import { getUploadedFileUrl } from '../services/fileUploadService';
 import { LucideIcon } from 'lucide-react';
@@ -238,16 +237,17 @@ export const ThemedLogo: React.FC<{ size?: number; className?: string }> = ({
   size = 32, 
   className = '' 
 }) => {
-  // CRITICAL FIX: Subscribe directly to Redux to force re-render on logo change
-  const platformLogo = useSelector((state: any) => state.settings.logoUrls?.platform || '');
-  const platformName = useSelector((state: any) => state.settings.platformName || 'Bus Buddy');
-  const primaryColor = useSelector((state: any) => state.settings.colors?.primary || '#ff3600');
+  const { colors, logoUrls, platformName } = useTheme();
   
-  // Debug logs
-  console.log('🖼️ ThemedLogo RENDER - platformLogo from Redux:', platformLogo);
+  // Force component to re-render when logoUrls changes
+  useEffect(() => {
+    console.log('🔄 ThemedLogo - useEffect triggered, logoUrls changed:', logoUrls);
+  }, [logoUrls, logoUrls.platform]);
+  
+  console.log('🖼️ ThemedLogo RENDER - logoUrls.platform:', logoUrls.platform);
   
   // Resolve the actual file URL (handles /uploads/ paths and data URLs)
-  const logoSrc = platformLogo ? getUploadedFileUrl(platformLogo) : null;
+  const logoSrc = logoUrls.platform ? getUploadedFileUrl(logoUrls.platform) : null;
   
   console.log('🎨 ThemedLogo - Resolved logoSrc:', logoSrc);
   
@@ -276,7 +276,7 @@ export const ThemedLogo: React.FC<{ size?: number; className?: string }> = ({
       style={{ 
         width: size, 
         height: size,
-        backgroundColor: primaryColor 
+        backgroundColor: colors.primary 
       }}
     >
       {platformName.split(' ').map((word: string) => word[0]).join('').toUpperCase().slice(0, 2)}

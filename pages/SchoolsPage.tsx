@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { Search, Plus, MoreHorizontal, Building, Users, Bus, LayoutGrid, List as ListIcon, User, Edit, FileText, Archive, X, Save, Check, ArrowRight } from 'lucide-react';
 import { SCHOOLS as INITIAL_SCHOOLS } from '../services/mockData';
 import { User as UserType, UserRole } from '../types';
@@ -90,6 +91,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'institutions' ? { backgroundColor: colors.primary } : undefined}
  >
  Institutions
  </button>
@@ -100,6 +102,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'students' ? { backgroundColor: colors.primary } : undefined}
  >
  Students
  </button>
@@ -110,12 +113,13 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  {/* Actions - Only visible for Institutions Tab */}
  {activeTab === 'institutions' && (
  <div className="flex items-center gap-3">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={() => setIsAddModalOpen(true)}
- className="bg-brand-black hover:bg-gray-900 text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl shadow-brand-black/20 transition-all flex items-center gap-2"
+ icon={Plus}
  >
- <Plus size={18} strokeWidth={2} /> <span>Add School</span>
- </button>
+ Add School
+ </ThemedButton>
 
  {/* View Toggle */}
  <div className="flex bg-white p-1 rounded-full border border-gray-200 shadow-sm ml-2">
@@ -194,18 +198,19 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  </div>
 
  <div className="mt-6 flex gap-3">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={() => openDetailsModal(school)}
- className="flex-1 py-3 bg-brand-black text-white rounded-xl text-sm font-bold hover:bg-gray-900 transition-colors"
+ className="flex-1"
  >
  View Details
- </button>
- <button 
+ </ThemedButton>
+ <ThemedButton 
+ variant="cancel"
  onClick={() => openEditModal(school)}
- className="px-4 py-3 bg-gray-50 text-brand-black rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors border border-gray-100"
  >
  Settings
- </button>
+ </ThemedButton>
  </div>
  </div>
  ))}
@@ -320,12 +325,13 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={handleAddSchool}
- className="px-8 py-4 bg-brand-black text-white rounded-xl font-bold text-sm shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
+ icon={Check}
  >
- <Check size={18} /> Register School
- </button>
+ Register School
+ </ThemedButton>
  </div>
  </div>
  </div>
@@ -358,12 +364,13 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={handleSaveEdit}
- className="px-8 py-4 bg-brand-black text-white rounded-xl font-bold text-sm shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
+ icon={Save}
  >
- <Save size={18} /> Save Changes
- </button>
+ Save Changes
+ </ThemedButton>
  </div>
  </div>
  </div>

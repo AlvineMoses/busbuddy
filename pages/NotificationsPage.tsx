@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { Bell, CheckCircle, AlertCircle, Info, X, Check, Trash2, Filter } from 'lucide-react';
 
 interface Notification {
@@ -128,13 +129,9 @@ export const NotificationsPage: React.FC = () => {
  </p>
  </div>
  {unreadCount > 0 && (
- <button 
- onClick={markAllAsRead}
- className="px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-200 text-gray-600 hover:text-brand-lilac font-bold transition-all flex items-center gap-2"
- >
- <Check size={18} />
+ <ThemedButton variant="ghost" onClick={markAllAsRead} icon={Check}>
  Mark All as Read
- </button>
+ </ThemedButton>
  )}
  </div>
 

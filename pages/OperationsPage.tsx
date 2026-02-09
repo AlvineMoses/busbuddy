@@ -30,6 +30,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ currentUser }) =
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'drivers' ? { backgroundColor: colors.primary } : undefined}
  >
  Drivers
  </button>
@@ -40,6 +41,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ currentUser }) =
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'shifts' ? { backgroundColor: colors.primary } : undefined}
  >
  Shifts
  </button>
@@ -50,6 +52,7 @@ export const OperationsPage: React.FC<OperationsPageProps> = ({ currentUser }) =
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'assignments' ? { backgroundColor: colors.primary } : undefined}
  >
  Assignments
  </button>

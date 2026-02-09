@@ -113,15 +113,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
  </ThemedLink>
  </div>
 
- <ThemedButton 
+ <button 
  type="submit"
  disabled={isLoading}
- variant="primary"
+ className="w-full py-4 text-white rounded-full font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center"
+ style={{ backgroundColor: colors.primary }}
  >
  {isLoading ? (
  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
  ) : 'Sign In'}
- </ThemedButton>
+ </button>
 
  <button type="button" className="w-full py-4 bg-white border border-gray-200 text-brand-black rounded-full font-bold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-3">
  <svg className="w-5 h-5" viewBox="0 0 24 24">

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, X, Check, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { User } from '../types';
 
@@ -146,18 +147,16 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  ) : <div className="hidden md:block"></div>}
  
  <div className="flex items-center gap-3 ml-auto">
- <button 
- onClick={handleBulkUploadClick}
- className="bg-white hover:bg-gray-50 text-brand-black px-6 py-3.5 rounded-full text-sm font-bold shadow-sm border border-gray-200 transition-all flex items-center gap-2"
- >
- <Upload size={18} strokeWidth={2}/> Bulk Upload
- </button>
- <button 
+ <ThemedButton variant="ghost" onClick={handleBulkUploadClick} icon={Upload}>
+ Bulk Upload
+ </ThemedButton>
+ <ThemedButton 
+ variant="primary"
  onClick={() => setModals({ ...modals, add: true })}
- className="text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+ icon={Plus}
  >
- <Plus size={18} strokeWidth={2} /> <span>Add Student</span>
- </button>
+ Add Student
+ </ThemedButton>
 
  {/* View Toggle - Moved to Right */}
  <div className="flex bg-white p-1 rounded-full border border-gray-200 shadow-sm ml-2">
@@ -478,7 +477,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button onClick={handleSaveEdit} className="px-6 py-3 bg-brand-black text-white rounded-xl font-bold text-sm">Save Changes</button>
+ <ThemedButton variant="primary" onClick={handleSaveEdit}>Save Changes</ThemedButton>
  </div>
  </div>
  </div>
@@ -521,7 +520,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button onClick={handleTransfer} className="px-6 py-3 bg-brand-black text-white rounded-xl font-bold text-sm">Confirm Transfer</button>
+ <ThemedButton variant="primary" onClick={handleTransfer}>Confirm Transfer</ThemedButton>
  </div>
  </div>
  </div>
@@ -561,9 +560,9 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button onClick={handleAddStudent} className="px-6 py-3 text-white rounded-xl font-bold text-sm flex items-center gap-2" style={{ backgroundColor: colors.primary }}>
- <Plus size={16}/> Add Student
- </button>
+ <ThemedButton variant="primary" onClick={handleAddStudent} icon={Plus}>
+ Add Student
+ </ThemedButton>
  </div>
  </div>
  </div>

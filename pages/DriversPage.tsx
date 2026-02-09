@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { Search, Filter, Plus, Phone, Mail, Car, X, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -98,18 +99,12 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  </div>
  
  <div className="flex gap-3">
- <button 
- onClick={() => { setQrModalOpen(true); setSelectedDriverId(''); setGeneratedOtp(null); }}
- className="bg-white hover:bg-gray-50 text-brand-black px-6 py-3.5 rounded-full text-sm font-bold shadow-sm border border-gray-200 transition-all flex items-center gap-2"
- >
- <QrCode size={18} strokeWidth={2} /> <span>Driver QR</span>
- </button>
- <button 
- onClick={openRegister}
- className="text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2"
- >
- <Plus size={18} strokeWidth={2} /> <span>Register Driver</span>
- </button>
+ <ThemedButton variant="ghost" onClick={() => { setQrModalOpen(true); setSelectedDriverId(''); setGeneratedOtp(null); }} icon={QrCode}>
+ Driver QR
+ </ThemedButton>
+ <ThemedButton variant="primary" onClick={openRegister} icon={Plus}>
+ Register Driver
+ </ThemedButton>
 
  {/* View Toggle - Moved to Right */}
  <div className="flex bg-white p-1 rounded-full border border-gray-200 shadow-sm ml-2">
@@ -133,18 +128,12 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  {/* Inline action bar when embedded */}
  {!showHeader && (
  <div className="flex items-center justify-end gap-3 px-2">
- <button 
- onClick={() => { setQrModalOpen(true); setSelectedDriverId(''); setGeneratedOtp(null); }}
- className="bg-white hover:bg-gray-50 text-brand-black px-6 py-3.5 rounded-full text-sm font-bold shadow-sm border border-gray-200 transition-all flex items-center gap-2"
- >
- <QrCode size={18} strokeWidth={2} /> <span>Driver QR</span>
- </button>
- <button 
- onClick={openRegister}
- className="text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2"
- >
- <Plus size={18} strokeWidth={2} /> <span>Register Driver</span>
- </button>
+ <ThemedButton variant="ghost" onClick={() => { setQrModalOpen(true); setSelectedDriverId(''); setGeneratedOtp(null); }} icon={QrCode}>
+ Driver QR
+ </ThemedButton>
+ <ThemedButton variant="primary" onClick={openRegister} icon={Plus}>
+ Register Driver
+ </ThemedButton>
  <div className="flex bg-white p-1 rounded-full border border-gray-200 shadow-sm ml-2">
  <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-full transition-all ${viewMode === 'grid' ? 'bg-brand-black text-white shadow-md' : 'text-gray-400 hover:text-brand-black'}`}>
  <LayoutGrid size={18} strokeWidth={2} />
@@ -233,9 +222,9 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  className="w-full pl-14 pr-6 py-4 bg-white border border-gray-200 rounded-full focus:ring-4 focus:ring-brand-lilac/10 text-sm font-bold placeholder:text-gray-400 transition-all shadow-sm"
  />
  </div>
- <button className="px-8 py-4 rounded-full bg-white text-sm font-bold text-gray-600 hover:text-brand-black hover:shadow-md transition-all flex items-center gap-2 shadow-sm border border-gray-200">
- <Filter size={16} /> Filter Status
- </button>
+ <ThemedButton variant="ghost" icon={Filter}>
+ Filter Status
+ </ThemedButton>
  </div>
 
  {/* Flat Table */}
@@ -365,21 +354,15 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  <div className="text-3xl font-mono font-bold text-brand-black tracking-widest">{generatedOtp}</div>
  </div>
  ) : (
- <button 
- onClick={handleGenerateCode}
- className="px-6 py-2 bg-brand-black text-white rounded-full text-xs font-bold shadow-lg hover:scale-105 transition-transform"
- >
+ <ThemedButton variant="primary" onClick={handleGenerateCode} className="text-xs">
  Generate Code
- </button>
+ </ThemedButton>
  )}
  </div>
 
- <button 
- onClick={downloadQR}
- className="w-full py-3 border border-gray-200 text-brand-black rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
- >
- <Download size={16} /> Download Access Card
- </button>
+ <ThemedButton variant="ghost" onClick={downloadQR} icon={Download} fullWidth>
+ Download Access Card
+ </ThemedButton>
  </div>
  )}
  </div>
@@ -428,12 +411,13 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={handleSaveDriver}
- className="px-6 py-3 text-white rounded-xl font-bold text-sm flex items-center gap-2"
+ icon={Check}
  >
- <Check size={16} /> {isEditing ? 'Save Changes' : 'Register Driver'}
- </button>
+ {isEditing ? 'Save Changes' : 'Register Driver'}
+ </ThemedButton>
  </div>
  </div>
  </div>

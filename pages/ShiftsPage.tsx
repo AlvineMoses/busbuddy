@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { Calendar, Clock, Users, Plus, Edit2, Copy, Trash2, Search, Download, Filter } from 'lucide-react';
 import { User } from '../types';
 
@@ -150,25 +151,17 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Shifts</h1>
  <p className="text-gray-500 font-normal text-xl">Manage driver schedules and shift assignments.</p>
  </div>
- <button 
- onClick={openCreateModal}
- className="text-white px-8 py-4 rounded-full text-sm font-bold shadow-xl hover:scale-105 transition-transform flex items-center gap-3"
- >
- <Plus size={20} />
+ <ThemedButton variant="primary" onClick={openCreateModal} icon={Plus}>
  Add Shift
- </button>
+ </ThemedButton>
  </div>
  )}
 
  {!showHeader && (
  <div className="flex items-center justify-end px-2">
- <button 
- onClick={openCreateModal}
- className="text-white px-8 py-4 rounded-full text-sm font-bold shadow-xl hover:scale-105 transition-transform flex items-center gap-3"
- >
- <Plus size={20} />
+ <ThemedButton variant="primary" onClick={openCreateModal} icon={Plus}>
  Add Shift
- </button>
+ </ThemedButton>
  </div>
  )}
 
@@ -224,10 +217,9 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
 
  {/* Export */}
  <div className="flex items-end">
- <button className="w-full px-6 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-200 text-gray-600 hover:text-brand-lilac font-bold transition-all flex items-center justify-center gap-2">
- <Download size={18} />
+ <ThemedButton variant="ghost" icon={Download} fullWidth>
  Export
- </button>
+ </ThemedButton>
  </div>
  </div>
  </div>
@@ -293,15 +285,15 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  </td>
  <td className="px-8 py-5">
  <div className="flex items-center gap-2">
- <button onClick={() => openEditModal(shift)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-brand-lilac transition-colors">
+ <ThemedButton variant="icon" onClick={() => openEditModal(shift)}>
  <Edit2 size={16} />
- </button>
- <button onClick={() => handleClone(shift)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-blue-600 transition-colors">
+ </ThemedButton>
+ <ThemedButton variant="icon" onClick={() => handleClone(shift)}>
  <Copy size={16} />
- </button>
- <button onClick={() => handleDelete(shift.id)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-red-600 transition-colors">
+ </ThemedButton>
+ <ThemedButton variant="icon" onClick={() => handleDelete(shift.id)} style={{ color: '#dc2626' }}>
  <Trash2 size={16} />
- </button>
+ </ThemedButton>
  </div>
  </td>
  </tr>
@@ -373,8 +365,12 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  </div>
 
  <div className="flex items-center gap-3 mt-6">
- <button onClick={handleSave} className="flex-1 text-white py-3 rounded-2xl font-bold transition-colors" style={{ backgroundColor: colors.primary }}>{editingShift ? 'Save Changes' : 'Create Shift'}</button>
- <button onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-2xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
+ <ThemedButton variant="primary" onClick={handleSave} className="flex-1">
+ {editingShift ? 'Save Changes' : 'Create Shift'}
+ </ThemedButton>
+ <ThemedButton variant="cancel" onClick={() => setIsModalOpen(false)} className="flex-1">
+ Cancel
+ </ThemedButton>
  </div>
  </div>
  </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { 
  Bus, 
  Clock, 
@@ -129,10 +130,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ routes, user, onNavigate }
  <h1 className="text-6xl font-medium text-brand-black tracking-tight mb-2">Overview</h1>
  <p className="text-gray-500 font-normal text-xl">Platform metrics & live status.</p>
  </div>
- <button onClick={handleExport} className="text-white px-8 py-4 rounded-full text-sm font-bold shadow-2xl hover:scale-105 transition-transform flex items-center gap-3" style={{ backgroundColor: colors.primary }}>
- <span>Export Analytics</span>
- <ArrowUpRight size={18} />
- </button>
+ <ThemedButton variant="primary" onClick={handleExport} icon={ArrowUpRight}>
+ Export Analytics
+ </ThemedButton>
  </div>
 
  {/* Metrics Widgets */}

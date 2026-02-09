@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { Trip, TripEvent } from '../types';
 import { Users, ChevronRight, X, AlertTriangle, Calendar, MapPin, Filter, MoreHorizontal, Eye, Phone, Flag, LayoutGrid, List as ListIcon, Play, Bus } from 'lucide-react';
 
@@ -107,9 +108,9 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  </div>
  </div>
 
- <button onClick={() => {}} className="px-6 py-2.5 text-white rounded-xl text-sm font-bold hover:scale-105 transition-transform shadow-lg flex items-center gap-2" style={{ backgroundColor: colors.primary }}>
- <Filter size={14} /> Apply
- </button>
+ <ThemedButton variant="primary" onClick={() => {}} icon={Filter} className="text-sm">
+ Apply
+ </ThemedButton>
  </div>
 
  {/* View Toggle - Moved to Right */}
@@ -350,9 +351,9 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  </div>
 
  <div className="p-8 border-t border-gray-100 bg-white z-10">
- <button onClick={startPlayback} className="w-full py-5 text-white rounded-full text-base font-bold shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-3" style={{ backgroundColor: colors.primary }}>
- <MapPin size={20} /> Playback GPS Route
- </button>
+ <ThemedButton variant="primary" onClick={startPlayback} icon={MapPin} fullWidth>
+ Playback GPS Route
+ </ThemedButton>
  </div>
  </div>
  </div>

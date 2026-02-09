@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
+import { ThemedButton } from '../src/components/ThemedComponents';
 import { TransportRoute, RouteHealth, School, Trip } from '../types';
 import { 
  Search, 
@@ -172,6 +173,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'routes' ? { backgroundColor: colors.primary } : undefined}
  >
  Active Routes
  </button>
@@ -182,6 +184,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'stops' ? { backgroundColor: colors.primary } : undefined}
  >
  Stops & Locations
  </button>
@@ -192,6 +195,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  ? 'text-white shadow-lg'
  : 'text-gray-400 hover:text-brand-black'
  }`}
+ style={activeTab === 'trips' ? { backgroundColor: colors.primary } : undefined}
  >
  Trip History
  </button>
@@ -200,19 +204,12 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  
  {activeTab === 'routes' && (
  <div className="flex items-center gap-3">
- <button 
- onClick={handleExport}
- className="bg-white hover:bg-gray-50 text-brand-black px-6 py-3.5 rounded-full text-sm font-bold shadow-sm border border-gray-200 transition-all flex items-center gap-2"
- >
- <Download size={18} strokeWidth={2} /> <span>Export Data</span>
- </button>
- <button 
- onClick={() => setIsCreateModalOpen(true)}
- className="text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl transition-all flex items-center gap-2"
- style={{ backgroundColor: colors.primary }}
- >
- <Plus size={18} strokeWidth={2} /> <span>Create Route</span>
- </button>
+ <ThemedButton variant="ghost" onClick={handleExport} icon={Download}>
+ Export Data
+ </ThemedButton>
+ <ThemedButton variant="primary" onClick={() => setIsCreateModalOpen(true)} icon={Plus}>
+ Create Route
+ </ThemedButton>
 
  {/* View Toggle */}
  <div className="flex bg-white p-1 rounded-full border border-gray-200 shadow-sm ml-2">
@@ -337,9 +334,9 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  />
  </div>
  <div className="flex gap-3">
- <button className="px-8 py-4 rounded-full border border-gray-200 bg-white text-sm font-bold text-gray-600 hover:border-brand-black hover:text-brand-black flex items-center gap-2 transition-all shadow-sm">
- <Filter size={16} /> Filter
- </button>
+ <ThemedButton variant="ghost" icon={Filter}>
+ Filter
+ </ThemedButton>
  </div>
  </div>
 
@@ -475,18 +472,22 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
 
  {/* Action Buttons */}
  <div className="grid grid-cols-2 gap-4 mt-auto">
- <button 
+ <ThemedButton 
+ variant="ghost" 
  onClick={() => openEditModal(filteredRoutes[0])}
- className="py-4 rounded-xl border border-gray-200 text-brand-black font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+ icon={Edit2}
+ className="py-4"
  >
- <Edit2 size={16} /> Edit Route
- </button>
- <button 
+ Edit Route
+ </ThemedButton>
+ <ThemedButton 
+ variant="secondary" 
  onClick={() => setIsAddStopModalOpen(true)}
- className="py-4 rounded-xl bg-brand-lilac/10 text-brand-lilac font-bold text-sm hover:bg-brand-lilac/20 transition-colors flex items-center justify-center gap-2"
+ icon={MapPin}
+ className="py-4"
  >
- <MapPin size={16} /> Add Stops
- </button>
+ Add Stops
+ </ThemedButton>
  </div>
  </div>
  </div>
@@ -526,7 +527,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  07:0{num} AM
  </div>
  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
- <button style={{ backgroundColor: colors.primary }} className="p-2.5 rounded-full hover:brand-black hover:text-white text-gray-400 transition-all hover:opacity-90 transition-opacity"><Edit2 size={16}/></button>
+ <ThemedButton variant="icon" style={{ backgroundColor: colors.primary, color: 'white' }}><Edit2 size={16}/></ThemedButton>
  </div>
  </div>
  ))}
@@ -605,12 +606,13 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={handleCreateRoute}
- className="px-6 py-3 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg"
+ icon={Check}
  >
- <Check size={16} /> Create Route
- </button>
+ Create Route
+ </ThemedButton>
  </div>
  </div>
  </div>
@@ -648,12 +650,13 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={handleSaveEdit}
- className="px-6 py-3 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg"
+ icon={Save}
  >
- <Save size={16} /> Save Changes
- </button>
+ Save Changes
+ </ThemedButton>
  </div>
  </div>
  </div>
@@ -684,12 +687,13 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </div>
  </div>
  <div className="mt-8 flex justify-end">
- <button 
+ <ThemedButton 
+ variant="primary"
  onClick={handleAddStop}
- className="px-6 py-3 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg"
+ icon={Plus}
  >
- <Plus size={16} /> Add Stop
- </button>
+ Add Stop
+ </ThemedButton>
  </div>
  </div>
  </div>
