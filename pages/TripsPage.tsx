@@ -1,0 +1,399 @@
+import React, { useState } from 'react';
+import { Trip, TripEvent } from '../types';
+import { Users, ChevronRight, X, AlertTriangle, Calendar, MapPin, Filter, MoreHorizontal, Eye, Phone, Flag, LayoutGrid, List as ListIcon, Play, Bus } from 'lucide-react';
+
+interface TripsPageProps {
+  trips: Trip[];
+  showHeader?: boolean;
+}
+
+export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }) => {
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [isPlaybackOpen, setIsPlaybackOpen] = useState(false);
+  
+  // Filter States
+  const [dateFilter, setDateFilter] = useState('');
+  const [driverFilter, setDriverFilter] = useState('All Drivers');
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+
+  // Derive unique drivers for filter
+  const drivers = ['All Drivers', ...Array.from(new Set(trips.map(t => t.driverName)))];
+
+  // Filtering Logic
+  const filteredTrips = trips.filter(trip => {
+    const matchDate = dateFilter ? trip.date === dateFilter : true;
+    const matchDriver = driverFilter === 'All Drivers' ? true : trip.driverName === driverFilter;
+    const matchStatus = statusFilter === 'All Status' ? true : trip.status === statusFilter;
+    return matchDate && matchDriver && matchStatus;
+  });
+
+  const toggleAction = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenActionId(openActionId === id ? null : id);
+  };
+
+  const handleAction = (type: 'view' | 'contact' | 'flag', trip: Trip) => {
+      setOpenActionId(null);
+      if (type === 'view') {
+          setSelectedTrip(trip);
+      } else if (type === 'contact') {
+          alert(`Calling Driver: ${trip.driverName}...`);
+      } else if (type === 'flag') {
+          alert(`Incident Flagged for Trip ID: ${trip.id}. Admin notified.`);
+      }
+  };
+
+  const startPlayback = () => {
+      setIsPlaybackOpen(true);
+  };
+
+  return (
+    <div className="space-y-10 animate-in fade-in duration-700" onClick={() => setOpenActionId(null)}>
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        {showHeader ? (
+            <div>
+                <h1 className="text-5xl font-medium text-brand-black tracking-tight">Trip History</h1>
+                <p className="text-gray-500 font-light mt-2 text-lg">Detailed audit logs and playback.</p>
+            </div>
+        ) : <div className="hidden md:block"></div> /* Spacer to keep flex layout balanced if needed, or just empty */}
+        
+        <div className="flex items-center gap-3 ml-auto">
+            {/* Filters Bar */}
+            <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-[1.5rem] shadow-sm border border-gray-100">
+               {/* Date Filter */}
+               <div className="flex items-center px-4 py-2 bg-gray-50 rounded-xl">
+                  <Calendar size={16} className="mr-2 text-brand-lilac" />
+                  <input 
+                    type="date" 
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="bg-transparent border-none p-0 text-sm font-bold text-brand-black focus:ring-0 cursor-pointer" 
+                  />
+               </div>
+
+               {/* Driver Filter */}
+               <div className="relative">
+                  <select 
+                    value={driverFilter}
+                    onChange={(e) => setDriverFilter(e.target.value)}
+                    className="appearance-none bg-gray-50 pl-4 pr-8 py-2.5 rounded-xl text-sm font-bold text-brand-black border-none focus:ring-2 focus:ring-brand-lilac/20 cursor-pointer min-w-[140px]"
+                  >
+                    {drivers.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                    <ChevronRight size={14} className="rotate-90" />
+                  </div>
+               </div>
+
+               {/* Status Filter */}
+               <div className="relative">
+                  <select 
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="appearance-none bg-gray-50 pl-4 pr-8 py-2.5 rounded-xl text-sm font-bold text-brand-black border-none focus:ring-2 focus:ring-brand-lilac/20 cursor-pointer min-w-[140px]"
+                  >
+                    <option value="All Status">All Status</option>
+                    <option value="STARTED">Started</option>
+                    <option value="ENDED">Ended</option>
+                    <option value="SCHEDULED">Scheduled</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                    <ChevronRight size={14} className="rotate-90" />
+                  </div>
+               </div>
+
+               <button onClick={() => {}} className="px-6 py-2.5 bg-[#ff3600] text-white rounded-xl text-sm font-bold hover:scale-105 transition-transform shadow-lg shadow-[#ff3600]/20 flex items-center gap-2">
+                 <Filter size={14} /> Apply
+               </button>
+            </div>
+
+            {/* View Toggle - Moved to Right */}
+           <div className="flex bg-white p-1 rounded-full border border-gray-200 shadow-sm ml-2">
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={`p-2.5 rounded-full transition-all ${viewMode === 'grid' ? 'bg-brand-black text-white shadow-md' : 'text-gray-400 hover:text-brand-black'}`}
+              >
+                 <LayoutGrid size={18} strokeWidth={2} />
+              </button>
+              <button 
+                onClick={() => setViewMode('list')}
+                className={`p-2.5 rounded-full transition-all ${viewMode === 'list' ? 'bg-brand-black text-white shadow-md' : 'text-gray-400 hover:text-brand-black'}`}
+              >
+                 <ListIcon size={18} strokeWidth={2} />
+              </button>
+           </div>
+        </div>
+      </div>
+
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
+           {filteredTrips.map((trip) => (
+              <div 
+                key={trip.id} 
+                onClick={() => setSelectedTrip(trip)}
+                className="bg-white rounded-[2.5rem] p-6 shadow-soft-xl border border-gray-100 hover:shadow-2xl transition-all group relative cursor-pointer"
+              >
+                 <div className="flex justify-between items-start mb-6">
+                    <div className="px-3 py-1.5 bg-gray-50 rounded-lg text-xs font-mono font-bold text-gray-500">
+                        {trip.id}
+                    </div>
+                    
+                    <button 
+                        onClick={(e) => toggleAction(trip.id, e)}
+                        className="p-2 rounded-full text-gray-300 hover:text-brand-black hover:bg-gray-50 transition-colors -mr-2 -mt-2 relative"
+                    >
+                        <MoreHorizontal size={20} />
+                    </button>
+                    {openActionId === trip.id && (
+                        <div className="absolute right-0 top-10 mt-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+                            <button onClick={(e) => { e.stopPropagation(); handleAction('view', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
+                                <Eye size={14} /> View Details
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleAction('contact', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
+                                <Phone size={14} /> Contact Driver
+                            </button>
+                            <div className="h-px bg-gray-50 my-1"></div>
+                            <button onClick={(e) => { e.stopPropagation(); handleAction('flag', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-brand-orange hover:bg-orange-50 rounded-xl flex items-center gap-2 transition-colors">
+                                <Flag size={14} /> Flag Incident
+                            </button>
+                        </div>
+                    )}
+                 </div>
+
+                 <div className="mb-6">
+                    <div className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-1">Driver</div>
+                    <div className="text-xl font-bold text-brand-black">{trip.driverName}</div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Start Time</div>
+                        <div className="font-bold text-brand-black">{trip.startTime}</div>
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Riders</div>
+                        <div className="font-bold text-brand-black flex items-center gap-1"><Users size={14} className="text-gray-400"/> {trip.riderCount}</div>
+                    </div>
+                 </div>
+
+                 <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                    <div className="text-xs font-medium text-gray-400">{trip.date}</div>
+                    {trip.status === 'STARTED' ? (
+                     <span className="inline-flex items-center gap-2 px-3 py-1 bg-[#1fd701]/10 text-[#1fd701] rounded-full text-[10px] font-bold tracking-wide border border-[#1fd701]/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#1fd701] animate-pulse"></span>
+                        LIVE
+                     </span>
+                   ) : (
+                     <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-bold tracking-wide border border-gray-200">
+                        ENDED
+                     </span>
+                   )}
+                 </div>
+              </div>
+           ))}
+        </div>
+      ) : (
+        /* List View */
+        <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/30 text-gray-400 font-bold text-xs uppercase tracking-widest">
+              <tr>
+                <th className="px-8 py-6 pl-10">Status</th>
+                <th className="px-8 py-6">Trip ID</th>
+                <th className="px-8 py-6">Driver</th>
+                <th className="px-8 py-6">Date & Time</th>
+                <th className="px-8 py-6">Riders</th>
+                <th className="px-8 py-6 text-right pr-10"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filteredTrips.map((trip) => (
+                <tr key={trip.id} className="hover:bg-gray-50/80 transition-colors group cursor-pointer" onClick={() => setSelectedTrip(trip)}>
+                  <td className="px-8 py-6 pl-10">
+                     {trip.status === 'STARTED' ? (
+                       <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#1fd701]/10 text-[#1fd701] rounded-full text-xs font-bold tracking-wide border border-[#1fd701]/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#1fd701] animate-pulse"></span>
+                          LIVE
+                       </span>
+                     ) : (
+                       <span className="inline-flex items-center px-4 py-1.5 bg-gray-100 text-gray-500 rounded-full text-xs font-bold tracking-wide border border-gray-200">
+                          ENDED
+                       </span>
+                     )}
+                  </td>
+                  <td className="px-8 py-6 font-mono text-gray-500 text-sm font-medium">
+                    {trip.id}
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="font-bold text-brand-black">{trip.driverName}</div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-brand-black">{trip.startTime}</span>
+                      <span className="text-xs text-gray-400 font-medium">{trip.date}</span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="flex items-center text-gray-600 gap-2">
+                      <Users size={16} className="text-gray-400" />
+                      <span className="font-bold">{trip.riderCount}</span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6 text-right pr-10 relative">
+                     <button 
+                          onClick={(e) => toggleAction(trip.id, e)}
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:bg-brand-black hover:text-white transition-all z-10 relative"
+                      >
+                          <MoreHorizontal size={20} />
+                      </button>
+
+                      {openActionId === trip.id && (
+                          <div className="absolute right-10 top-12 mt-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+                              <button onClick={(e) => { e.stopPropagation(); handleAction('view', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
+                                  <Eye size={14} /> View Details
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); handleAction('contact', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
+                                  <Phone size={14} /> Contact Driver
+                              </button>
+                              <div className="h-px bg-gray-50 my-1"></div>
+                              <button onClick={(e) => { e.stopPropagation(); handleAction('flag', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-brand-orange hover:bg-orange-50 rounded-xl flex items-center gap-2 transition-colors">
+                                  <Flag size={14} /> Flag Incident
+                              </button>
+                          </div>
+                      )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Drawer */}
+      {selectedTrip && (
+        <div className="fixed inset-0 z-[60] flex justify-end">
+           <div 
+             className="absolute inset-0 bg-brand-black/20 backdrop-blur-sm transition-all duration-300" 
+             onClick={() => setSelectedTrip(null)}
+           />
+           
+           <div className="relative w-full max-w-lg bg-white shadow-2xl h-full flex flex-col animate-in slide-in-from-right duration-500 rounded-l-[3rem] overflow-hidden">
+              <div className="p-10 pb-6 bg-gray-50/50">
+                 <div className="flex justify-between items-start mb-8">
+                    <div>
+                      <h2 className="text-3xl font-medium text-brand-black">Trip Details</h2>
+                      <p className="text-sm text-gray-500 font-mono mt-2">ID: {selectedTrip.id}</p>
+                    </div>
+                    <button onClick={() => setSelectedTrip(null)} className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:text-brand-black hover:scale-105 transition-all">
+                       <X size={24} strokeWidth={1.5} />
+                    </button>
+                 </div>
+
+                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                       <Users size={28} strokeWidth={1.5} />
+                    </div>
+                    <div>
+                       <p className="font-bold text-xl text-brand-black">{selectedTrip.driverName}</p>
+                       <p className="text-xs font-bold text-[#1fd701] uppercase tracking-widest mt-1">Authorized</p>
+                    </div>
+                 </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-10 pt-4">
+                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Timeline Events</h3>
+                 
+                 <div className="relative border-l-2 border-dashed border-gray-200 ml-3 space-y-8 pb-10">
+                    {selectedTrip.events.map((event, idx) => (
+                      <div key={idx} className="relative pl-10 group">
+                         {/* Timeline Dot */}
+                         <div className={`
+                            absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-[3px] border-white shadow-md z-10
+                            ${event.type === 'ALERT' ? 'bg-[#FF6106]' :
+                              event.type === 'START' ? 'bg-[#1fd701]' :
+                              event.type === 'BOARDING' ? 'bg-brand-lilac' :
+                              event.type === 'END' ? 'bg-brand-black' : 'bg-gray-400'}
+                         `}></div>
+                         
+                         <span className="text-xs font-mono font-bold text-gray-400 block mb-2">{event.time}</span>
+                         <div className={`
+                            p-5 rounded-3xl border transition-all duration-300
+                            ${event.type === 'ALERT' 
+                               ? 'bg-[#FF6106]/5 border-[#FF6106]/20' 
+                               : event.type === 'BOARDING' ? 'bg-brand-lilac/5 border-brand-lilac/20 hover:shadow-lg' 
+                               : 'bg-white border-gray-100 hover:shadow-lg'}
+                         `}>
+                            <h4 className={`text-base font-bold ${event.type === 'ALERT' ? 'text-[#FF6106]' : 'text-brand-black'}`}>
+                                {event.type === 'ALERT' && <AlertTriangle size={18} className="inline mr-2 -mt-1" />}
+                                {event.description}
+                            </h4>
+                            {event.studentName && (
+                                <div className="mt-3 flex items-center gap-3 bg-white/50 p-2 rounded-2xl border border-gray-100/50">
+                                  <span className="w-8 h-8 rounded-full bg-brand-lilac/10 flex items-center justify-center text-brand-lilac text-xs font-bold shadow-sm">
+                                     {event.studentName[0]}
+                                  </span>
+                                  <div>
+                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Student</span>
+                                     <span className="text-sm font-bold text-brand-black">{event.studentName}</span>
+                                  </div>
+                                </div>
+                            )}
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="p-8 border-t border-gray-100 bg-white z-10">
+                 <button onClick={startPlayback} className="w-full py-5 bg-[#ff3600] text-white rounded-full text-base font-bold shadow-xl shadow-[#ff3600]/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3">
+                    <MapPin size={20} /> Playback GPS Route
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Playback Simulation Modal */}
+      {isPlaybackOpen && (
+          <div className="fixed inset-0 z-[70] isolate">
+              <div className="absolute inset-0 bg-brand-black/60 backdrop-blur-md" onClick={() => setIsPlaybackOpen(false)} />
+              <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+                  <div className="relative bg-white rounded-[2.5rem] w-full max-w-3xl shadow-2xl animate-in zoom-in-95 pointer-events-auto overflow-hidden flex flex-col h-[500px]">
+                      <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                          <div>
+                              <h3 className="text-xl font-bold text-brand-black flex items-center gap-2"><Play size={18}/> Route Playback</h3>
+                              <p className="text-xs text-gray-500">Replaying trip history...</p>
+                          </div>
+                          <button onClick={() => setIsPlaybackOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-sm"><X size={20}/></button>
+                      </div>
+                      
+                      <div className="flex-1 bg-gray-100 relative">
+                          {/* Mock Map Background */}
+                          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                          
+                          {/* Animated Bus */}
+                          <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-brand-black rounded-full flex items-center justify-center text-white shadow-xl animate-bounce">
+                              <Bus size={20} />
+                          </div>
+                          
+                          <div className="absolute bottom-8 left-8 right-8 bg-white p-4 rounded-2xl shadow-float flex items-center gap-4">
+                              <button className="w-10 h-10 rounded-full bg-brand-lilac text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform">
+                                  <Play size={16} fill="white" />
+                              </button>
+                              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full w-1/3 bg-brand-lilac rounded-full"></div>
+                              </div>
+                              <span className="text-xs font-mono font-bold text-gray-500">07:15 AM</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+    </div>
+  );
+};
