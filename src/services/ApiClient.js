@@ -37,8 +37,17 @@ class ApiClient {
    */
   _getCacheKey(url, options = {}) {
     const method = options.method || 'GET';
-    const body = options.body ? JSON.stringify(options.body) : '';
-    return `${method}:${url}:${body}`;
+    
+    // Stable key generation with sorted object keys
+    const body = options.body 
+      ? JSON.stringify(options.body, Object.keys(options.body).sort())
+      : '';
+    
+    const params = options.params
+      ? JSON.stringify(options.params, Object.keys(options.params).sort())
+      : '';
+    
+    return `${method}:${url}:${params}:${body}`;
   }
 
   /**
@@ -168,8 +177,12 @@ class ApiClient {
           error
         );
       } finally {
-        // Remove from pending requests
-        this.pendingRequests.delete(cacheKey);
+        // Safe cleanup with error boundary
+        try {
+          this.pendingRequests.delete(cacheKey);
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup request:', cleanupError);
+        }
       }
     })();
 

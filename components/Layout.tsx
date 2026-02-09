@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Map as MapIcon, 
@@ -13,7 +14,9 @@ import {
   ChevronLeft,
   Search,
   Check,
-  Menu
+  Menu,
+  MapPin,
+  Truck
 } from 'lucide-react';
 import { User, UserRole, School, Notification, NotificationType } from '../types';
 import { SCHOOLS } from '../services/mockData';
@@ -75,10 +78,14 @@ export const Layout: React.FC<LayoutProps> = ({
   const getNavItems = () => {
     const baseItems = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { id: 'schools', label: 'Schools', icon: Building2 }, // Moved Schools here (includes Students tab)
-      { id: 'routes', label: 'Routes', icon: MapIcon }, // Includes Trips tab
-      { id: 'drivers', label: 'Drivers', icon: Users },
+      { id: 'routes', label: 'Routes', icon: MapPin },
+      { id: 'operations', label: 'Operations', icon: Truck },
     ];
+
+    // School admins don't see Schools page
+    if (currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.ADMIN) {
+      baseItems.push({ id: 'schools', label: 'Schools', icon: Building2 });
+    }
 
     baseItems.push({ id: 'settings', label: 'Settings', icon: Settings });
     return baseItems;

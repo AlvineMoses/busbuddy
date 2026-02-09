@@ -101,13 +101,28 @@ export const SettingsPage: React.FC = () => {
     alert("Role Creation Wizard would open here.");
   };
 
+  const [uploadTarget, setUploadTarget] = useState('');
+
   const handleUploadSimulate = (label: string) => {
-      // Simulate file dialog
-      alert(`Opening file dialog for: ${label}`);
+    setUploadTarget(label);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Preview the uploaded image based on target
+      alert(`${uploadTarget} uploaded: ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
@@ -441,7 +456,7 @@ export const SettingsPage: React.FC = () => {
                             </div>
                         </div>
                     ))}
-                    <button className="w-full py-4 border-2 border-dashed border-gray-300 rounded-[2rem] text-gray-400 font-bold text-sm hover:border-brand-black hover:text-brand-black transition-all flex items-center justify-center gap-2">
+                    <button onClick={() => setTestimonials([...testimonials, { id: String(Date.now()), name: '', role: '', text: '', avatar: 'https://ui-avatars.com/api/?name=New&background=random' }])} className="w-full py-4 border-2 border-dashed border-gray-300 rounded-[2rem] text-gray-400 font-bold text-sm hover:border-brand-black hover:text-brand-black transition-all flex items-center justify-center gap-2">
                         <Plus size={18} /> Add New Testimonial
                     </button>
                 </div>

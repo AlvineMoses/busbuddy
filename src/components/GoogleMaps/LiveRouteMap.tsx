@@ -1,14 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { Plus, Minus, X, User, Phone, FileText, Gauge, Activity } from 'lucide-react';
-import { TransportRoute } from '../../types';
+import { TransportRoute } from '../../../types';
 
 interface LiveRouteMapProps {
   routes: TransportRoute[];
   onNavigate: (page: string) => void;
 }
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // Default center (adjust to your location)
 const DEFAULT_CENTER = { lat: -1.286389, lng: 36.817223 }; // Nairobi, Kenya
@@ -179,14 +179,6 @@ const LiveRouteMapInner = ({ routes }: { routes: TransportRoute[] }) => {
             key={route.id}
             position={position}
             onClick={() => setSelectedRoute(route)}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: color,
-              fillOpacity: 0.9,
-              strokeColor: '#ffffff',
-              strokeWeight: 3,
-              scale: 10,
-            }}
           />
         );
       })}
@@ -207,32 +199,75 @@ const LiveRouteMapInner = ({ routes }: { routes: TransportRoute[] }) => {
   );
 };
 
-export const LiveRouteMap: React.FC<LiveRouteMapProps> = ({ routes, onNavigate }) => {
-  if (!GOOGLE_MAPS_API_KEY) {
-    return (
-      <div className="relative w-full h-full bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden border border-white/60 shadow-soft-xl flex items-center justify-center">
-        <div className="text-center p-8">
-          <p className="text-red-600 font-bold mb-2">Google Maps API Key Missing</p>
-          <p className="text-gray-500 text-sm">Please add VITE_GOOGLE_MAPS_API_KEY to .env.local</p>
+// Error boundary to gracefully handle Maps API failures
+class MapErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
+const MapFallback = ({ routes }: { routes: TransportRoute[] }) => (
+  <div className="relative w-full h-full bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden border border-white/60 shadow-soft-xl flex flex-col items-center justify-center">
+    <div className="text-center p-8 max-w-md">
+      <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <Activity size={28} className="text-amber-500" />
+      </div>
+      <p className="font-bold text-brand-black text-lg mb-2">Map Unavailable</p>
+      <p className="text-gray-500 text-sm mb-4">
+        Google Maps API key needs <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">localhost</code> added as an allowed HTTP referrer in Google Cloud Console.
+      </p>
+      <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-left">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Live Fleet Status</p>
+        <div className="space-y-2">
+          {routes.slice(0, 3).map(route => (
+            <div key={route.id} className="flex items-center justify-between">
+              <span className="text-sm font-bold text-brand-black">{route.vehiclePlate}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                route.health === 'NORMAL' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
+              }`}>{route.health}</span>
+            </div>
+          ))}
         </div>
       </div>
-    );
+    </div>
+  </div>
+);
+
+export const LiveRouteMap: React.FC<LiveRouteMapProps> = ({ routes, onNavigate }) => {
+  if (!GOOGLE_MAPS_API_KEY) {
+    return <MapFallback routes={routes} />;
   }
 
   return (
-    <div className="relative w-full h-full bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden border border-white/60 shadow-soft-xl">
-      <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-        <Map
-          defaultCenter={DEFAULT_CENTER}
-          defaultZoom={12}
-          mapId="busbudd-live-map"
-          disableDefaultUI={true}
-          gestureHandling="greedy"
-          style={{ width: '100%', height: '100%', borderRadius: '3rem' }}
+    <MapErrorBoundary fallback={<MapFallback routes={routes} />}>
+      <div className="relative w-full h-full bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden border border-white/60 shadow-soft-xl">
+        <APIProvider 
+          apiKey={GOOGLE_MAPS_API_KEY}
+          onLoad={() => console.log('Maps API loaded')}
         >
-          <LiveRouteMapInner routes={routes} />
-        </Map>
-      </APIProvider>
-    </div>
+          <Map
+            defaultCenter={DEFAULT_CENTER}
+            defaultZoom={12}
+            mapId="busbudd-live-map"
+            disableDefaultUI={true}
+            gestureHandling="greedy"
+            style={{ width: '100%', height: '100%', borderRadius: '3rem' }}
+          >
+            <LiveRouteMapInner routes={routes} />
+          </Map>
+        </APIProvider>
+      </div>
+    </MapErrorBoundary>
   );
 };

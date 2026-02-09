@@ -21,14 +21,31 @@ import useAppStore from '../store/AppStore';
 export const useAppData = () => {
   const store = useAppStore();
 
-  // Auto-fetch on mount if needed
+  // Auto-fetch on mount with proper sequencing
   useEffect(() => {
-    store.fetchSchools();
-    store.fetchDrivers();
-    store.fetchRoutes();
-    store.fetchTrips();
-    store.fetchStudents();
-    store.fetchNotifications();
+    const initializeData = async () => {
+      try {
+        // Phase 1: Independent entities (parallel)
+        await Promise.all([
+          store.fetchSchools(),
+          store.fetchDrivers(),
+          store.fetchStudents(),
+          store.fetchNotifications()
+        ]);
+        
+        // Phase 2: Routes depend on schools
+        await store.fetchRoutes();
+        
+        // Phase 3: Trips depend on routes
+        await store.fetchTrips();
+        
+      } catch (error) {
+        console.error('Failed to initialize data:', error);
+      }
+    };
+    
+    initializeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

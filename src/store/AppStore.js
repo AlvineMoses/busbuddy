@@ -80,6 +80,20 @@ const useAppStore = create(
       // ============================================
       // AUTHENTICATION ACTIONS
       // ============================================
+      
+      // Set user directly (for non-API logins)
+      setUser: (user) => {
+        set({
+          auth: {
+            user,
+            token: null,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null
+          }
+        });
+      },
+      
       login: async (credentials) => {
         set((state) => ({
           auth: { ...state.auth, isLoading: true, error: null }

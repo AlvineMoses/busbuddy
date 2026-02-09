@@ -20,7 +20,7 @@ import {
   NOTIFICATIONS,
   MOCK_DRIVERS,
   MOCK_STUDENTS
-} from '../services/mockData';
+} from '../../services/mockData';
 
 /**
  * Authentication Service

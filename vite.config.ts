@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        origin: 'https://corp.little.global',
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        }
       },
       plugins: [react()],
       define: {

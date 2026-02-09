@@ -4,6 +4,7 @@ import { User as UserType } from '../types';
 
 interface DriversPageProps {
   currentUser: UserType;
+  showHeader?: boolean;
 }
 
 const INITIAL_DRIVERS = [
@@ -13,7 +14,7 @@ const INITIAL_DRIVERS = [
   { id: 'D4', name: 'David Kim', vehicle: 'Unassigned', phone: '+1 234 567 893', email: 'david.k@transport.com', license: 'PENDING', status: 'PENDING', avatar: 'https://picsum.photos/153', corporate: 'Unassigned' },
 ];
 
-export const DriversPage: React.FC<DriversPageProps> = ({ currentUser }) => {
+export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeader = true }) => {
   const [drivers, setDrivers] = useState(INITIAL_DRIVERS);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,6 +88,7 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser }) => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative" onClick={() => setOpenActionId(null)}>
       
       {/* Header */}
+      {showHeader && (
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
           <h1 className="text-5xl font-medium text-brand-black tracking-tight mb-2">Drivers</h1>
@@ -124,6 +126,33 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser }) => {
            </div>
         </div>
       </div>
+      )}
+
+      {/* Inline action bar when embedded */}
+      {!showHeader && (
+        <div className="flex items-center justify-end gap-3 px-2">
+          <button 
+             onClick={() => { setQrModalOpen(true); setSelectedDriverId(''); setGeneratedOtp(null); }}
+             className="bg-white hover:bg-gray-50 text-brand-black px-6 py-3.5 rounded-full text-sm font-bold shadow-sm border border-gray-200 transition-all flex items-center gap-2"
+          >
+             <QrCode size={18} strokeWidth={2} /> <span>Driver QR</span>
+          </button>
+          <button 
+            onClick={openRegister}
+            className="bg-[#ff3600] text-white px-8 py-3.5 rounded-full text-sm font-bold shadow-xl shadow-[#ff3600]/20 hover:scale-105 transition-all flex items-center gap-2"
+          >
+            <Plus size={18} strokeWidth={2} /> <span>Register Driver</span>
+          </button>
+          <div className="flex bg-white p-1 rounded-full border border-gray-200 shadow-sm ml-2">
+              <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-full transition-all ${viewMode === 'grid' ? 'bg-brand-black text-white shadow-md' : 'text-gray-400 hover:text-brand-black'}`}>
+                 <LayoutGrid size={18} strokeWidth={2} />
+              </button>
+              <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-full transition-all ${viewMode === 'list' ? 'bg-brand-black text-white shadow-md' : 'text-gray-400 hover:text-brand-black'}`}>
+                 <ListIcon size={18} strokeWidth={2} />
+              </button>
+          </div>
+        </div>
+      )}
 
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
