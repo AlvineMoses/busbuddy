@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { APIProvider, Map, Marker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { Plus, Minus, X, User, Phone, FileText, Gauge, Activity } from 'lucide-react';
 import { TransportRoute } from '../../../types';
@@ -9,6 +9,38 @@ interface LiveRouteMapProps {
 }
 
 const GOOGLE_MAPS_API_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+
+// In dev, load Google Maps JS API through our Vite proxy so the Referer header
+// is rewritten to corp.little.global (the allowed referrer in Google Cloud Console).
+// In production, load directly from Google.
+const isDev = (import.meta as any).env?.DEV;
+const MAPS_SCRIPT_BASE = isDev
+  ? '/google-maps-proxy/maps/api/js'
+  : 'https://maps.googleapis.com/maps/api/js';
+
+/**
+ * Manually bootstrap the Google Maps JS API through our proxy.
+ * @vis.gl/react-google-maps will detect window.google.maps.importLibrary
+ * and skip its own script-loading logic.
+ */
+function loadMapsViaProxy(apiKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).google?.maps?.importLibrary) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `${MAPS_SCRIPT_BASE}?key=${apiKey}&libraries=maps,marker&callback=__gmapsLoaded&v=weekly`;
+    script.async = true;
+    script.defer = true;
+    (window as any).__gmapsLoaded = () => {
+      delete (window as any).__gmapsLoaded;
+      resolve();
+    };
+    script.onerror = () => reject(new Error('Failed to load Google Maps'));
+    document.head.appendChild(script);
+  });
+}
 
 // Default center (adjust to your location)
 const DEFAULT_CENTER = { lat: -1.286389, lng: 36.817223 }; // Nairobi, Kenya
@@ -245,8 +277,29 @@ const MapFallback = ({ routes }: { routes: TransportRoute[] }) => (
 );
 
 export const LiveRouteMap: React.FC<LiveRouteMapProps> = ({ routes, onNavigate }) => {
-  if (!GOOGLE_MAPS_API_KEY) {
+  const [mapsReady, setMapsReady] = useState(false);
+  const [mapsError, setMapsError] = useState(false);
+
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) return;
+    loadMapsViaProxy(GOOGLE_MAPS_API_KEY)
+      .then(() => setMapsReady(true))
+      .catch(() => setMapsError(true));
+  }, []);
+
+  if (!GOOGLE_MAPS_API_KEY || mapsError) {
     return <MapFallback routes={routes} />;
+  }
+
+  if (!mapsReady) {
+    return (
+      <div className="relative w-full h-full bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden border border-white/60 shadow-soft-xl flex items-center justify-center">
+        <div className="text-center p-8">
+          <div className="w-8 h-8 border-3 border-gray-200 border-t-[#ff3600] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm font-bold text-gray-400">Loading map…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
