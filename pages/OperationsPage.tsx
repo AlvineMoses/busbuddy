@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
-import { Truck } from 'lucide-react';
 import { User } from '../types';
 import { DriversPage } from './DriversPage';
 import { ShiftsPage } from './ShiftsPage';

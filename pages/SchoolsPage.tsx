@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Search, Plus, MoreHorizontal, Building, Users, Bus, LayoutGrid, List as ListIcon, User, Edit, FileText, Archive, X, Save, Check, ArrowRight } from 'lucide-react';
+import { Plus, MoreHorizontal, Users, Bus, LayoutGrid, List as ListIcon, Edit, FileText, Archive, X, Save, Check, ArrowRight } from 'lucide-react';
 import { SCHOOLS as INITIAL_SCHOOLS } from '../services/mockData';
 import { User as UserType, UserRole } from '../types';
 import { StudentsPage } from './StudentsPage';

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Bell, Shield, Save, User, Check, AlertCircle, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, ToggleRight, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, Monitor, Upload, CloudUpload, RotateCcw, X, FileImage, Info } from 'lucide-react';
+import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info } from 'lucide-react';
 import { 
   fetchSettings, 
   updateSettings, 
@@ -117,9 +117,6 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    console.log('💾💾💾 SAVE BUTTON CLICKED!!!');
-    console.log('Current settings state:', settings);
-    
     try {
       const dataToSave = {
         platformName: settings.platformName,
@@ -134,14 +131,8 @@ export const SettingsPage: React.FC = () => {
         permissionGroups: settings.permissionGroups
       };
       
-      console.log('💾 Settings Save - Preparing to save:', dataToSave);
-      console.log('📸 Settings Save - Current logoUrls:', settings.logoUrls);
-      console.log('📸 Settings Save - Current uploadedLogos:', settings.uploadedLogos);
-      
       // @ts-ignore - async thunk from JS file
       await (dispatch as any)(updateSettings(dataToSave)).unwrap();
-      
-      console.log('✅ Settings Save - Successfully saved!');
       
       dispatch(addToast({
         message: 'Settings saved successfully!',
@@ -212,18 +203,10 @@ export const SettingsPage: React.FC = () => {
 
   // Logo Upload Handlers
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, mode: 'light' | 'dark' | 'platform') => {
-    console.log('🚀🚀🚀 LOGO UPLOAD TRIGGERED!!! Mode:', mode);
-    
     const file = e.target.files?.[0];
-    if (!file) {
-      console.log('❌ No file selected');
-      return;
-    }
-
-    console.log(`🎨 Logo Upload - Starting upload for ${mode} mode:`, { fileName: file.name, fileSize: file.size, fileType: file.type });
+    if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      console.error('❌ Logo Upload - Invalid file type:', file.type);
       dispatch(addToast({
         message: 'Please select a valid image file',
         type: 'error',
@@ -233,7 +216,6 @@ export const SettingsPage: React.FC = () => {
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      console.error('❌ Logo Upload - File too large:', file.size);
       dispatch(addToast({
         message: 'Logo size must be less than 2MB',
         type: 'error',
@@ -243,18 +225,15 @@ export const SettingsPage: React.FC = () => {
     }
 
     try {
-      console.log(`📤 Logo Upload - Dispatching uploadImage thunk for logo-${mode}...`);
       // @ts-ignore - async thunk from JS file
-      const result = await (dispatch as any)(uploadImage({ file, type: `logo-${mode}` })).unwrap();
-      console.log(`✅ Logo Upload - Upload successful for logo-${mode}:`, result);
-      console.log(`📊 Logo Upload - Current logoUrls state:`, settings.logoUrls);
+      await (dispatch as any)(uploadImage({ file, type: `logo-${mode}` })).unwrap();
       dispatch(addToast({
         message: `${mode === 'platform' ? 'Platform' : mode === 'light' ? 'Light' : 'Dark'} mode logo uploaded successfully!`,
         type: 'success',
         duration: 5000
       }));
     } catch (error) {
-      console.error(`❌ Logo Upload - Failed for logo-${mode}:`, error);
+
       dispatch(addToast({
         message: `Failed to upload logo: ${error}`,
         type: 'error',

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Bell, CheckCircle, AlertCircle, Info, X, Check, Trash2, Filter } from 'lucide-react';
+import { Bell, CheckCircle, AlertCircle, Info, X, Check, Trash2 } from 'lucide-react';
 
 interface Notification {
  id: string;

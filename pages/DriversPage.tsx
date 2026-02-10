@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Search, Filter, Plus, Phone, Mail, Car, X, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Search, Filter, Plus, Phone, Car, X, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { User as UserType } from '../types';
 
 interface DriversPageProps {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Calendar, MapPin, Users, Plus, Edit2, Trash2, Search, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import { Calendar, MapPin, Plus, Edit2, Trash2, Search, Download } from 'lucide-react';
 import { User } from '../types';
 
 interface AssignmentsPageProps {

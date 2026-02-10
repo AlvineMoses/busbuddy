@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Calendar, Clock, Users, Plus, Edit2, Copy, Trash2, Search, Download, Filter } from 'lucide-react';
+import { Calendar, Plus, Edit2, Copy, Trash2, Search, Download } from 'lucide-react';
 import { User } from '../types';
 
 interface ShiftsPageProps {
@@ -68,7 +68,6 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  const [searchTerm, setSearchTerm] = useState('');
  const [selectedSchool, setSelectedSchool] = useState('');
  const [isModalOpen, setIsModalOpen] = useState(false);
- const [dateFilter, setDateFilter] = useState('');
  const [editingShift, setEditingShift] = useState<Shift | null>(null);
  const [shiftForm, setShiftForm] = useState<Partial<Shift>>({
  shiftName: '', shiftCode: '', school: '', drivers: [], days: [],
@@ -167,7 +166,7 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
 
  {/* Filters */}
  <div className="bg-white rounded-[2.5rem] p-8 shadow-soft-xl border border-gray-100">
- <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
  {/* School Filter */}
  <div>
  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -183,19 +182,6 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  <option value="Innovation High">Innovation High</option>
  <option value="City College">City College</option>
  </select>
- </div>
-
- {/* Date Filter */}
- <div>
- <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
- Date
- </label>
- <input
- type="date"
- value={dateFilter}
- onChange={(e) => setDateFilter(e.target.value)}
- className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-brand-black focus:ring-2 focus:ring-/20 outline-none transition-all"
- />
  </div>
 
  {/* Search */}
