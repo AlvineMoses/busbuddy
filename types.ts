@@ -76,6 +76,67 @@ export interface Notification {
   read: boolean;
 }
 
+// Drivers
+export type DriverStatus = 'ON_TRIP' | 'AVAILABLE' | 'OFF_DUTY' | 'PENDING';
+
+export interface Driver {
+  id: string;
+  name: string;
+  vehicle: string;
+  phone: string;
+  email: string;
+  license: string;
+  status: DriverStatus;
+  avatar: string;
+  corporate: string;
+}
+
+// Students
+export type StudentStatus = 'ON_BOARD' | 'DROPPED_OFF' | 'ABSENT' | 'WAITING' | 'DISABLED';
+
+export interface Student {
+  id: string;
+  name: string;
+  school: string;
+  grade: string;
+  guardian: string;
+  status: StudentStatus;
+}
+
+// Assignments
+export type AssignmentStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+
+export interface Assignment {
+  id: string;
+  routeId: string;
+  routeName: string;
+  school: string;
+  driver: string;
+  date: string;
+  routeTime: string;
+  routeType: 'PICKUP' | 'DROP_OFF';
+  status: AssignmentStatus;
+  recurring?: boolean;
+  conflicts?: string[];
+}
+
+// Shifts
+export type ShiftStatus = 'ACTIVE' | 'INACTIVE' | 'COMPLETED';
+
+export interface Shift {
+  id: string;
+  shiftName: string;
+  shiftCode: string;
+  school: string;
+  drivers: string[];
+  days: string[];
+  scheduledTime: string;
+  actualTime?: string;
+  assignedRoute: string;
+  status: ShiftStatus;
+  notes?: string;
+}
+
 // Stats
 export interface DashboardMetrics {
   totalTrips: number;

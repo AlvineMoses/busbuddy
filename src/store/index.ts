@@ -1,6 +1,6 @@
 /**
  * Redux Store Configuration
- * 
+ *
  * Centralized state management using Redux Toolkit
  * with proper slice separation and middleware
  */
@@ -12,7 +12,7 @@ import uiReducer from './slices/uiSlice';
 export const store = configureStore({
   reducer: {
     settings: settingsReducer,
-    ui: uiReducer
+    ui: uiReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -21,15 +21,19 @@ export const store = configureStore({
         ignoredActions: ['settings/uploadImage/pending', 'settings/uploadImage/fulfilled'],
         // Ignore these field paths in state
         ignoredActionPaths: ['meta.arg', 'payload.timestamp'],
-        ignoredPaths: ['settings.uploadProgress']
-      }
+        ignoredPaths: ['settings.uploadProgress'],
+      },
     }),
-  devTools: process.env.NODE_ENV !== 'production'
+  devTools: process.env.NODE_ENV !== 'production',
 });
 
-// Export types for TypeScript (if using TS)
-export const selectSettings = (state) => state.settings;
-export const selectUI = (state) => state.ui;
-export const selectToasts = (state) => state.ui.toasts;
+// Infer root state and dispatch types from the store
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+
+// Typed selectors
+export const selectSettings = (state: RootState) => state.settings;
+export const selectUI = (state: RootState) => state.ui;
+export const selectToasts = (state: RootState) => state.ui.toasts;
 
 export default store;

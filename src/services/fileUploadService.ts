@@ -1,6 +1,6 @@
 /**
  * File Upload Service
- * 
+ *
  * Handles uploading files with:
  * - File type validation (PNG, JPG, JPEG, SVG only)
  * - File size validation (configurable max)
@@ -12,6 +12,28 @@
  */
 
 // ============================================
+// TYPES
+// ============================================
+
+export interface FileValidationResult {
+  valid: boolean;
+  error: string | null;
+}
+
+export interface UploadMetadata {
+  filename: string;
+  path: string;
+  type: string;
+  originalName: string;
+  originalSize: number;
+  optimizedSize: number;
+  mimeType: string;
+  uploadedAt: string;
+}
+
+export type UploadType = 'hero' | 'logo-light' | 'logo-dark' | 'logo-platform';
+
+// ============================================
 // CONFIGURATION
 // ============================================
 
@@ -19,29 +41,21 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+
 const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'svg'];
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;  // 2MB for logos
 const MAX_HERO_SIZE = 5 * 1024 * 1024;  // 5MB for hero images
-const MAX_LOGO_WIDTH = 200;              // Optimize logos to max 200px
-const MAX_HERO_WIDTH = 1920;             // Optimize hero images to max 1920px
-const JPEG_QUALITY = 0.9;               // 90% quality for JPEG compression
+const MAX_LOGO_WIDTH = 200;
+const MAX_HERO_WIDTH = 1920;
+const JPEG_QUALITY = 0.9;
 
 // ============================================
 // VALIDATION
 // ============================================
 
-/**
- * Validate a file before upload
- * @param {File} file - The file to validate
- * @param {string} type - Upload type ('hero', 'logo-light', 'logo-dark', 'logo-platform')
- * @returns {{ valid: boolean, error: string|null }}
- */
-export const validateFile = (file, type = 'hero') => {
+export const validateFile = (file: File, type: UploadType = 'hero'): FileValidationResult => {
   if (!file) {
     return { valid: false, error: 'No file selected.' };
   }
 
-  // Check file type
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     const ext = file.name.split('.').pop()?.toLowerCase();
-    // Also check extension as fallback
     if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
       return {
         valid: false,
@@ -50,7 +64,6 @@ export const validateFile = (file, type = 'hero') => {
     }
   }
 
-  // Check file size based on type
   const maxSize = type === 'hero' ? MAX_HERO_SIZE : MAX_LOGO_SIZE;
   const maxLabel = type === 'hero' ? '5MB' : '2MB';
   if (file.size > maxSize) {
@@ -67,16 +80,8 @@ export const validateFile = (file, type = 'hero') => {
 // IMAGE OPTIMIZATION
 // ============================================
 
-/**
- * Resize and compress an image using canvas
- * SVG files are returned as-is (no raster optimization).
- * @param {File|Blob} file
- * @param {number} maxWidth
- * @returns {Promise<Blob>}
- */
-const optimizeImage = (file, maxWidth) => {
+const optimizeImage = (file: File | Blob, maxWidth: number): Promise<Blob> => {
   return new Promise((resolve, reject) => {
-    // SVG doesn't need raster optimization
     if (file.type === 'image/svg+xml') {
       resolve(file);
       return;
@@ -88,7 +93,6 @@ const optimizeImage = (file, maxWidth) => {
       img.onload = () => {
         let { width, height } = img;
 
-        // Only downscale, never upscale
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
@@ -105,7 +109,6 @@ const optimizeImage = (file, maxWidth) => {
         }
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Determine output type (keep PNG for transparency, use JPEG for photos)
         const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
         const quality = outputType === 'image/jpeg' ? JPEG_QUALITY : undefined;
 
@@ -122,7 +125,7 @@ const optimizeImage = (file, maxWidth) => {
         );
       };
       img.onerror = () => reject(new Error('Could not decode image. The file may be corrupted.'));
-      img.src = e.target.result;
+      img.src = e.target?.result as string;
     };
     reader.onerror = () => reject(new Error('Failed to read file.'));
     reader.readAsDataURL(file);
@@ -133,30 +136,20 @@ const optimizeImage = (file, maxWidth) => {
 // UPLOAD
 // ============================================
 
-/**
- * Upload a file to /public/uploads/ (localStorage-backed).
- *
- * Flow: validate → optimize → store data URL in localStorage → return path.
- *
- * @param {File} file
- * @param {string} type - 'hero' | 'logo-light' | 'logo-dark' | 'logo-platform'
- * @returns {Promise<string>} public path, e.g. "/uploads/logo-platform-1700000000-abc123.png"
- */
-export const uploadFile = async (file, type) => {
+export const uploadFile = async (file: File, type: UploadType): Promise<string> => {
   // 1. Validate
   const validation = validateFile(file, type);
   if (!validation.valid) {
-    throw new Error(validation.error);
+    throw new Error(validation.error!);
   }
 
   // 2. Optimize
   const maxWidth = type === 'hero' ? MAX_HERO_WIDTH : MAX_LOGO_WIDTH;
-  let optimizedBlob;
+  let optimizedBlob: Blob;
   try {
     optimizedBlob = await optimizeImage(file, maxWidth);
   } catch (err) {
-    // Fall back to raw file if optimization fails
-    console.warn('Image optimization skipped:', err.message);
+    console.warn('Image optimization skipped:', (err as Error).message);
     optimizedBlob = file;
   }
 
@@ -168,18 +161,16 @@ export const uploadFile = async (file, type) => {
   const publicPath = `/uploads/${filename}`;
 
   // 4. Convert to data URL and persist
-  const dataUrl = await new Promise((resolve, reject) => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
+    reader.onload = (e) => resolve(e.target?.result as string);
     reader.onerror = () => reject(new Error('Failed to read optimized image.'));
     reader.readAsDataURL(optimizedBlob);
   });
 
   try {
     localStorage.setItem(`busbuddy_upload_${filename}`, dataUrl);
-  } catch (storageError) {
-    // localStorage might be full
-    // Try to clean up old uploads of the same type first
+  } catch {
     cleanupOldUploads(type);
     try {
       localStorage.setItem(`busbuddy_upload_${filename}`, dataUrl);
@@ -189,7 +180,7 @@ export const uploadFile = async (file, type) => {
   }
 
   // 5. Store metadata
-  const metadata = {
+  const metadata: UploadMetadata = {
     filename,
     path: publicPath,
     type,
@@ -208,41 +199,27 @@ export const uploadFile = async (file, type) => {
 // RETRIEVAL
 // ============================================
 
-/**
- * Resolve a stored path to a displayable URL.
- * Handles: external URLs, data URLs, and /uploads/ paths.
- * @param {string} path
- * @returns {string|null}
- */
-export const getUploadedFileUrl = (path) => {
+export const getUploadedFileUrl = (path: string | null | undefined): string | null => {
   if (!path) return null;
 
-  // Already a full URL or data URL — pass through
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path;
   }
 
-  // Resolve from localStorage
   const filename = path.split('/').pop();
   const storedData = localStorage.getItem(`busbuddy_upload_${filename}`);
   if (storedData) return storedData;
 
-  // Fallback: treat as relative public path
   return path;
 };
 
-/**
- * Get metadata for a previously uploaded file
- * @param {string} path
- * @returns {object|null}
- */
-export const getUploadedFileMetadata = (path) => {
+export const getUploadedFileMetadata = (path: string | null | undefined): UploadMetadata | null => {
   if (!path) return null;
   const filename = path.split('/').pop();
   const raw = localStorage.getItem(`busbuddy_upload_meta_${filename}`);
   if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    return JSON.parse(raw) as UploadMetadata;
   } catch {
     return null;
   }
@@ -252,12 +229,7 @@ export const getUploadedFileMetadata = (path) => {
 // DELETION / RESET
 // ============================================
 
-/**
- * Delete an uploaded file and its metadata from storage
- * @param {string} path
- * @returns {boolean}
- */
-export const deleteUploadedFile = (path) => {
+export const deleteUploadedFile = (path: string | null | undefined): boolean => {
   if (!path) return false;
   const filename = path.split('/').pop();
   localStorage.removeItem(`busbuddy_upload_${filename}`);
@@ -265,23 +237,16 @@ export const deleteUploadedFile = (path) => {
   return true;
 };
 
-/**
- * Remove old uploads of a given type to free localStorage space.
- * Keeps only the most recent upload per type.
- * @param {string} type
- */
-const cleanupOldUploads = (type) => {
+const cleanupOldUploads = (type: string): void => {
   const prefix = `busbuddy_upload_${type}-`;
-  const keysToRemove = [];
+  const keysToRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith(prefix) && !key.includes('_meta_')) {
       keysToRemove.push(key);
     }
   }
-  // Remove all but the most recent (by key sort, since they contain timestamps)
   keysToRemove.sort();
-  // Remove all old ones (keep none since we're about to write a new one)
   keysToRemove.forEach((k) => {
     localStorage.removeItem(k);
     localStorage.removeItem(k.replace('busbuddy_upload_', 'busbuddy_upload_meta_'));
@@ -292,12 +257,7 @@ const cleanupOldUploads = (type) => {
 // UTILITIES
 // ============================================
 
-/**
- * Human-readable file size
- * @param {number} bytes
- * @returns {string}
- */
-export const formatFileSize = (bytes) => {
+export const formatFileSize = (bytes: number): string => {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -305,11 +265,6 @@ export const formatFileSize = (bytes) => {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 };
 
-/**
- * Check whether a path points to a locally uploaded file
- * @param {string} path
- * @returns {boolean}
- */
-export const isUploadedFile = (path) => {
+export const isUploadedFile = (path: string | null | undefined): boolean => {
   return Boolean(path && path.startsWith('/uploads/'));
 };
