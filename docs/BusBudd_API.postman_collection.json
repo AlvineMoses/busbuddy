@@ -1,0 +1,750 @@
+{
+  "info": {
+    "name": "BusBudd Transport API",
+    "description": "Complete API collection for the BusBudd Transport Management Dashboard.\n\nBase URL: {{baseUrl}}/api\n\nAll endpoints require the /api prefix which the ApiClient adds automatically.\nAuthentication uses Bearer token in the Authorization header.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "busbudd"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "schoolId", "value": "S1", "type": "string" },
+    { "key": "driverId", "value": "D1", "type": "string" },
+    { "key": "routeId", "value": "R1", "type": "string" },
+    { "key": "tripId", "value": "T1", "type": "string" },
+    { "key": "studentId", "value": "ST1", "type": "string" },
+    { "key": "assignmentId", "value": "A1", "type": "string" },
+    { "key": "shiftId", "value": "SH1", "type": "string" },
+    { "key": "notificationId", "value": "N1", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints for login, logout, session management, and password recovery.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@busbudd.com\",\n  \"password\": \"admin123\"\n}"
+            }
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"user\": {\n    \"id\": \"U1\",\n    \"name\": \"Admin User\",\n    \"email\": \"admin@busbudd.com\",\n    \"role\": \"SUPER_ADMIN\",\n    \"avatarUrl\": \"\"\n  },\n  \"token\": \"mock-jwt-token\",\n  \"refreshToken\": \"mock-refresh-token\"\n}"
+          }]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/logout"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/forgot-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@busbudd.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/verify-otp",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@busbudd.com\",\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/reset-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@busbudd.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newPassword123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/refresh-token",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"mock-refresh-token\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schools",
+      "description": "School entity CRUD and statistics.",
+      "item": [
+        {
+          "name": "List All Schools",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/schools"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"S1\",\n    \"name\": \"International Academy\",\n    \"logoUrl\": \"\"\n  },\n  {\n    \"id\": \"S2\",\n    \"name\": \"Green Valley School\",\n    \"logoUrl\": \"\"\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get School by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/schools/{{schoolId}}"
+          }
+        },
+        {
+          "name": "Create School",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/schools",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Academy\",\n  \"logoUrl\": \"\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update School",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/schools/{{schoolId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Academy Name\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete School",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/schools/{{schoolId}}"
+          }
+        },
+        {
+          "name": "Get School Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/schools/{{schoolId}}/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Drivers",
+      "description": "Driver entity CRUD, OTP generation, QR code, status updates, and live tracking.",
+      "item": [
+        {
+          "name": "List All Drivers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"D1\",\n    \"name\": \"James Wilson\",\n    \"vehicle\": \"Toyota Coaster (BUS-101)\",\n    \"phone\": \"+1 234 567 890\",\n    \"email\": \"james.w@transport.com\",\n    \"license\": \"EXP-2025\",\n    \"status\": \"AVAILABLE\",\n    \"avatar\": \"\",\n    \"corporate\": \"TechCorp Inc.\"\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get Driver by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}"
+          }
+        },
+        {
+          "name": "Create Driver",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/drivers",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Driver\",\n  \"phone\": \"+1 555 123 456\",\n  \"email\": \"new.driver@transport.com\",\n  \"vehicle\": \"Unassigned\",\n  \"license\": \"PENDING\",\n  \"status\": \"AVAILABLE\",\n  \"avatar\": \"\",\n  \"corporate\": \"TransCo\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Driver",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Driver Name\",\n  \"phone\": \"+1 555 999 000\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Driver",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}"
+          }
+        },
+        {
+          "name": "Generate OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}/generate-otp"
+          }
+        },
+        {
+          "name": "Get QR Code",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}/qr-code"
+          }
+        },
+        {
+          "name": "Update Driver Status",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/drivers/{{driverId}}/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ON_TRIP\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Live Drivers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/drivers/live"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Routes",
+      "description": "Transport route CRUD, trip listing, export, and live tracking.",
+      "item": [
+        {
+          "name": "List All Routes",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/routes"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"R1\",\n    \"name\": \"Route Alpha\",\n    \"schoolId\": \"S1\",\n    \"type\": \"PICKUP\",\n    \"status\": \"ACTIVE\",\n    \"health\": \"NORMAL\",\n    \"driverId\": \"D1\",\n    \"vehiclePlate\": \"BUS-101\"\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get Route by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/routes/{{routeId}}"
+          }
+        },
+        {
+          "name": "Create Route",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/routes",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Route\",\n  \"schoolId\": \"S1\",\n  \"type\": \"PICKUP\",\n  \"status\": \"ACTIVE\",\n  \"health\": \"NORMAL\",\n  \"driverId\": \"D1\",\n  \"vehiclePlate\": \"BUS-201\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Route",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/routes/{{routeId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Route Name\",\n  \"health\": \"DELAYED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Route",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/routes/{{routeId}}"
+          }
+        },
+        {
+          "name": "Get Route Trips",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/routes/{{routeId}}/trips"
+          }
+        },
+        {
+          "name": "Export Routes",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/routes/export"
+          }
+        },
+        {
+          "name": "Get Live Routes",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/routes/live"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "description": "Trip listing, incident flagging, playback, events, and statistics.",
+      "item": [
+        {
+          "name": "List All Trips",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trips"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"T1\",\n    \"routeId\": \"R1\",\n    \"driverName\": \"James Wilson\",\n    \"date\": \"2024-01-15\",\n    \"startTime\": \"07:00\",\n    \"endTime\": \"08:15\",\n    \"status\": \"ENDED\",\n    \"riderCount\": 12,\n    \"events\": []\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get Trip by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}"
+          }
+        },
+        {
+          "name": "Flag Incident",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/flag",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Driver exceeded speed limit\",\n  \"severity\": \"HIGH\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Trip Playback",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/playback"
+          }
+        },
+        {
+          "name": "Get Trip Events",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trips/{{tripId}}/events"
+          }
+        },
+        {
+          "name": "Get Trip Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trips/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "description": "Student CRUD, disable/enable, transfer, and bulk upload.",
+      "item": [
+        {
+          "name": "List All Students",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/students"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"ST1\",\n    \"name\": \"Alice Johnson\",\n    \"school\": \"International Academy\",\n    \"grade\": \"5th Grade\",\n    \"guardian\": \"Martha Johnson\",\n    \"status\": \"WAITING\"\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get Student by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/students",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Student\",\n  \"school\": \"International Academy\",\n  \"grade\": \"3rd Grade\",\n  \"guardian\": \"Parent Name\",\n  \"status\": \"WAITING\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Student",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/students/{{studentId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Student Name\",\n  \"grade\": \"6th Grade\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Student",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Toggle Disable Student",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/students/{{studentId}}/disable"
+          }
+        },
+        {
+          "name": "Transfer Student",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/students/{{studentId}}/transfer",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetSchool\": \"Green Valley School\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk Upload Students",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/students/bulk-upload",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"students\": [\n    {\n      \"name\": \"Bulk Student 1\",\n      \"school\": \"S1\",\n      \"grade\": \"4th Grade\",\n      \"guardian\": \"Guardian 1\"\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assignments",
+      "description": "Route assignment CRUD and conflict detection.",
+      "item": [
+        {
+          "name": "List All Assignments",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/assignments"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"A1\",\n    \"routeId\": \"R1\",\n    \"routeName\": \"Route Alpha\",\n    \"school\": \"International Academy\",\n    \"driver\": \"James Wilson\",\n    \"date\": \"2024-01-15\",\n    \"routeTime\": \"07:00 AM\",\n    \"routeType\": \"PICKUP\",\n    \"status\": \"SCHEDULED\",\n    \"recurring\": true,\n    \"conflicts\": []\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get Assignment by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/assignments/{{assignmentId}}"
+          }
+        },
+        {
+          "name": "Create Assignment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/assignments",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"routeId\": \"R1\",\n  \"routeName\": \"Route Alpha\",\n  \"school\": \"International Academy\",\n  \"driver\": \"James Wilson\",\n  \"date\": \"2024-02-01\",\n  \"routeTime\": \"07:00 AM\",\n  \"routeType\": \"PICKUP\",\n  \"status\": \"SCHEDULED\",\n  \"recurring\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Assignment",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/assignments/{{assignmentId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Assignment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/assignments/{{assignmentId}}"
+          }
+        },
+        {
+          "name": "Check Conflicts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/assignments/conflicts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shifts",
+      "description": "Driver shift CRUD and duplication.",
+      "item": [
+        {
+          "name": "List All Shifts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/shifts"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"SH1\",\n    \"shiftName\": \"Morning Shift A\",\n    \"shiftCode\": \"MS-A\",\n    \"school\": \"International Academy\",\n    \"drivers\": [\"James Wilson\"],\n    \"days\": [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\"],\n    \"scheduledTime\": \"06:00 - 09:00\",\n    \"actualTime\": \"06:05 - 09:10\",\n    \"assignedRoute\": \"Route Alpha\",\n    \"status\": \"ACTIVE\",\n    \"notes\": \"\"\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get Shift by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/shifts/{{shiftId}}"
+          }
+        },
+        {
+          "name": "Create Shift",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/shifts",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftName\": \"New Shift\",\n  \"shiftCode\": \"NS-1\",\n  \"school\": \"International Academy\",\n  \"drivers\": [\"James Wilson\"],\n  \"days\": [\"Mon\", \"Wed\", \"Fri\"],\n  \"scheduledTime\": \"14:00 - 17:00\",\n  \"assignedRoute\": \"Route Beta\",\n  \"status\": \"ACTIVE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Shift",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/shifts/{{shiftId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\",\n  \"notes\": \"Temporarily suspended\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Shift",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/shifts/{{shiftId}}"
+          }
+        },
+        {
+          "name": "Duplicate Shift",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/shifts/{{shiftId}}/duplicate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "Notification listing, read/unread management, and deletion.",
+      "item": [
+        {
+          "name": "List All Notifications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "[\n  {\n    \"id\": \"N1\",\n    \"title\": \"Speed Alert\",\n    \"message\": \"Bus BUS-101 exceeded 60km/h near school zone\",\n    \"type\": \"SAFETY\",\n    \"timestamp\": \"2024-01-15T08:30:00Z\",\n    \"read\": false\n  }\n]"
+          }]
+        },
+        {
+          "name": "Get Notification by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}"
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read"
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/notifications/read-all"
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}"
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/unread-count"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "description": "Platform settings retrieval, updates, image uploads, and permission management.",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/settings"
+          }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/settings",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platformName\": \"BusBudd\",\n  \"primaryColor\": \"#6366f1\",\n  \"accentColor\": \"#8b5cf6\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Upload Image",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/settings/upload-image",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "description": "Image file (PNG, JPG, SVG, WebP)" },
+                { "key": "type", "value": "logo", "type": "text", "description": "Image type: logo, darkLogo, lightLogo, favicon" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Permissions",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/settings/permissions",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roles\": {\n    \"SUPER_ADMIN\": [\"all\"],\n    \"ADMIN\": [\"read\", \"write\"],\n    \"SCHOOL_ADMIN\": [\"read\"]\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Dashboard metrics and live feed.",
+      "item": [
+        {
+          "name": "Get Dashboard Metrics",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/dashboard/metrics"
+          },
+          "response": [{
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"totalTrips\": 156,\n  \"activeTrips\": 3,\n  \"totalKm\": 12450,\n  \"onTimePercentage\": 94.5\n}"
+          }]
+        },
+        {
+          "name": "Get Live Feed",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/dashboard/live-feed"
+          }
+        }
+      ]
+    }
+  ]
+}
