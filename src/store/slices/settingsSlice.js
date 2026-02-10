@@ -11,7 +11,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { settingsService } from '../../services/UnifiedApiService';
-import { uploadFile } from '../../services/fileUploadService';
+import { uploadFile, validateFile, deleteUploadedFile } from '../../services/fileUploadService';
 
 // ============================================
 // ASYNC THUNKS
@@ -48,22 +48,23 @@ export const updateSettings = createAsyncThunk(
 );
 
 /**
- * Upload image (hero or logo)
+ * Upload image (hero or logo) with validation and optimization
  */
 export const uploadImage = createAsyncThunk(
   'settings/uploadImage',
   async ({ file, type }, { rejectWithValue }) => {
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', type); // 'hero', 'logo-light', 'logo-dark'
+      // Validate before uploading (throws on failure)
+      const validation = validateFile(file, type);
+      if (!validation.valid) {
+        return rejectWithValue(validation.error);
+      }
 
-      // Use fileUploadService to store in localStorage (simulates /public/uploads/)
+      // Upload (validates, optimizes, stores in localStorage)
       const publicPath = await uploadFile(file, type);
       return { type, url: publicPath, fileName: file.name };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message || 'Upload failed');
     }
   }
 );
@@ -188,6 +189,27 @@ const settingsSlice = createSlice({
     
     clearError: (state) => {
       state.error = null;
+    },
+    
+    // Reset logo to default (remove uploaded file)
+    resetLogo: (state, action) => {
+      const mode = action.payload; // 'light' | 'dark' | 'platform'
+      const uploadedPath = state.uploadedLogos[mode];
+      if (uploadedPath) {
+        deleteUploadedFile(uploadedPath);
+      }
+      state.uploadedLogos[mode] = null;
+      state.logoUrls[mode] = '';
+    },
+    
+    // Reset hero image to default
+    resetHeroImage: (state) => {
+      if (state.uploadedHeroImage) {
+        deleteUploadedFile(state.uploadedHeroImage);
+      }
+      state.uploadedHeroImage = null;
+      state.loginHeroImage = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2576&auto=format&fit=crop';
+      state.heroMode = 'url';
     }
   },
   
@@ -274,7 +296,9 @@ export const {
   removeTestimonial,
   setPermissionGroups,
   togglePermission,
-  clearError
+  clearError,
+  resetLogo,
+  resetHeroImage
 } = settingsSlice.actions;
 
 export default settingsSlice.reducer;
