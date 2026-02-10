@@ -1,13 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedLogo, ThemedPlatformName } from '../src/components/ThemedComponents';
 import { 
   LayoutDashboard, 
-  Map as MapIcon, 
-  Bus, 
-  Users, 
-  GraduationCap, 
   Building2, 
   Settings, 
   Bell, 

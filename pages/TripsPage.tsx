@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Trip, TripEvent } from '../types';
+import { Trip } from '../types';
 import { Users, ChevronRight, X, AlertTriangle, Calendar, MapPin, Filter, MoreHorizontal, Eye, Phone, Flag, LayoutGrid, List as ListIcon, Play, Bus } from 'lucide-react';
 
 interface TripsPageProps {

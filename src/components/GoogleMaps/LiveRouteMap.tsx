@@ -260,7 +260,6 @@ export const LiveRouteMap: React.FC<LiveRouteMapProps> = ({ routes, onNavigate }
       <div className="relative w-full h-full bg-white/60 backdrop-blur-md rounded-[3rem] overflow-hidden border border-white/60 shadow-soft-xl">
         <APIProvider 
           apiKey={GOOGLE_MAPS_API_KEY}
-          onLoad={() => console.log('Maps API loaded')}
         >
           <Map
             defaultCenter={DEFAULT_CENTER}

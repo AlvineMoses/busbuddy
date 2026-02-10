@@ -10,6 +10,7 @@ import {
  MapPin, 
  Edit2,
  List,
+ List as ListIcon,
  Map,
  Filter,
  Route as RouteIcon,
@@ -20,7 +21,6 @@ import {
  X,
  Check,
  LayoutGrid,
- List as ListIcon,
  Save
 } from 'lucide-react';
 import { TripsPage } from './TripsPage';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import { MOCK_USERS } from '../services/mockData';
-import { Eye, EyeOff, ArrowLeft, ChevronRight, Check, Shield, User as UserIcon, Building2, MessageSquare, Smartphone, Bell, Mail } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ChevronRight, Shield, User as UserIcon, Building2, MessageSquare, Smartphone, Bell, Mail } from 'lucide-react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedInput, ThemedButton, ThemedLink, ThemedLogo, ThemedPlatformName } from '../src/components/ThemedComponents';
 import { getUploadedFileUrl } from '../src/services/fileUploadService';

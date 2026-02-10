@@ -1,7 +1,0 @@
-{
-  "name": "BusBuddy",
-  "description": "A comprehensive React dashboard for managing multi-school transport fleets, tracking student safety, and monitoring live trips with role-based access control.",
-  "requestFramePermissions": [
-    "camera"
-  ]
-}

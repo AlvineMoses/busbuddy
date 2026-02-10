@@ -15,7 +15,7 @@
  * - ThemedBadge: Status badges with theme colors
  */
 
-import React, { InputHTMLAttributes, ButtonHTMLAttributes, useEffect } from 'react';
+import React, { InputHTMLAttributes, ButtonHTMLAttributes } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { getUploadedFileUrl } from '../services/fileUploadService';
 import { LucideIcon } from 'lucide-react';
@@ -239,29 +239,18 @@ export const ThemedLogo: React.FC<{ size?: number; className?: string }> = ({
 }) => {
   const { colors, logoUrls, platformName } = useTheme();
   
-  // Force component to re-render when logoUrls changes
-  useEffect(() => {
-    console.log('🔄 ThemedLogo - useEffect triggered, logoUrls changed:', logoUrls);
-  }, [logoUrls, logoUrls.platform]);
-  
-  console.log('🖼️ ThemedLogo RENDER - logoUrls.platform:', logoUrls.platform);
-  
   // Resolve the actual file URL (handles /uploads/ paths and data URLs)
   const logoSrc = logoUrls.platform ? getUploadedFileUrl(logoUrls.platform) : null;
   
-  console.log('🎨 ThemedLogo - Resolved logoSrc:', logoSrc);
-  
   if (logoSrc) {
-    console.log('✅ ThemedLogo - Using platform logo:', logoSrc);
     return (
       <img 
-        key={logoSrc} // Force re-render when URL changes
+        key={logoSrc}
         src={logoSrc} 
         alt={`${platformName} Logo`} 
         className={`object-contain ${className}`}
         style={{ width: size, height: size }}
         onError={(e) => {
-          console.error('❌ ThemedLogo - Image load error:', logoSrc);
           e.currentTarget.style.display = 'none';
         }}
       />
@@ -269,7 +258,6 @@ export const ThemedLogo: React.FC<{ size?: number; className?: string }> = ({
   }
   
   // Default: Circle with initials
-  console.log('⚪ ThemedLogo - Using default circle logo');
   return (
     <div 
       className={`rounded-full flex items-center justify-center text-white text-xs font-bold ${className}`}
