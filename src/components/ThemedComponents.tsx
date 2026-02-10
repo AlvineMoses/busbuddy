@@ -258,7 +258,7 @@ export const ThemedLogo: React.FC<{ size?: number; className?: string }> = ({
         key={logoSrc} // Force re-render when URL changes
         src={logoSrc} 
         alt={`${platformName} Logo`} 
-        className={`rounded-full object-cover ${className}`}
+        className={`object-contain ${className}`}
         style={{ width: size, height: size }}
         onError={(e) => {
           console.error('❌ ThemedLogo - Image load error:', logoSrc);

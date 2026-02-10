@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Bell, Shield, Save, User, Check, AlertCircle, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, ToggleRight, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, Monitor, Upload, CloudUpload } from 'lucide-react';
+import { Bell, Shield, Save, User, Check, AlertCircle, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, ToggleRight, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, Monitor, Upload, CloudUpload, RotateCcw, X, FileImage, Info } from 'lucide-react';
 import { 
   fetchSettings, 
   updateSettings, 
@@ -15,10 +15,12 @@ import {
   addTestimonial,
   updateTestimonial,
   togglePermission,
-  setPermissionGroups
+  setPermissionGroups,
+  resetLogo,
+  resetHeroImage
 } from '../src/store/slices/settingsSlice';
 import { addToast } from '../src/store/slices/uiSlice';
-import { getUploadedFileUrl } from '../src/services/fileUploadService';
+import { getUploadedFileUrl, formatFileSize, getUploadedFileMetadata } from '../src/services/fileUploadService';
 
 interface Permission {
   id: string;
@@ -263,36 +265,62 @@ export const SettingsPage: React.FC = () => {
     e.target.value = '';
   };
 
+  // ============================================
+  // RESET HANDLERS
+  // ============================================
+
+  const handleResetLogo = (mode: 'light' | 'dark' | 'platform') => {
+    dispatch(resetLogo(mode));
+    dispatch(addToast({
+      message: `${mode === 'platform' ? 'Navigation' : mode === 'light' ? 'Light mode' : 'Dark mode'} logo reset to default.`,
+      type: 'success',
+      duration: 3000
+    }));
+  };
+
+  const handleResetHero = () => {
+    dispatch(resetHeroImage());
+    dispatch(addToast({
+      message: 'Hero image reset to default.',
+      type: 'success',
+      duration: 3000
+    }));
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Hidden file inputs */}
+      {/* Hidden file inputs – accept only PNG, JPG, JPEG, SVG */}
       <input 
         type="file" 
         ref={heroFileInputRef} 
         onChange={handleHeroImageUpload} 
-        accept="image/*" 
+        accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" 
         className="hidden" 
+        data-testid="hero-file-input"
       />
       <input 
         type="file" 
         ref={logoLightFileInputRef} 
         onChange={(e) => handleLogoUpload(e, 'light')} 
-        accept="image/*" 
+        accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" 
         className="hidden" 
+        data-testid="logo-light-file-input"
       />
       <input 
         type="file" 
         ref={logoDarkFileInputRef} 
         onChange={(e) => handleLogoUpload(e, 'dark')} 
-        accept="image/*" 
+        accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" 
         className="hidden" 
+        data-testid="logo-dark-file-input"
       />
       <input 
         type="file" 
         ref={logoPlatformFileInputRef} 
         onChange={(e) => handleLogoUpload(e, 'platform')} 
-        accept="image/*" 
+        accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml" 
         className="hidden" 
+        data-testid="logo-platform-file-input"
       />
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
@@ -489,7 +517,45 @@ export const SettingsPage: React.FC = () => {
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Platform Logo */}
+                                <div className="space-y-2">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Platform Logo</span>
+                                    {settings.logoMode === 'url' ? (
+                                        <input 
+                                            type="text" 
+                                            placeholder="https://... (Platform)"
+                                            value={settings.logoUrls.platform || ''}
+                                            onChange={(e) => dispatch(setLogoUrls({ platform: e.target.value }))}
+                                            className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+                                        />
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <button 
+                                                onClick={() => logoPlatformFileInputRef.current?.click()}
+                                                disabled={settings.uploadProgress['logo-platform']}
+                                                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-lilac hover:text-brand-lilac hover:bg-brand-lilac/5 transition-all disabled:opacity-50 disabled:cursor-wait"
+                                            >
+                                                <CloudUpload size={24} />
+                                                <span className="text-xs font-bold">
+                                                    {settings.uploadProgress['logo-platform'] ? 'Uploading...' : 'Upload Platform Logo'}
+                                                </span>
+                                            </button>
+                                            {settings.uploadedLogos.platform && (
+                                                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3" data-testid="platform-logo-preview">
+                                                    <img src={getUploadedFileUrl(settings.uploadedLogos.platform) || undefined} alt="Platform logo preview" className="w-12 h-12 object-contain rounded" />
+                                                    <div className="flex-1 min-w-0">
+                                                      <p className="text-xs text-gray-700 font-medium truncate">{(getUploadedFileMetadata(settings.uploadedLogos.platform) as any)?.originalName || 'Uploaded'}</p>
+                                                      <p className="text-[10px] text-gray-400">{formatFileSize((getUploadedFileMetadata(settings.uploadedLogos.platform) as any)?.optimizedSize || 0)}</p>
+                                                    </div>
+                                                    <button onClick={() => handleResetLogo('platform')} className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Remove logo" data-testid="reset-platform-logo">
+                                                      <X size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                                 {/* Light Mode Logo */}
                                 <div className="space-y-2">
                                     <span className="text-[10px] font-bold text-gray-400 uppercase">Light Mode Logo</span>
@@ -514,9 +580,15 @@ export const SettingsPage: React.FC = () => {
                                                 </span>
                                             </button>
                                             {settings.uploadedLogos.light && (
-                                                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
-                                                    <img src={getUploadedFileUrl(settings.uploadedLogos.light)} alt="Light logo preview" className="w-12 h-12 object-contain rounded" />
-                                                    <span className="text-xs text-gray-500 font-medium flex-1 truncate">Uploaded</span>
+                                                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3" data-testid="light-logo-preview">
+                                                    <img src={getUploadedFileUrl(settings.uploadedLogos.light) || undefined} alt="Light logo preview" className="w-12 h-12 object-contain rounded" />
+                                                    <div className="flex-1 min-w-0">
+                                                      <p className="text-xs text-gray-700 font-medium truncate">{(getUploadedFileMetadata(settings.uploadedLogos.light) as any)?.originalName || 'Uploaded'}</p>
+                                                      <p className="text-[10px] text-gray-400">{formatFileSize((getUploadedFileMetadata(settings.uploadedLogos.light) as any)?.optimizedSize || 0)}</p>
+                                                    </div>
+                                                    <button onClick={() => handleResetLogo('light')} className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Remove logo" data-testid="reset-light-logo">
+                                                      <X size={14} />
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
@@ -546,47 +618,20 @@ export const SettingsPage: React.FC = () => {
                                                 </span>
                                             </button>
                                             {settings.uploadedLogos.dark && (
-                                                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 border border-gray-200">
-                                                    <img src={getUploadedFileUrl(settings.uploadedLogos.dark)} alt="Dark logo preview" className="w-12 h-12 object-contain rounded bg-gray-800" />
-                                                    <span className="text-xs text-gray-500 font-medium flex-1 truncate">Uploaded</span>
+                                                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3 border border-gray-200" data-testid="dark-logo-preview">
+                                                    <img src={getUploadedFileUrl(settings.uploadedLogos.dark) || undefined} alt="Dark logo preview" className="w-12 h-12 object-contain rounded bg-gray-800" />
+                                                    <div className="flex-1 min-w-0">
+                                                      <p className="text-xs text-gray-700 font-medium truncate">{(getUploadedFileMetadata(settings.uploadedLogos.dark) as any)?.originalName || 'Uploaded'}</p>
+                                                      <p className="text-[10px] text-gray-400">{formatFileSize((getUploadedFileMetadata(settings.uploadedLogos.dark) as any)?.optimizedSize || 0)}</p>
+                                                    </div>
+                                                    <button onClick={() => handleResetLogo('dark')} className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Remove logo" data-testid="reset-dark-logo">
+                                                      <X size={14} />
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                            
-                            {/* Platform/Navigation Logo */}
-                            <div className="space-y-2 pt-4 border-t border-gray-100">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase">Navigation Logo (Used in header & login)</span>
-                                {settings.logoMode === 'url' ? (
-                                    <input 
-                                        type="text" 
-                                        placeholder="https://... (Platform Logo)"
-                                        value={settings.logoUrls.platform || ''}
-                                        onChange={(e) => dispatch(setLogoUrls({ platform: e.target.value }))}
-                                        className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
-                                    />
-                                ) : (
-                                    <div className="space-y-2">
-                                        <button 
-                                            onClick={() => logoPlatformFileInputRef.current?.click()}
-                                            disabled={settings.uploadProgress['logo-platform']}
-                                            className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand-black hover:text-brand-black hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-wait"
-                                        >
-                                            <CloudUpload size={24} />
-                                            <span className="text-xs font-bold">
-                                                {settings.uploadProgress['logo-platform'] ? 'Uploading...' : 'Upload Platform Logo'}
-                                            </span>
-                                        </button>
-                                        {settings.uploadedLogos.platform && (
-                                            <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
-                                                <img src={getUploadedFileUrl(settings.uploadedLogos.platform)} alt="Platform logo preview" className="w-12 h-12 object-contain rounded" />
-                                                <span className="text-xs text-gray-500 font-medium flex-1 truncate">Uploaded</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -640,14 +685,26 @@ export const SettingsPage: React.FC = () => {
                                 </button>
                             )}
 
-                            <div className="p-4 bg-gray-50 rounded-2xl text-xs text-gray-500 leading-relaxed">
-                                Tip: Use high-resolution images (at least 1920x1080) for the best result on large screens.
+                            <div className="p-4 bg-gray-50 rounded-2xl text-xs text-gray-500 leading-relaxed flex items-start gap-2">
+                                <Info size={14} className="flex-shrink-0 mt-0.5" />
+                                <span>Accepted formats: PNG, JPG, SVG. Max 5 MB. Recommended resolution: 1920x1080 or higher.</span>
                             </div>
+
+                            {/* Reset hero image button */}
+                            {settings.uploadedHeroImage && (
+                              <button
+                                onClick={handleResetHero}
+                                className="flex items-center gap-2 text-xs font-bold text-red-500 hover:text-red-600 transition-colors"
+                                data-testid="reset-hero-image"
+                              >
+                                <RotateCcw size={14} /> Reset to Default Image
+                              </button>
+                            )}
                         </div>
                         <div className="aspect-video rounded-[2rem] overflow-hidden border border-gray-200 shadow-md relative group">
                             {settings.loginHeroImage ? (
                                 <img 
-                                    src={getUploadedFileUrl(settings.loginHeroImage)} 
+                                    src={getUploadedFileUrl(settings.loginHeroImage) || undefined} 
                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                                     alt="Login Preview"
                                     onError={(e) => {
