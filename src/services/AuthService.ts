@@ -13,7 +13,7 @@
 import { apiClient } from './ApiClient';
 import { API } from '../config/apiEndpoints';
 import { MOCK_USERS } from '../../services/mockData';
-import type { User } from '../../types';
+import { UserRole, type User } from '../../types';
 
 // ============================================
 // TYPES
@@ -29,7 +29,66 @@ export interface LoginResult {
   token: string;
 }
 
+// ── Forgot Password Response Types ──
+
+export interface ForgotPasswordPendingResponse {
+  status: 'pending';
+  message: string;
+  otp_token: string;
+}
+
+export interface OtpChannelOptions {
+  EMAIL?: string;
+  SMS?: string;
+  WHATSAPP?: string;
+  INAPPNOTIFICATION?: string;
+}
+
+export interface ForgotPasswordChooseChannelResponse {
+  status: 'choose_otp_channel';
+  message: string;
+  otp_options: OtpChannelOptions;
+  otp_channel_token: string;
+}
+
+export type ForgotPasswordResponse = ForgotPasswordPendingResponse | ForgotPasswordChooseChannelResponse;
+
+export interface PreferredChannelResponse {
+  status: string;
+  message: string;
+  otp_token: string;
+}
+
+export interface ResetPasswordResponse {
+  status: string;
+  message: string;
+}
+
+export type OtpChannel = 'EMAIL' | 'SMS' | 'WHATSAPP' | 'INAPPNOTIFICATION';
+
 export type AuthChangeCallback = (user: User | null) => void;
+
+// ── Login Response Types ──
+
+export interface LoginDirectResult {
+  status: 'success';
+  user: User;
+  token: string;
+}
+
+export interface LoginOtpRequiredResult {
+  status: 'otp_required';
+  otp_channel_token: string;
+  otp_options?: OtpChannelOptions;
+  message?: string;
+}
+
+export type LoginResponse = LoginDirectResult | LoginOtpRequiredResult;
+
+export interface VerifyLoginOtpResult {
+  user: User;
+  token: string;
+}
 
 // ============================================
 // STORAGE KEYS
@@ -39,6 +98,23 @@ const STORAGE_KEYS = {
   USER: 'busbuddy_auth_user',
   REFRESH_TOKEN: 'busbuddy_refresh_token',
 } as const;
+
+// ============================================
+// DEMO MODE HELPER
+// ============================================
+
+const _isDemoMode = (): boolean => {
+  try {
+    const raw = localStorage.getItem('busbuddy_settings');
+    if (raw) {
+      const settings = JSON.parse(raw);
+      if (settings.featureFlags && typeof settings.featureFlags.demoMode === 'boolean') {
+        return settings.featureFlags.demoMode;
+      }
+    }
+  } catch { /* default */ }
+  return true; // Default: demo mode ON
+};
 
 // ============================================
 // AUTH SERVICE
@@ -67,28 +143,50 @@ class AuthService {
   // AUTH ACTIONS
   // ──────────────────────────────────────────
 
-  async login(credentials: LoginCredentials): Promise<LoginResult> {
-    // ── MOCK ──
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const user = MOCK_USERS.find(u => u.email === credentials.email);
-        if (!user) {
-          reject(new Error('Invalid credentials'));
-          return;
-        }
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+    // ── DEMO MODE ──
+    if (_isDemoMode()) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const user = MOCK_USERS.find(u => u.email === credentials.email);
+          if (!user) {
+            reject(new Error('Invalid credentials'));
+            return;
+          }
+          const token = `mock_token_${user.id}_${Date.now()}`;
+          const refreshToken = `mock_refresh_${user.id}_${Date.now()}`;
+          this._setSession(user, token, refreshToken);
+          resolve({ status: 'success', user, token });
+        }, 600);
+      });
+    }
 
-        const token = `mock_token_${user.id}_${Date.now()}`;
-        const refreshToken = `mock_refresh_${user.id}_${Date.now()}`;
+    // ── PRODUCTION MODE ──
+    const data = await apiClient.post<any>(
+      API.AUTH.LOGIN,
+      credentials as unknown as Record<string, unknown>,
+      { cache: false }
+    );
 
-        this._setSession(user, token, refreshToken);
-        resolve({ user, token });
-      }, 600);
-    });
+    // Direct login — API returned access_token
+    if (data.access_token) {
+      apiClient.setAuthToken(data.access_token);
+      const user = await this._fetchCurrentUser();
+      this._setSession(user, data.access_token, data.refresh_token || null);
+      return { status: 'success', user, token: data.access_token };
+    }
 
-    // ── REAL (uncomment when backend is ready) ──
-    // const data = await apiClient.post<LoginResult & { refreshToken: string }>(API.AUTH.LOGIN, credentials as unknown as Record<string, unknown>);
-    // this._setSession(data.user, data.token, data.refreshToken);
-    // return { user: data.user, token: data.token };
+    // OTP required — API returned otp_channel_token
+    if (data.otp_channel_token) {
+      return {
+        status: 'otp_required',
+        otp_channel_token: data.otp_channel_token,
+        otp_options: data.otp_options,
+        message: data.message,
+      };
+    }
+
+    throw new Error(data.message || 'Login failed');
   }
 
   loginDirect(user: User): LoginResult {
@@ -97,53 +195,166 @@ class AuthService {
     return { user, token };
   }
 
-  async logout(): Promise<void> {
-    this._clearSession();
+  /**
+   * Verify OTP for login flow — completes login after OTP channel selection.
+   */
+  async verifyLoginOtp(otpCode: string, otpToken: string): Promise<LoginResult> {
+    const data = await apiClient.post<any>(
+      API.AUTH.VERIFY_OTP,
+      { otp: otpCode, otp_token: otpToken } as unknown as Record<string, unknown>,
+      { cache: false }
+    );
+    if (!data.access_token) throw new Error(data.message || 'OTP verification failed');
 
-    // ── REAL ──
-    // try { await apiClient.post(API.AUTH.LOGOUT, {}, { cache: false }); } catch {}
-    // this._clearSession();
+    apiClient.setAuthToken(data.access_token);
+    const user = await this._fetchCurrentUser();
+    this._setSession(user, data.access_token, data.refresh_token || null);
+    return { user, token: data.access_token };
+  }
+
+  /**
+   * Resend OTP for login flow (different endpoint from forgot-password resend).
+   */
+  async resendLoginOtp(email: string): Promise<{ message?: string }> {
+    const data = await apiClient.post<any>(
+      API.AUTH.RESEND_OTP_LOGIN,
+      { email } as unknown as Record<string, unknown>,
+      { cache: false }
+    );
+    return data;
+  }
+
+  async logout(): Promise<void> {
+    if (!_isDemoMode() && this._token) {
+      try {
+        await apiClient.post(API.AUTH.LOGOUT, {}, { cache: false });
+      } catch {
+        // Proceed with local cleanup even if API call fails
+      }
+    }
+    this._clearSession();
   }
 
   async verifySession(): Promise<User | null> {
     if (!this._token) return null;
 
-    // ── MOCK ──
-    return this._user;
+    // ── DEMO MODE ──
+    if (_isDemoMode()) return this._user;
 
-    // ── REAL ──
-    // try {
-    //   const data = await apiClient.get<{ user: User }>(API.AUTH.ME, { cache: false });
-    //   this._user = data.user;
-    //   this._persist();
-    //   return data.user;
-    // } catch {
-    //   this._clearSession();
-    //   return null;
-    // }
+    // ── PRODUCTION MODE ──
+    try {
+      const user = await this._fetchCurrentUser();
+      this._user = user;
+      this._persist();
+      return user;
+    } catch {
+      this._clearSession();
+      return null;
+    }
   }
 
-  async forgotPassword(email: string, method: 'email' | 'sms' = 'email'): Promise<{ success: boolean; message: string }> {
-    return { success: true, message: `Recovery code sent via ${method}` };
+  /**
+   * Step 1: Request password reset — sends OTP to the user.
+   * Returns either:
+   *   - status: 'pending' + otp_token (OTP sent directly)
+   *   - status: 'choose_otp_channel' + otp_options + otp_channel_token (user must pick channel)
+   */
+  async forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+    const data = await apiClient.post<ForgotPasswordResponse>(
+      API.AUTH.FORGOT_PASSWORD,
+      { email } as unknown as Record<string, unknown>,
+      { cache: false }
+    );
+    return data;
   }
 
-  async verifyOtp(email: string, code: string): Promise<{ success: boolean; resetToken: string }> {
-    return { success: true, resetToken: `mock_reset_${Date.now()}` };
+  /**
+   * Step 1b: User picks preferred OTP channel (only when status === 'choose_otp_channel').
+   */
+  async selectOtpChannel(channel: OtpChannel, otpChannelToken: string): Promise<PreferredChannelResponse> {
+    const data = await apiClient.post<PreferredChannelResponse>(
+      API.AUTH.PREFERRED_OTP_CHANNEL,
+      { send_to: channel, otp_channel_token: otpChannelToken } as unknown as Record<string, unknown>,
+      { cache: false }
+    );
+    return data;
   }
 
-  async resetPassword(resetToken: string, newPassword: string): Promise<{ success: boolean }> {
-    return { success: true };
+  /**
+   * Step 2: Reset password with OTP code + new password + the otp_token/reset_otp_token.
+   */
+  async resetPassword(otp: string, newPassword: string, resetOtpToken: string): Promise<ResetPasswordResponse> {
+    const data = await apiClient.post<ResetPasswordResponse>(
+      API.AUTH.RESET_PASSWORD,
+      { otp, new_password: newPassword, reset_otp_token: resetOtpToken } as unknown as Record<string, unknown>,
+      { cache: false }
+    );
+    return data;
+  }
+
+  /**
+   * Resend OTP for forgot-password flow.
+   */
+  async resendOtp(email: string): Promise<ForgotPasswordResponse> {
+    const data = await apiClient.post<ForgotPasswordResponse>(
+      API.AUTH.RESEND_OTP,
+      { email } as unknown as Record<string, unknown>,
+      { cache: false }
+    );
+    return data;
   }
 
   async refreshAccessToken(): Promise<string | null> {
     if (!this._refreshToken) return null;
 
-    // ── MOCK ──
-    const newToken = `mock_token_${this._user?.id}_${Date.now()}`;
-    this._token = newToken;
-    apiClient.setAuthToken(newToken);
-    this._persist();
-    return newToken;
+    // ── DEMO MODE ──
+    if (_isDemoMode()) {
+      const newToken = `mock_token_${this._user?.id}_${Date.now()}`;
+      this._token = newToken;
+      apiClient.setAuthToken(newToken);
+      this._persist();
+      return newToken;
+    }
+
+    // ── PRODUCTION MODE ──
+    try {
+      const data = await apiClient.post<any>(
+        API.AUTH.REFRESH_TOKEN,
+        { refresh_token: this._refreshToken } as unknown as Record<string, unknown>,
+        { cache: false }
+      );
+      if (data.access_token) {
+        this._token = data.access_token;
+        if (data.refresh_token) this._refreshToken = data.refresh_token;
+        apiClient.setAuthToken(data.access_token);
+        this._persist();
+        return data.access_token;
+      }
+      throw new Error('No access_token in refresh response');
+    } catch (err) {
+      console.error('AuthService: Token refresh failed:', err);
+      this._clearSession();
+      return null;
+    }
+  }
+
+  /**
+   * Fetch all user accounts linked to the authenticated user.
+   */
+  async getUserAccounts(): Promise<any[]> {
+    const data = await apiClient.get<any>(API.AUTH.USER_ACCOUNTS, { cache: false });
+    return data.accounts || data || [];
+  }
+
+  /**
+   * Verify account via token (e.g. email verification link).
+   */
+  async verifyAccount(verifyToken: string): Promise<any> {
+    const data = await apiClient.get<any>(
+      `${API.AUTH.VERIFY_ACCOUNT}?token=${verifyToken}`,
+      { cache: false }
+    );
+    return data;
   }
 
   // ──────────────────────────────────────────
@@ -160,6 +371,38 @@ class AuthService {
   // ──────────────────────────────────────────
   // INTERNAL HELPERS
   // ──────────────────────────────────────────
+
+  /**
+   * Fetch the current user profile from /auth/me.
+   */
+  private async _fetchCurrentUser(): Promise<User> {
+    const data = await apiClient.get<any>(API.AUTH.ME, { cache: false });
+    return this._mapApiUser(data.user || data);
+  }
+
+  /**
+   * Map raw API user data to our User interface.
+   */
+  private _mapApiUser(apiUser: any): User {
+    return {
+      id: String(apiUser.id || apiUser._id || ''),
+      name: apiUser.name || `${apiUser.first_name || ''} ${apiUser.last_name || ''}`.trim() || apiUser.email || '',
+      email: apiUser.email || '',
+      role: this._mapRole(apiUser.role || apiUser.user_type || ''),
+      avatarUrl: apiUser.avatar_url || apiUser.avatarUrl || apiUser.profile_image || '',
+      schoolId: apiUser.school_id || apiUser.schoolId || undefined,
+    };
+  }
+
+  /**
+   * Map API role string to UserRole enum.
+   */
+  private _mapRole(role: string): UserRole {
+    const upper = String(role).toUpperCase();
+    if (upper.includes('SUPER')) return UserRole.SUPER_ADMIN;
+    if (upper === 'ADMIN' || upper.includes('TRANSPORT')) return UserRole.ADMIN;
+    return UserRole.SCHOOL_ADMIN;
+  }
 
   private _setSession(user: User, token: string, refreshToken: string | null): void {
     this._user = user;

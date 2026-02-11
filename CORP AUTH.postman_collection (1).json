@@ -1,0 +1,429 @@
+{
+  "info": {
+    "_postman_id": "14768d4a-b2f5-4e56-8719-add1001f24d9",
+    "name": "CORP AUTH",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "11249868"
+  },
+  "item": [
+    {
+      "name": "AUTH",
+      "item": [
+        {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.access_token) {",
+                  "   pm.collectionVariables.set(\"access_token\", response.access_token);",
+                  "}",
+                  "",
+                  "if (response.otp_channel_token) {",
+                  "   pm.collectionVariables.set(\"otp_channel_token\", response.otp_channel_token);",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\":\"alvin@little.africa\",\n    \"password\":\"#8987655#\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "preferredotpchannel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.otp_token) {",
+                  "   pm.collectionVariables.set(\"otp_token\", response.otp_token);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"send_to\":\"SMS\",\n    \"otp_channel_token\":\"{{otp_channel_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/preferred_otp_channel",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "preferred_otp_channel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "verifyotp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.access_token) {",
+                  "   pm.collectionVariables.set(\"access_token\", response.access_token);",
+                  "}",
+                  "",
+                  "if (response.refresh_token) {",
+                  "   pm.collectionVariables.set(\"refresh_token\", response.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"otp\":\"48402\",\n    \"otp_token\":\"{{otp_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/verify-otp",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "verify-otp"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "resendotp",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\":\"githiri.victor@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/resend-otp",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "resend-otp"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDUvYXBpL2F1dGgvdmVyaWZ5LW90cCIsImlhdCI6MTczNzcyOTYzNiwiZXhwIjoxNzM3NzI5Njk2LCJuYmYiOjE3Mzc3Mjk2MzYsImp0aSI6IkF4aGtoODJCRVhObHNzM28iLCJzdWIiOiI5NzI3IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsIm90cCI6ImV5SnBkaUk2SW5aNFZqTlBhalJrWVV0V1RVNWhObXdyU21SNVVFRTlQU0lzSW5aaGJIVmxJam9pWkhkaUt6Tk9iVXBzYXpZd1JUZG1PWGt5TkhKa1FUMDlJaXdpYldGaklqb2lNV1l5WVdSak56bGtNamszWXpGaVkyTTBZemhtTXpjMU16VmxPR1UzTW1aallXUTNNR1kyTmpVd1pqQTJOakV4WmpSaFlXWXlOREl4WVdZNVpqVXpZaUlzSW5SaFp5STZJaUo5IiwiZW1haWwiOiJ2aWN0b3IuZ2l0aGlyaUBsaXR0bGUuYWZyaWNhIn0.DjDFekxI5V0UYKOgqFN9-MQ4UhI7XZ6iYOaohQJYCoo",
+                "type": "default"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/logout",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "refreshtoken",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.accessToken) {",
+                  "   pm.collectionVariables.set(\"accessToken\", response.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh_token\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/refresh-token",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "forgotpassword",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"githiri.victor@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/forgot-password",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "forgotpasswordresend",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"victor.githiri@little.africa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/resend-otp-forgot-password",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "resend-otp-forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "resetpassed",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"otp\":\"39513\",\n    \"new_password\": \"#L67765525#\",\n    \"reset_otp_token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDUvYXBpL2F1dGgvZm9yZ290LXBhc3N3b3JkIiwiaWF0IjoxNzM3OTY3NjU2LCJleHAiOjE3Mzc5NzEyNTYsIm5iZiI6MTczNzk2NzY1NiwianRpIjoiS05mYzROR3J0bnd1MzBQNiIsInN1YiI6IjEyODQ0IiwicHJ2IjoiMjNiZDVjODk0OWY2MDBhZGIzOWU3MDFjNDAwODcyZGI3YTU5NzZmNyIsInJlc2V0X290cCI6ImV5SnBkaUk2SW0wM1ZFVjBjRGczWm5BeGMzVXlXRWRXUlRkUVZWRTlQU0lzSW5aaGJIVmxJam9pY2xSNFkwaG5ObnBpUmt0Q1ZuSlBkekZ0Tkc0MGR6MDlJaXdpYldGaklqb2lOMlF3TVRRM05EVmlObUZtTm1VNE9EbG1NRFV5WTJObE1UTTFaalUwTjJJeE1UazVOR1F4WVRreVkySTJNRGd3WVRGaE9UVTJNbVE0TmpVeE1UQXhNaUlzSW5SaFp5STZJaUo5IiwiZW1haWwiOiJnaXRoaXJpLnZpY3RvckBnbWFpbC5jb20ifQ.r_REfws_8IEJSEk7_lLZ5yWsi0uIVsHPPYzCR3w-cvE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/reset-password",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "getaccounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vY29ycG9yYXRlLmxpdHRsZS5hZnJpY2EvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NDQxMTg5NzgsImV4cCI6MTc0NDEyMjU3OCwibmJmIjoxNzQ0MTE4OTc4LCJqdGkiOiJyV0sxeFc4eko1ZXdxbG0yIiwic3ViIjoiODUwOCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjcifQ.e0EN2WueVrMtIfssOUjLPJ6SOho_pgQZ_ZzNXLcSDG0",
+                "type": "default"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/auth/user-accounts",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "user-accounts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "confirmemail",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"code\":\"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/verify/account",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "verify",
+                "account"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_IOT",
+      "value": ""
+    },
+    {
+      "key": "BASE_URL",
+      "value": ""
+    }
+  ]
+}

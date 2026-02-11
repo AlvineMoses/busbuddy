@@ -1,8 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, X, Check, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, X, LayoutGrid, List as ListIcon, MapPin } from 'lucide-react';
 import { User } from '../types';
+import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
+import { PlacesAutocomplete, PlaceResult } from '../src/components/PlacesAutocomplete';
+import { PhoneInput } from '../src/components/PhoneInput';
 
 interface StudentsPageProps {
  currentUser: User;
@@ -10,12 +14,15 @@ interface StudentsPageProps {
 }
 
 const INITIAL_STUDENTS = [
- { id: 'ST1', name: 'Alice Johnson', school: 'International Academy', grade: '5th Grade', guardian: 'Martha Johnson', status: 'ON_BOARD' },
- { id: 'ST2', name: 'Bob Smith', school: 'City High School', grade: '10th Grade', guardian: 'John Smith', status: 'DROPPED_OFF' },
- { id: 'ST3', name: 'Charlie Brown', school: 'Valley Elementary', grade: '2nd Grade', guardian: 'Snoopy Brown', status: 'ABSENT' },
- { id: 'ST4', name: 'Daisy Ridley', school: 'International Academy', grade: '5th Grade', guardian: 'Mark Ridley', status: 'WAITING' },
- { id: 'ST5', name: 'Ethan Hunt', school: 'City High School', grade: '12th Grade', guardian: 'Tom Hunt', status: 'DROPPED_OFF' },
+ { id: 'ST1', name: 'Wanjiku Kamau', school: 'Brookhouse School', grade: '5th Grade', guardian: 'Mary Kamau', status: 'ON_BOARD' },
+ { id: 'ST2', name: 'Ochieng Odhiambo', school: 'Nairobi Academy', grade: '10th Grade', guardian: 'James Odhiambo', status: 'DROPPED_OFF' },
+ { id: 'ST3', name: 'Aisha Mohamed', school: 'Riara Springs Academy', grade: '2nd Grade', guardian: 'Fatma Mohamed', status: 'ABSENT' },
+ { id: 'ST4', name: 'Brian Mwangi', school: 'Brookhouse School', grade: '5th Grade', guardian: 'Jane Mwangi', status: 'WAITING' },
+ { id: 'ST5', name: 'Lilian Njeri', school: 'Nairobi Academy', grade: '12th Grade', guardian: 'David Njeri', status: 'DROPPED_OFF' },
 ];
+
+const GOOGLE_MAPS_API_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+const NAIROBI_CENTER = { lat: -1.286389, lng: 36.817223 };
 
 export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHeader = true }) => {
  const [students, setStudents] = useState(INITIAL_STUDENTS);
@@ -33,11 +40,15 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  edit: false,
  trips: false,
  transfer: false,
- add: false
+ add: false,
+ bulkUpload: false
  });
 
  // Form State for Add/Edit
  const [formData, setFormData] = useState<any>({});
+ // Map markers for pickup/dropoff
+ const [pickupMarker, setPickupMarker] = useState<{ lat: number; lng: number } | null>(null);
+ const [dropoffMarker, setDropoffMarker] = useState<{ lat: number; lng: number } | null>(null);
 
  const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,16 +73,15 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  };
 
  const handleBulkUploadClick = () => {
- fileInputRef.current?.click();
+ setModals({ ...modals, bulkUpload: true });
  };
 
  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
  if (e.target.files && e.target.files.length > 0) {
  alert(`Successfully uploaded ${e.target.files[0].name}. 15 records added.`);
- // Simulate adding
- const newStudent = { id: `ST${students.length + 1}`, name: 'Imported Student', school: 'City High School', grade: '9th Grade', guardian: 'System Import', status: 'WAITING' };
+ const newStudent = { id: `ST${students.length + 1}`, name: 'Imported Student', school: 'Nairobi Academy', grade: '9th Grade', guardian: 'System Import', status: 'WAITING' };
  setStudents([...students, newStudent]);
- e.target.value = ''; // Reset
+ e.target.value = '';
  }
  };
 
@@ -84,15 +94,19 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
 
  const openModal = (type: 'edit' | 'trips' | 'transfer', student: any) => {
  setSelectedStudent(student);
- setFormData(student); // Pre-fill for edit/transfer
+ setFormData(student);
+ setPickupMarker(null);
+ setDropoffMarker(null);
  setModals(prev => ({ ...prev, [type]: true }));
  setOpenActionId(null);
  };
 
- const closeModal = (type: 'edit' | 'trips' | 'transfer' | 'add') => {
+ const closeModal = (type: 'edit' | 'trips' | 'transfer' | 'add' | 'bulkUpload') => {
  setModals(prev => ({ ...prev, [type]: false }));
  setSelectedStudent(null);
  setFormData({});
+ setPickupMarker(null);
+ setDropoffMarker(null);
  };
 
  const handleSaveEdit = () => {
@@ -115,10 +129,10 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  const handleAddStudent = () => {
  const newStudent = {
  id: `ST${students.length + 10}`,
- name: formData.name || 'New Student',
+ name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || 'New Student',
  school: formData.school || schools[0],
  grade: formData.grade || '1st Grade',
- guardian: formData.guardian || 'Unknown',
+ guardian: `${formData.guardianFirstName || ''} ${formData.guardianLastName || ''}`.trim() || 'Unknown',
  status: 'WAITING'
  };
  setStudents([...students, newStudent]);
@@ -426,54 +440,115 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  )}
 
- {/* Edit Modal */}
- {modals.edit && selectedStudent && (
+ {/* Edit Modal — Two-Column Layout matching Add Student */}
+ {modals.edit && selectedStudent && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('edit')} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
+ <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-5xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
  <div className="flex justify-between items-center mb-6">
  <h3 className="text-2xl font-bold text-brand-black">Edit Student</h3>
  <button onClick={() => closeModal('edit')} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
  </div>
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+ {/* Left Column */}
  <div className="space-y-4">
  <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Name</label>
- <input 
- type="text" 
- value={formData.name || ''} 
- onChange={(e) => setFormData({...formData, name: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" 
- />
- </div>
- <div>
  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School</label>
- <select 
- value={formData.school || ''} 
- onChange={(e) => setFormData({...formData, school: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none" 
- >
+ <select value={formData.school || ''} onChange={(e) => setFormData({...formData, school: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
  {schools.map(s => <option key={s} value={s}>{s}</option>)}
  </select>
  </div>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">First Name</label>
+ <input type="text" value={(formData.name || '').split(' ')[0] || ''} onChange={(e) => { const parts = (formData.name || '').split(' '); parts[0] = e.target.value; setFormData({...formData, name: parts.join(' ')}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Name</label>
+ <input type="text" value={(formData.name || '').split(' ').slice(1).join(' ') || ''} onChange={(e) => { const first = (formData.name || '').split(' ')[0] || ''; setFormData({...formData, name: `${first} ${e.target.value}`.trim()}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
+ </div>
  <div>
  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Grade</label>
- <select 
- value={formData.grade || ''} 
- onChange={(e) => setFormData({...formData, grade: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none" 
- >
+ <select value={formData.grade || ''} onChange={(e) => setFormData({...formData, grade: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
  {grades.map(g => <option key={g} value={g}>{g}</option>)}
  </select>
  </div>
+ <div className="grid grid-cols-2 gap-3">
  <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian</label>
- <input 
- type="text" 
- value={formData.guardian || ''} 
- onChange={(e) => setFormData({...formData, guardian: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" 
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian First Name</label>
+ <input type="text" value={(formData.guardian || '').split(' ')[0] || ''} onChange={(e) => { const parts = (formData.guardian || '').split(' '); parts[0] = e.target.value; setFormData({...formData, guardian: parts.join(' ')}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Last Name</label>
+ <input type="text" value={(formData.guardian || '').split(' ').slice(1).join(' ') || ''} onChange={(e) => { const first = (formData.guardian || '').split(' ')[0] || ''; setFormData({...formData, guardian: `${first} ${e.target.value}`.trim()}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
+ </div>
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Phone</label>
+ <div className="mt-2">
+ <PhoneInput
+ value={formData.guardianPhone || ''}
+ onChange={(val) => setFormData({...formData, guardianPhone: val})}
+ placeholder="712 345 678"
  />
+ </div>
+ </div>
+ </div>
+
+ {/* Right Column — Route & Map */}
+ <div className="space-y-4">
+ <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
+ <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><MapPin size={14} /> Pickup & Dropoff</h4>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup From (Home)</label>
+ <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+ <PlacesAutocomplete
+ value={formData.pickupAddress || ''}
+ onChange={(val) => setFormData({...formData, pickupAddress: val})}
+ onPlaceSelect={(place) => { setFormData({...formData, pickupAddress: place.address}); setPickupMarker({ lat: place.lat, lng: place.lng }); }}
+ placeholder="Search home address..."
+ />
+ </APIProvider>
+ </div>
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup To</label>
+ <input type="text" value={formData.school || 'School'} disabled className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500" />
+ </div>
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff From</label>
+ <input type="text" value={formData.school || 'School'} disabled className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500" />
+ </div>
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff To (Home)</label>
+ <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+ <PlacesAutocomplete
+ value={formData.dropoffAddress || ''}
+ onChange={(val) => setFormData({...formData, dropoffAddress: val})}
+ onPlaceSelect={(place) => { setFormData({...formData, dropoffAddress: place.address}); setDropoffMarker({ lat: place.lat, lng: place.lng }); }}
+ placeholder="Search home address..."
+ />
+ </APIProvider>
+ </div>
+ </div>
+ </div>
+ {/* Large Map Preview */}
+ <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
+ <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+ <Map
+ defaultCenter={pickupMarker || NAIROBI_CENTER}
+ defaultZoom={12}
+ gestureHandling="cooperative"
+ disableDefaultUI={true}
+ style={{ width: '100%', height: '100%' }}
+ >
+ {pickupMarker && <Marker position={pickupMarker} title="Pickup" />}
+ {dropoffMarker && <Marker position={dropoffMarker} title="Dropoff" />}
+ </Map>
+ </APIProvider>
+ </div>
  </div>
  </div>
  <div className="mt-8 flex justify-end">
@@ -482,10 +557,10 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  </div>
  </div>
- )}
+ , document.body)}
 
  {/* Transfer Modal */}
- {modals.transfer && selectedStudent && (
+ {modals.transfer && selectedStudent && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('transfer')} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -525,38 +600,129 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  </div>
  </div>
- )}
+ , document.body)}
 
- {/* Add Student Modal */}
- {modals.add && (
+ {/* Add Student Modal — Two-Column Layout with Map */}
+ {modals.add && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('add')} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
+ <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-5xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
  <div className="flex justify-between items-center mb-6">
  <h3 className="text-2xl font-bold text-brand-black">Add New Student</h3>
  <button onClick={() => closeModal('add')} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
  </div>
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+ {/* Left Column */}
  <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Name</label>
- <input type="text" onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
  <div>
  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School</label>
  <select onChange={(e) => setFormData({...formData, school: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
+ <option value="">Select School</option>
  {schools.map(s => <option key={s} value={s}>{s}</option>)}
  </select>
+ </div>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">First Name</label>
+ <input type="text" placeholder="First name" onChange={(e) => setFormData({...formData, firstName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Name</label>
+ <input type="text" placeholder="Last name" onChange={(e) => setFormData({...formData, lastName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
  </div>
  <div>
  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Grade</label>
  <select onChange={(e) => setFormData({...formData, grade: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
+ <option value="">Select Grade</option>
  {grades.map(g => <option key={g} value={g}>{g}</option>)}
  </select>
  </div>
+ <div className="grid grid-cols-2 gap-3">
  <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian</label>
- <input type="text" onChange={(e) => setFormData({...formData, guardian: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian First Name</label>
+ <input type="text" placeholder="First name" onChange={(e) => setFormData({...formData, guardianFirstName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Last Name</label>
+ <input type="text" placeholder="Last name" onChange={(e) => setFormData({...formData, guardianLastName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
+ </div>
+ </div>
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Phone</label>
+ <div className="mt-2">
+ <PhoneInput
+ value={formData.guardianPhone || ''}
+ onChange={(val) => setFormData({...formData, guardianPhone: val})}
+ placeholder="712 345 678"
+ />
+ </div>
+ </div>
+ </div>
+
+ {/* Right Column — Route & Map */}
+ <div className="space-y-4">
+ <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
+ <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><MapPin size={14} /> Pickup & Dropoff</h4>
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup From (Home)</label>
+ <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+ <PlacesAutocomplete
+ value={formData.pickupAddress || ''}
+ onChange={(val) => setFormData({...formData, pickupAddress: val})}
+ onPlaceSelect={(place) => { setFormData({...formData, pickupAddress: place.address}); setPickupMarker({ lat: place.lat, lng: place.lng }); }}
+ placeholder="Search home address..."
+ />
+ </APIProvider>
+ </div>
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup To</label>
+ <input 
+ type="text" 
+ value={formData.school || 'School'}
+ disabled
+ className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500"
+ />
+ </div>
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff From</label>
+ <input 
+ type="text" 
+ value={formData.school || 'School'}
+ disabled
+ className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500"
+ />
+ </div>
+ <div>
+ <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff To (Home)</label>
+ <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+ <PlacesAutocomplete
+ value={formData.dropoffAddress || ''}
+ onChange={(val) => setFormData({...formData, dropoffAddress: val})}
+ onPlaceSelect={(place) => { setFormData({...formData, dropoffAddress: place.address}); setDropoffMarker({ lat: place.lat, lng: place.lng }); }}
+ placeholder="Search home address..."
+ />
+ </APIProvider>
+ </div>
+ </div>
+ </div>
+ {/* Large Map Preview */}
+ <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
+ <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+ <Map
+ defaultCenter={NAIROBI_CENTER}
+ defaultZoom={12}
+ gestureHandling="cooperative"
+ disableDefaultUI={true}
+ style={{ width: '100%', height: '100%' }}
+ >
+ {pickupMarker && <Marker position={pickupMarker} title="Pickup" />}
+ {dropoffMarker && <Marker position={dropoffMarker} title="Dropoff" />}
+ </Map>
+ </APIProvider>
+ </div>
  </div>
  </div>
  <div className="mt-8 flex justify-end">
@@ -567,10 +733,10 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  </div>
  </div>
- )}
+ , document.body)}
 
  {/* Recent Trips Modal */}
- {modals.trips && selectedStudent && (
+ {modals.trips && selectedStudent && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('trips')} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -598,8 +764,240 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  </div>
  </div>
- )}
+ , document.body)}
+
+ {/* Bulk Upload Modal */}
+ {modals.bulkUpload && <BulkUploadModal
+ schools={schools}
+ onClose={() => closeModal('bulkUpload')}
+ onImport={(importedStudents) => {
+ setStudents(prev => [...prev, ...importedStudents]);
+ closeModal('bulkUpload');
+ }}
+ />}
 
  </div>
  );
+};
+
+/* ─── Bulk Upload Modal Component ─────────────────────────────────── */
+
+interface BulkUploadModalProps {
+ schools: string[];
+ onClose: () => void;
+ onImport: (students: any[]) => void;
+}
+
+const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ schools, onClose, onImport }) => {
+ const [uploadedData, setUploadedData] = useState<any[]>([]);
+ const [isDragging, setIsDragging] = useState(false);
+ const [selectedSchool, setSelectedSchool] = useState(schools[0] || '');
+ const [validationStatus, setValidationStatus] = useState<Record<number, 'pending' | 'valid' | 'error'>>({});
+ const fileRef = useRef<HTMLInputElement>(null);
+
+ const CSV_TEMPLATE_COLUMNS = ['First Name', 'Last Name', 'Grade', 'Guardian First Name', 'Guardian Last Name', 'Guardian Phone', 'Pickup Address'];
+
+ const handleDownloadTemplate = () => {
+ const header = CSV_TEMPLATE_COLUMNS.join(',');
+ const sampleRows = [
+ 'Wanjiku,Kamau,5th Grade,Mary,Kamau,+254 712 345 678,Westlands Nairobi',
+ 'Ochieng,Odhiambo,10th Grade,James,Odhiambo,+254 723 456 789,Karen Nairobi',
+ ];
+ const csvContent = [header, ...sampleRows].join('\n');
+ const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = 'student_upload_template.csv';
+ a.click();
+ URL.revokeObjectURL(url);
+ };
+
+ const parseCSV = (text: string) => {
+ const lines = text.split('\n').filter(l => l.trim());
+ if (lines.length < 2) return;
+ const headers = lines[0].split(',').map(h => h.trim());
+ const rows = lines.slice(1).map((line, idx) => {
+ const values = line.split(',').map(v => v.trim());
+ const row: any = { _rowIdx: idx };
+ headers.forEach((h, i) => { row[h] = values[i] || ''; });
+ return row;
+ });
+ setUploadedData(rows);
+ // Set all rows to pending validation
+ const status: Record<number, 'pending' | 'valid' | 'error'> = {};
+ rows.forEach((_, i) => { status[i] = 'pending'; });
+ setValidationStatus(status);
+ };
+
+ const handleFileDrop = (e: React.DragEvent) => {
+ e.preventDefault();
+ setIsDragging(false);
+ const file = e.dataTransfer.files[0];
+ if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx'))) {
+ const reader = new FileReader();
+ reader.onload = (ev) => { parseCSV(ev.target?.result as string); };
+ reader.readAsText(file);
+ }
+ };
+
+ const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+ const file = e.target.files?.[0];
+ if (file) {
+ const reader = new FileReader();
+ reader.onload = (ev) => { parseCSV(ev.target?.result as string); };
+ reader.readAsText(file);
+ }
+ };
+
+ const handleCellEdit = (rowIdx: number, field: string, value: string) => {
+ setUploadedData(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
+ };
+
+ const handleValidateAll = () => {
+ const newStatus: Record<number, 'pending' | 'valid' | 'error'> = {};
+ uploadedData.forEach((row, i) => {
+ const hasName = row['First Name'] && row['Last Name'];
+ const hasGuardian = row['Guardian First Name'] && row['Guardian Last Name'];
+ const hasPhone = row['Guardian Phone'];
+ const hasAddress = row['Pickup Address'];
+ newStatus[i] = (hasName && hasGuardian && hasPhone && hasAddress) ? 'valid' : 'error';
+ });
+ setValidationStatus(newStatus);
+ };
+
+ const handleImport = () => {
+ const validRows = uploadedData.filter((_, i) => validationStatus[i] === 'valid');
+ const newStudents = validRows.map((row, i) => ({
+ id: `ST-BULK-${Date.now()}-${i}`,
+ name: `${row['First Name']} ${row['Last Name']}`.trim(),
+ school: selectedSchool,
+ grade: row['Grade'] || '1st Grade',
+ guardian: `${row['Guardian First Name']} ${row['Guardian Last Name']}`.trim(),
+ status: 'WAITING'
+ }));
+ onImport(newStudents);
+ };
+
+ const validCount = Object.values(validationStatus).filter(v => v === 'valid').length;
+ const errorCount = Object.values(validationStatus).filter(v => v === 'error').length;
+
+ return createPortal(
+ <div className="fixed inset-0 z-[70] isolate">
+ <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={onClose} />
+ <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+ <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-5xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
+ <div className="flex justify-between items-center mb-6">
+ <div>
+ <h3 className="text-2xl font-bold text-brand-black">Bulk Upload Students</h3>
+ <p className="text-sm text-gray-500 mt-1">Import students via CSV file</p>
+ </div>
+ <button onClick={onClose} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
+ </div>
+
+ {/* School Selection & Template Download */}
+ <div className="flex items-center gap-4 mb-6">
+ <div className="flex-1">
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School for Import</label>
+ <select value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
+ {schools.map(s => <option key={s} value={s}>{s}</option>)}
+ </select>
+ </div>
+ <div className="pt-6">
+ <ThemedButton variant="ghost" onClick={handleDownloadTemplate} icon={Upload}>
+ Download Template
+ </ThemedButton>
+ </div>
+ </div>
+
+ {/* Upload Area */}
+ {uploadedData.length === 0 ? (
+ <div
+ onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+ onDragLeave={() => setIsDragging(false)}
+ onDrop={handleFileDrop}
+ onClick={() => fileRef.current?.click()}
+ className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
+ isDragging ? 'border-brand-lilac bg-brand-lilac/5' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+ }`}
+ >
+ <input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={handleFileSelect} />
+ <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+ <Upload size={28} className="text-gray-400" />
+ </div>
+ <p className="text-lg font-bold text-brand-black mb-1">Drag & drop your CSV file here</p>
+ <p className="text-sm text-gray-400">or click to browse. Supports .csv and .xlsx files</p>
+ </div>
+ ) : (
+ <>
+ {/* Validation Bar */}
+ <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-xl">
+ <div className="flex items-center gap-4">
+ <span className="text-sm font-bold text-brand-black">{uploadedData.length} rows loaded</span>
+ {validCount > 0 && <span className="text-sm font-bold text-green-600">{validCount} valid</span>}
+ {errorCount > 0 && <span className="text-sm font-bold text-red-500">{errorCount} errors</span>}
+ </div>
+ <div className="flex gap-2">
+ <ThemedButton variant="ghost" onClick={handleValidateAll}>
+ Validate All
+ </ThemedButton>
+ <ThemedButton variant="ghost" onClick={() => { setUploadedData([]); setValidationStatus({}); }}>
+ Clear
+ </ThemedButton>
+ </div>
+ </div>
+
+ {/* Editable Table */}
+ <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-[400px] overflow-y-auto">
+ <table className="w-full text-left text-sm">
+ <thead className="bg-gray-50 text-gray-400 font-bold text-xs uppercase tracking-widest sticky top-0 z-10">
+ <tr>
+ <th className="px-3 py-3 w-8">#</th>
+ <th className="px-3 py-3 w-8"></th>
+ {CSV_TEMPLATE_COLUMNS.map(col => (
+ <th key={col} className="px-3 py-3 whitespace-nowrap">{col}</th>
+ ))}
+ </tr>
+ </thead>
+ <tbody className="divide-y divide-gray-50">
+ {uploadedData.map((row, i) => (
+ <tr key={i} className={`${validationStatus[i] === 'error' ? 'bg-red-50/50' : validationStatus[i] === 'valid' ? 'bg-green-50/30' : ''}`}>
+ <td className="px-3 py-2 text-xs text-gray-400">{i + 1}</td>
+ <td className="px-3 py-2">
+ {validationStatus[i] === 'valid' && <CheckCircle size={14} className="text-green-500" />}
+ {validationStatus[i] === 'error' && <XCircle size={14} className="text-red-500" />}
+ </td>
+ {CSV_TEMPLATE_COLUMNS.map(col => (
+ <td key={col} className="px-3 py-2">
+ <input
+ type="text"
+ value={row[col] || ''}
+ onChange={(e) => handleCellEdit(i, col, e.target.value)}
+ className="w-full px-2 py-1.5 bg-transparent border border-transparent hover:border-gray-200 focus:border-brand-black rounded-lg text-sm font-medium outline-none transition-colors"
+ />
+ </td>
+ ))}
+ </tr>
+ ))}
+ </tbody>
+ </table>
+ </div>
+
+ {/* Import Button */}
+ <div className="mt-6 flex justify-end">
+ <ThemedButton
+ variant="primary"
+ onClick={handleImport}
+ disabled={validCount === 0}
+ icon={Plus}
+ >
+ Import {validCount > 0 ? `${validCount} Students` : 'Students'}
+ </ThemedButton>
+ </div>
+ </>
+ )}
+ </div>
+ </div>
+ </div>
+ , document.body);
 };

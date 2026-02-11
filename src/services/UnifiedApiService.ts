@@ -106,6 +106,33 @@ export interface SettingsData {
 }
 
 // ============================================
+// DEMO MODE HELPER
+// ============================================
+
+/**
+ * Returns true when Demo Mode is active.
+ * Reads from persisted settings in localStorage.
+ * In demo mode: use localStorage mock data.
+ * In production mode: hit real API endpoints.
+ */
+const isDemoMode = (): boolean => {
+  try {
+    const raw = localStorage.getItem('busbuddy_settings');
+    if (raw) {
+      const settings = JSON.parse(raw);
+      // If featureFlags exist and demoMode is explicitly false, we're in production
+      if (settings.featureFlags && typeof settings.featureFlags.demoMode === 'boolean') {
+        return settings.featureFlags.demoMode;
+      }
+    }
+  } catch {
+    // Fall through to default
+  }
+  // Default: demo mode ON (safe default for development)
+  return true;
+};
+
+// ============================================
 // PERSISTENCE LAYER — localStorage helpers
 // ============================================
 
@@ -135,8 +162,9 @@ const storage = {
   },
 };
 
-/** Seed localStorage with mock data on first load */
+/** Seed localStorage with mock data on first load (demo mode only) */
 const initializeStorage = (): void => {
+  if (!isDemoMode()) return;
   if (!storage.get('schools', null))        storage.set('schools', MOCK_SCHOOLS_DATA);
   if (!storage.get('drivers', null))        storage.set('drivers', MOCK_DRIVERS);
   if (!storage.get('routes', null))         storage.set('routes', MOCK_ROUTES);
@@ -165,17 +193,30 @@ const createCrudService = <T extends EntityWithId>(
   endpoints: CrudEndpoints,
 ): CrudService<T> => ({
   async getAll(filters: Record<string, unknown> = {}) {
+    if (!isDemoMode()) {
+      const data = await apiClient.get<Record<string, T[]>>(endpoints.BASE, { params: filters, cache: true, cacheMaxAge: CACHE_TTL.MEDIUM });
+      return data as Record<string, T[]>;
+    }
     const items = storage.get<T[]>(entityKey, fallback);
     return { [pluralKey]: items };
   },
 
   async getById(id: string) {
+    if (!isDemoMode()) {
+      const data = await apiClient.get<Record<string, T | undefined>>(endpoints.BY_ID(id), { cache: true });
+      return data as Record<string, T | undefined>;
+    }
     const items = storage.get<T[]>(entityKey, fallback);
     const item = items.find(i => i.id === id);
     return { [singularKey]: item };
   },
 
   async create(data: Partial<T>) {
+    if (!isDemoMode()) {
+      const result = await apiClient.post<Record<string, T>>(endpoints.BASE, data as Record<string, unknown>);
+      apiClient.clearCache(endpoints.BASE);
+      return result as Record<string, T>;
+    }
     const items = storage.get<T[]>(entityKey, fallback);
     const newItem = {
       id: `${idPrefix}${Date.now()}`,
@@ -188,6 +229,11 @@ const createCrudService = <T extends EntityWithId>(
   },
 
   async update(id: string, updates: Partial<T>) {
+    if (!isDemoMode()) {
+      const result = await apiClient.put<Record<string, T | undefined>>(endpoints.BY_ID(id), updates as Record<string, unknown>);
+      apiClient.clearCache(endpoints.BASE);
+      return result as Record<string, T | undefined>;
+    }
     const items = storage.get<T[]>(entityKey, fallback);
     const updated = items.map(i =>
       i.id === id ? { ...i, ...updates, updatedAt: new Date().toISOString() } : i
@@ -198,6 +244,11 @@ const createCrudService = <T extends EntityWithId>(
   },
 
   async delete(id: string) {
+    if (!isDemoMode()) {
+      await apiClient.delete(endpoints.BY_ID(id));
+      apiClient.clearCache(endpoints.BASE);
+      return { success: true };
+    }
     const items = storage.get<T[]>(entityKey, fallback);
     storage.set(entityKey, items.filter(i => i.id !== id));
     apiClient.clearCache(endpoints.BASE);
@@ -213,6 +264,9 @@ export const schoolService = {
   ...createCrudService<School & EntityWithId>('schools', 'school', 'schools', 'S', MOCK_SCHOOLS_DATA as (School & EntityWithId)[], API.SCHOOLS),
 
   async getStats(id: string): Promise<{ stats: SchoolStats }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ stats: SchoolStats }>(API.SCHOOLS.STATS(id), { cache: true });
+    }
     return {
       stats: {
         totalStudents: 248,
@@ -228,14 +282,25 @@ export const driverService = {
   ...createCrudService<Driver & EntityWithId>('drivers', 'driver', 'drivers', 'D', MOCK_DRIVERS as (Driver & EntityWithId)[], API.DRIVERS),
 
   async generateOtp(id: string): Promise<OtpResult> {
+    if (!isDemoMode()) {
+      return apiClient.post<OtpResult>(API.DRIVERS.GENERATE_OTP(id));
+    }
     return { otp: Math.floor(100000 + Math.random() * 900000).toString(), expiresIn: 300 };
   },
 
   async getQrCode(id: string): Promise<QrCodeResult> {
+    if (!isDemoMode()) {
+      return apiClient.get<QrCodeResult>(API.DRIVERS.QR_CODE(id), { cache: true });
+    }
     return { qrData: `busbudd://driver/${id}`, url: `https://app.busbudd.com/driver/${id}` };
   },
 
   async updateStatus(id: string, status: string): Promise<{ driver: Driver | undefined }> {
+    if (!isDemoMode()) {
+      const result = await apiClient.put<{ driver: Driver }>(API.DRIVERS.STATUS(id), { status });
+      apiClient.clearCache(API.DRIVERS.BASE);
+      return result;
+    }
     const drivers = storage.get<Driver[]>('drivers', MOCK_DRIVERS as Driver[]);
     const updated = drivers.map(d => d.id === id ? { ...d, status } : d);
     storage.set('drivers', updated);
@@ -244,6 +309,9 @@ export const driverService = {
   },
 
   async getLive(): Promise<{ drivers: Driver[] }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ drivers: Driver[] }>(API.DRIVERS.LIVE, { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const drivers = storage.get<Driver[]>('drivers', MOCK_DRIVERS as Driver[]);
     return { drivers: drivers.filter(d => d.status !== 'OFF_DUTY') };
   },
@@ -253,16 +321,25 @@ export const routeService = {
   ...createCrudService<TransportRoute & EntityWithId>('routes', 'route', 'routes', 'R', MOCK_ROUTES as (TransportRoute & EntityWithId)[], API.ROUTES),
 
   async getTrips(routeId: string): Promise<{ trips: Trip[] }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ trips: Trip[] }>(API.ROUTES.TRIPS(routeId), { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const trips = storage.get<Trip[]>('trips', MOCK_TRIPS as Trip[]);
     return { trips: trips.filter(t => t.routeId === routeId) };
   },
 
   async exportRoutes(format: string = 'csv'): Promise<{ data: TransportRoute[]; format: string }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ data: TransportRoute[]; format: string }>(API.ROUTES.EXPORT, { params: { format } });
+    }
     const routes = storage.get<TransportRoute[]>('routes', MOCK_ROUTES as TransportRoute[]);
     return { data: routes, format };
   },
 
   async getLive(): Promise<{ routes: TransportRoute[] }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ routes: TransportRoute[] }>(API.ROUTES.LIVE, { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const routes = storage.get<TransportRoute[]>('routes', MOCK_ROUTES as TransportRoute[]);
     return { routes: routes.filter(r => r.status === 'ACTIVE') };
   },
@@ -272,20 +349,32 @@ export const tripService = {
   ...createCrudService<Trip & EntityWithId>('trips', 'trip', 'trips', 'T', MOCK_TRIPS as (Trip & EntityWithId)[], API.TRIPS),
 
   async flagIncident(id: string, reason: string): Promise<{ success: boolean; flagId: string }> {
+    if (!isDemoMode()) {
+      return apiClient.post<{ success: boolean; flagId: string }>(API.TRIPS.FLAG(id), { reason });
+    }
     return { success: true, flagId: `FLAG_${Date.now()}` };
   },
 
   async getPlayback(id: string): Promise<{ waypoints: unknown[]; duration: number }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ waypoints: unknown[]; duration: number }>(API.TRIPS.PLAYBACK(id), { cache: true });
+    }
     return { waypoints: [], duration: 0 };
   },
 
   async getEvents(id: string): Promise<{ events: TripEvent[] }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ events: TripEvent[] }>(API.TRIPS.EVENTS(id), { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const trips = storage.get<Trip[]>('trips', MOCK_TRIPS as Trip[]);
     const trip = trips.find(t => t.id === id);
     return { events: trip?.events || [] };
   },
 
   async getStats(period: string = 'monthly'): Promise<{ stats: TripStats }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ stats: TripStats }>(API.TRIPS.STATS, { params: { period }, cache: true, cacheMaxAge: CACHE_TTL.MEDIUM });
+    }
     return {
       stats: {
         totalTrips: 1240,
@@ -302,6 +391,11 @@ export const studentService = {
   ...createCrudService<Student & EntityWithId>('students', 'student', 'students', 'ST', MOCK_STUDENTS as (Student & EntityWithId)[], API.STUDENTS),
 
   async toggleDisable(id: string): Promise<{ student: Student | undefined }> {
+    if (!isDemoMode()) {
+      const result = await apiClient.post<{ student: Student }>(API.STUDENTS.DISABLE(id));
+      apiClient.clearCache(API.STUDENTS.BASE);
+      return result;
+    }
     const students = storage.get<Student[]>('students', MOCK_STUDENTS as Student[]);
     const student = students.find(s => s.id === id);
     const newStatus = student?.status === 'DISABLED' ? 'WAITING' : 'DISABLED';
@@ -314,6 +408,11 @@ export const studentService = {
   },
 
   async transfer(id: string, targetSchoolId: string): Promise<{ student: Student | undefined }> {
+    if (!isDemoMode()) {
+      const result = await apiClient.post<{ student: Student }>(API.STUDENTS.TRANSFER(id), { targetSchoolId });
+      apiClient.clearCache(API.STUDENTS.BASE);
+      return result;
+    }
     const students = storage.get<Student[]>('students', MOCK_STUDENTS as Student[]);
     const schools = storage.get<School[]>('schools', MOCK_SCHOOLS_DATA as School[]);
     const targetSchool = schools.find(s => s.id === targetSchoolId);
@@ -326,6 +425,13 @@ export const studentService = {
   },
 
   async bulkUpload(file: File): Promise<{ added: number; updated: number; failed: number }> {
+    if (!isDemoMode()) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await apiClient.post<{ added: number; updated: number; failed: number }>(API.STUDENTS.BULK_UPLOAD, formData as unknown as Record<string, unknown>);
+      apiClient.clearCache(API.STUDENTS.BASE);
+      return result;
+    }
     apiClient.clearCache(API.STUDENTS.BASE);
     return { added: 15, updated: 0, failed: 0 };
   },
@@ -335,6 +441,9 @@ export const assignmentService = {
   ...createCrudService<Assignment & EntityWithId>('assignments', 'assignment', 'assignments', 'A', [] as (Assignment & EntityWithId)[], API.ASSIGNMENTS),
 
   async getConflicts(): Promise<{ conflicts: unknown[] }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ conflicts: unknown[] }>(API.ASSIGNMENTS.CONFLICTS, { cache: true });
+    }
     return { conflicts: [] };
   },
 };
@@ -343,6 +452,11 @@ export const shiftService = {
   ...createCrudService<Shift & EntityWithId>('shifts', 'shift', 'shifts', 'SH', [] as (Shift & EntityWithId)[], API.SHIFTS),
 
   async duplicate(id: string): Promise<{ shift?: Shift; success?: boolean; error?: string }> {
+    if (!isDemoMode()) {
+      const result = await apiClient.post<{ shift: Shift }>(API.SHIFTS.DUPLICATE(id));
+      apiClient.clearCache(API.SHIFTS.BASE);
+      return result;
+    }
     const shifts = storage.get<Shift[]>('shifts', []);
     const source = shifts.find(s => s.id === id);
     if (!source) return { success: false, error: 'Shift not found' };
@@ -360,11 +474,19 @@ export const shiftService = {
 
 export const notificationService = {
   async getAll(): Promise<{ notifications: Notification[] }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ notifications: Notification[] }>(API.NOTIFICATIONS.BASE, { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const notifications = storage.get<Notification[]>('notifications', MOCK_NOTIFICATIONS_DATA as Notification[]);
     return { notifications };
   },
 
   async markAsRead(id: string): Promise<{ success: boolean }> {
+    if (!isDemoMode()) {
+      const result = await apiClient.put<{ success: boolean }>(API.NOTIFICATIONS.READ(id));
+      apiClient.clearCache(API.NOTIFICATIONS.BASE);
+      return result;
+    }
     const notifications = storage.get<Notification[]>('notifications', MOCK_NOTIFICATIONS_DATA as Notification[]);
     const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
     storage.set('notifications', updated);
@@ -372,18 +494,31 @@ export const notificationService = {
   },
 
   async markAllAsRead(): Promise<{ success: boolean }> {
+    if (!isDemoMode()) {
+      const result = await apiClient.put<{ success: boolean }>(API.NOTIFICATIONS.READ_ALL);
+      apiClient.clearCache(API.NOTIFICATIONS.BASE);
+      return result;
+    }
     const notifications = storage.get<Notification[]>('notifications', MOCK_NOTIFICATIONS_DATA as Notification[]);
     storage.set('notifications', notifications.map(n => ({ ...n, read: true })));
     return { success: true };
   },
 
   async delete(id: string): Promise<{ success: boolean }> {
+    if (!isDemoMode()) {
+      const result = await apiClient.delete<{ success: boolean }>(API.NOTIFICATIONS.BY_ID(id));
+      apiClient.clearCache(API.NOTIFICATIONS.BASE);
+      return result;
+    }
     const notifications = storage.get<Notification[]>('notifications', MOCK_NOTIFICATIONS_DATA as Notification[]);
     storage.set('notifications', notifications.filter(n => n.id !== id));
     return { success: true };
   },
 
   async getUnreadCount(): Promise<{ count: number }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ count: number }>(API.NOTIFICATIONS.UNREAD_COUNT, { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const notifications = storage.get<Notification[]>('notifications', MOCK_NOTIFICATIONS_DATA as Notification[]);
     return { count: notifications.filter(n => !n.read).length };
   },
@@ -412,18 +547,18 @@ export const settingsService = {
           statusWarning: '#ff9d00',
           statusCompleted: '#FF6106',
         },
-        loginHeroImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2576&auto=format&fit=crop',
+        loginHeroImage: '/uploads/busbuddy.jpg',
         heroMode: 'url',
         uploadedHeroImage: null,
         logoMode: 'url',
-        logoUrls: { light: '', dark: '', platform: '' },
+        logoUrls: { light: '', dark: '/uploads/logo-dark.svg', platform: '/uploads/logo-dark.svg' },
         uploadedLogos: { light: null, dark: null, platform: null },
         testimonials: [
           {
             id: '1',
-            name: 'Riaot Escanor',
-            role: 'Project Manager at Google',
-            text: 'I Landed Multiple Projects Within A Couple Of Days - With This Tool. Definitely My Go To Freelance Platform Now!',
+            name: 'Samuel Okoye',
+            role: 'Bus Driver at Little School',
+            text: 'The students anf parents both love it! Boarding and dropping off students has never been easier.',
             avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=2574&auto=format&fit=crop',
           },
         ],
@@ -459,6 +594,9 @@ export const settingsService = {
 
 export const dashboardService = {
   async getMetrics(): Promise<{ metrics: DashboardMetricsResult }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ metrics: DashboardMetricsResult }>(API.DASHBOARD.METRICS, { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const routes = storage.get<TransportRoute[]>('routes', MOCK_ROUTES as TransportRoute[]);
     return {
       metrics: {
@@ -474,6 +612,9 @@ export const dashboardService = {
   },
 
   async getLiveFeed(): Promise<{ fleet: TransportRoute[]; drivers: Driver[] }> {
+    if (!isDemoMode()) {
+      return apiClient.get<{ fleet: TransportRoute[]; drivers: Driver[] }>(API.DASHBOARD.LIVE_FEED, { cache: true, cacheMaxAge: CACHE_TTL.SHORT });
+    }
     const routes = storage.get<TransportRoute[]>('routes', MOCK_ROUTES as TransportRoute[]);
     const drivers = storage.get<Driver[]>('drivers', MOCK_DRIVERS as Driver[]);
     return {

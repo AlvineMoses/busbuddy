@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { Plus, MoreHorizontal, Users, Bus, LayoutGrid, List as ListIcon, Edit, FileText, Archive, X, Save, Check, ArrowRight } from 'lucide-react';
@@ -298,7 +299,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  )}
 
  {/* Add School Modal */}
- {isAddModalOpen && (
+ {isAddModalOpen && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsAddModalOpen(false)} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -335,11 +336,12 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  </div>
  </div>
  </div>
- </div>
+ </div>,
+ document.body
  )}
 
  {/* Edit School Modal */}
- {isEditModalOpen && editingSchool && (
+ {isEditModalOpen && editingSchool && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -374,11 +376,12 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  </div>
  </div>
  </div>
- </div>
+ </div>,
+ document.body
  )}
 
  {/* View Details Modal */}
- {isDetailsModalOpen && selectedSchool && (
+ {isDetailsModalOpen && selectedSchool && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsDetailsModalOpen(false)} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -430,7 +433,8 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  </div>
  </div>
  </div>
- </div>
+ </div>,
+ document.body
  )}
 
  </div>

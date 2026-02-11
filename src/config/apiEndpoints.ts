@@ -21,13 +21,18 @@
 // AUTH ENDPOINTS
 // ============================================
 export const AUTH = {
-  LOGIN:            '/auth/login',
-  LOGOUT:           '/auth/logout',
-  ME:               '/auth/me',
-  FORGOT_PASSWORD:  '/auth/forgot-password',
-  VERIFY_OTP:       '/auth/verify-otp',
-  RESET_PASSWORD:   '/auth/reset-password',
-  REFRESH_TOKEN:    '/auth/refresh-token',
+  LOGIN:                  '/auth/login',
+  LOGOUT:                 '/auth/logout',
+  ME:                     '/auth/me',
+  VERIFY_OTP:             '/auth/verify-otp',
+  RESEND_OTP_LOGIN:       '/auth/resend-otp',
+  FORGOT_PASSWORD:        '/auth/forgot-password',
+  PREFERRED_OTP_CHANNEL:  '/auth/preferred_otp_channel',
+  RESEND_OTP:             '/auth/resend-otp-forgot-password',
+  RESET_PASSWORD:         '/auth/reset-password',
+  REFRESH_TOKEN:          '/auth/refresh-token',
+  USER_ACCOUNTS:          '/auth/user-accounts',
+  VERIFY_ACCOUNT:         '/verify/account',
 } as const;
 
 // ============================================

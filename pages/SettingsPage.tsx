@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info } from 'lucide-react';
+import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical } from 'lucide-react';
 import { 
   fetchSettings, 
   updateSettings, 
@@ -16,6 +16,8 @@ import {
   updateTestimonial,
   togglePermission,
   setPermissionGroups,
+  setFeatureFlag,
+  setOperatingDays,
   resetLogo,
   resetHeroImage
 } from '../src/store/slices/settingsSlice';
@@ -106,6 +108,7 @@ export const SettingsPage: React.FC = () => {
             { id: 'mod_1', name: 'Finance Module', description: 'Access to billing and contracts', admin: false, schoolAdmin: false },
             { id: 'mod_2', name: 'Safety Center', description: 'Incident reporting and analysis dashboard', admin: true, schoolAdmin: true },
             { id: 'mod_3', name: 'Advanced Analytics', description: 'Business intelligence reports', admin: true, schoolAdmin: false },
+            { id: 'mod_4', name: 'Social Sign-in', description: 'Allow users to sign in via Google/social identity providers', admin: false, schoolAdmin: false },
           ]
         }
       ]));
@@ -128,7 +131,9 @@ export const SettingsPage: React.FC = () => {
         logoUrls: settings.logoUrls,
         uploadedLogos: settings.uploadedLogos,
         testimonials: settings.testimonials,
-        permissionGroups: settings.permissionGroups
+        permissionGroups: settings.permissionGroups,
+        featureFlags: settings.featureFlags,
+        operatingDays: settings.operatingDays
       };
       
       // @ts-ignore - async thunk from JS file
@@ -843,6 +848,41 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'system' && (
            <div className="max-w-3xl space-y-10 animate-in fade-in duration-500">
               
+              {/* Operating Days */}
+              <div className="space-y-6">
+                 <h3 className="text-xl font-bold text-brand-black flex items-center gap-3">
+                    <Bus className="text-brand-green" size={24}/> Operating Days
+                 </h3>
+                 <p className="text-gray-500 text-sm">Select the days of the week your transport service operates. These days will be used across route scheduling.</p>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                       const isActive = (settings.operatingDays || []).includes(day);
+                       return (
+                          <button
+                             key={day}
+                             onClick={() => {
+                                const current = settings.operatingDays || [];
+                                const updated = isActive
+                                   ? current.filter((d: string) => d !== day)
+                                   : [...current, day];
+                                dispatch(setOperatingDays(updated));
+                             }}
+                             className={`px-5 py-4 rounded-2xl text-sm font-bold transition-all border ${
+                                isActive
+                                   ? 'text-white border-transparent shadow-lg'
+                                   : 'text-gray-500 bg-gray-50 border-gray-100 hover:border-gray-300'
+                             }`}
+                             style={isActive ? { backgroundColor: settings.colors.primary } : undefined}
+                          >
+                             {day}
+                          </button>
+                       );
+                    })}
+                 </div>
+              </div>
+
+              <div className="w-full h-px bg-gray-100"></div>
+
               <div className="space-y-6">
                  <h3 className="text-xl font-bold text-brand-black flex items-center gap-3">
                     <Server className="text-blue-500" size={24}/> Feature Flags
@@ -861,7 +901,7 @@ export const SettingsPage: React.FC = () => {
                           </div>
                        </div>
                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" />
+                          <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.whiteLabelling ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'whiteLabelling', value: e.target.checked }))} />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
                        </label>
                     </div>
@@ -877,7 +917,39 @@ export const SettingsPage: React.FC = () => {
                           </div>
                        </div>
                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked />
+                          <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.betaPaymentGateway ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'betaPaymentGateway', value: e.target.checked }))} />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
+                       </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-6 rounded-[2rem] bg-amber-50 border border-amber-200">
+                       <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-amber-600 shadow-sm">
+                             <FlaskConical size={20} />
+                          </div>
+                          <div>
+                             <h4 className="font-bold text-brand-black">Demo Mode</h4>
+                             <p className="text-xs text-gray-500 mt-1 max-w-sm">Enable demo login buttons and mock data on the login page. Disable for production to use real API endpoints only.</p>
+                          </div>
+                       </div>
+                       <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.demoMode ?? true} onChange={(e) => dispatch(setFeatureFlag({ flag: 'demoMode', value: e.target.checked }))} />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                       </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-6 rounded-[2rem] bg-gray-50 border border-gray-100">
+                       <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
+                             <Users size={20} />
+                          </div>
+                          <div>
+                             <h4 className="font-bold text-brand-black">Social Sign-in</h4>
+                             <p className="text-xs text-gray-500 mt-1 max-w-sm">Allow users to sign in using Google and other social identity providers on the login page.</p>
+                          </div>
+                       </div>
+                       <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.socialSignIn ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'socialSignIn', value: e.target.checked }))} />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
                        </label>
                     </div>

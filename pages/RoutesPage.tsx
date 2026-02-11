@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useSelector } from 'react-redux';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { TransportRoute, RouteHealth, School, Trip } from '../types';
@@ -35,6 +37,7 @@ interface RoutesPageProps {
 export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, schools, currentSchoolId, trips }) => {
  const [routes, setRoutes] = useState<TransportRoute[]>(initialRoutes);
  const { colors } = useTheme();
+ const operatingDays: string[] = useSelector((state: any) => state.settings?.operatingDays) || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   
   // Helper functions for dynamic colors
   const getTypeColor = (type: string) => {
@@ -59,8 +62,17 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  const [isAddStopModalOpen, setIsAddStopModalOpen] = useState(false);
  
  const [newRoute, setNewRoute] = useState<Partial<TransportRoute>>({ type: 'PICKUP', health: RouteHealth.NORMAL, status: 'ACTIVE' });
+ const [routeTime, setRouteTime] = useState('07:00');
+ const [dayTimes, setDayTimes] = useState<Record<string, string>>({});
  const [editingRoute, setEditingRoute] = useState<TransportRoute | null>(null);
  const [newStop, setNewStop] = useState('');
+
+ // Initialize day times when operating days or time changes
+ useEffect(() => {
+   const initial: Record<string, string> = {};
+   operatingDays.forEach(day => { initial[day] = routeTime; });
+   setDayTimes(initial);
+ }, [routeTime, operatingDays]);
 
  // Sync props to state if props change (optional, but good for keeping in sync with global mock data if it were dynamic)
  useEffect(() => {
@@ -550,26 +562,18 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  )}
 
  {/* Create Route Modal */}
- {isCreateModalOpen && (
+ {isCreateModalOpen && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsCreateModalOpen(false)} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
+ <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-3xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
  <div className="flex justify-between items-center mb-6">
  <h3 className="text-2xl font-bold text-brand-black">Create New Route</h3>
  <button onClick={() => setIsCreateModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
  </div>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+ {/* Left Column */}
  <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Route Name</label>
- <input 
- type="text" 
- placeholder="e.g. Route A - North" 
- value={newRoute.name || ''}
- onChange={(e) => setNewRoute({...newRoute, name: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-bold" 
- />
- </div>
  <div>
  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School</label>
  <select 
@@ -581,7 +585,16 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
  </select>
  </div>
- <div className="grid grid-cols-2 gap-4">
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Route Name</label>
+ <input 
+ type="text" 
+ placeholder="e.g. Route A - North" 
+ value={newRoute.name || ''}
+ onChange={(e) => setNewRoute({...newRoute, name: e.target.value})}
+ className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-bold" 
+ />
+ </div>
  <div>
  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Type</label>
  <select 
@@ -594,14 +607,72 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </select>
  </div>
  <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vehicle</label>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Default Time</label>
+ <input 
+ type="time" 
+ value={routeTime}
+ onChange={(e) => setRouteTime(e.target.value)}
+ className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-bold" 
+ />
+ </div>
+
+ {/* Days of the Week Schedule */}
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 block">Schedule by Day</label>
+ <div className="space-y-2">
+ {operatingDays.map(day => (
+ <div key={day} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+ <span className="text-xs font-bold text-brand-black w-24 truncate">{day}</span>
+ <input 
+ type="time"
+ value={dayTimes[day] || routeTime}
+ onChange={(e) => setDayTimes({...dayTimes, [day]: e.target.value})}
+ className="flex-1 p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-brand-black"
+ />
+ </div>
+ ))}
+ </div>
+ </div>
+ </div>
+
+ {/* Right Column */}
+ <div className="space-y-4">
+ <div>
+ <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vehicle Plate</label>
  <input 
  type="text" 
- placeholder="Plate #" 
+ placeholder="e.g. BUS-101" 
  value={newRoute.vehiclePlate || ''}
  onChange={(e) => setNewRoute({...newRoute, vehiclePlate: e.target.value})}
  className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-medium" 
  />
+ </div>
+
+ {/* Route Summary Card */}
+ <div className="p-6 bg-brand-black rounded-[1.5rem] text-white relative overflow-hidden mt-4">
+ <div className="absolute top-0 right-0 w-32 h-32 bg-brand-lilac/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
+ <div className="relative z-10">
+ <h4 className="font-bold text-lg mb-1">Route Summary</h4>
+ <p className="text-gray-400 text-xs font-medium mb-6">{newRoute.name || 'Untitled Route'}</p>
+ <div className="grid grid-cols-2 gap-4">
+ <div>
+ <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Type</p>
+ <p className="text-lg font-light mt-1">{newRoute.type || 'PICKUP'}</p>
+ </div>
+ <div>
+ <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Time</p>
+ <p className="text-lg font-light mt-1">{routeTime}</p>
+ </div>
+ <div>
+ <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Days</p>
+ <p className="text-lg font-light mt-1">{operatingDays.length}</p>
+ </div>
+ <div>
+ <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Vehicle</p>
+ <p className="text-lg font-light mt-1">{newRoute.vehiclePlate || '—'}</p>
+ </div>
+ </div>
+ </div>
  </div>
  </div>
  </div>
@@ -616,11 +687,12 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </div>
  </div>
  </div>
- </div>
+ </div>,
+ document.body
  )}
 
  {/* Edit Route Modal */}
- {isEditModalOpen && editingRoute && (
+ {isEditModalOpen && editingRoute && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -660,11 +732,12 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </div>
  </div>
  </div>
- </div>
+ </div>,
+ document.body
  )}
 
  {/* Add Stop Modal */}
- {isAddStopModalOpen && (
+ {isAddStopModalOpen && createPortal(
  <div className="fixed inset-0 z-[70] isolate">
  <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsAddStopModalOpen(false)} />
  <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
@@ -697,7 +770,8 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </div>
  </div>
  </div>
- </div>
+ </div>,
+ document.body
  )}
 
  </div>

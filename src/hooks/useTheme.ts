@@ -11,6 +11,7 @@
 
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
+import type { FeatureFlags } from '../store/slices/settingsSlice';
 
 // ============================================
 // TYPES
@@ -46,6 +47,7 @@ export interface ThemeData {
   logoUrls: ThemeLogoUrls;
   loginHeroImage: string;
   testimonials: Testimonial[];
+  featureFlags: FeatureFlags;
   settings: RootState['settings'];
 }
 
@@ -74,15 +76,18 @@ export const useTheme = (): ThemeData => {
     // Logos
     logoUrls: {
       light: settings.logoUrls?.light || '',
-      dark: settings.logoUrls?.dark || '',
-      platform: settings.logoUrls?.platform || '',
+      dark: settings.logoUrls?.dark || '/uploads/logo-dark.svg',
+      platform: settings.logoUrls?.platform || '/uploads/logo-dark.svg',
     },
 
     // Hero image
-    loginHeroImage: settings.loginHeroImage || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2576&auto=format&fit=crop',
+    loginHeroImage: settings.loginHeroImage || '/uploads/busbuddy.jpg',
 
     // Testimonials
     testimonials: settings.testimonials || [],
+
+    // Feature flags
+    featureFlags: settings.featureFlags || { socialSignIn: false, whiteLabelling: false, betaPaymentGateway: false, demoMode: true },
 
     // Full settings object (for advanced use)
     settings,

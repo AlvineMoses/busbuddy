@@ -123,7 +123,7 @@ class ApiClient {
   private retryDelay: number;
 
   constructor() {
-    this.baseURL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_BASE_URL || 'http://localhost:3000';
+    this.baseURL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_BASE_URL || 'https://corporate.little.africa/new_backend';
     this.apiPrefix = '/api';
 
     this.cache = new Map();

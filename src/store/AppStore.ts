@@ -333,11 +333,18 @@ const useAppStore = create<AppState>()(
         }));
 
         try {
-          const { user, token } = await authService.login(credentials);
-          set({
-            auth: { user, token, isAuthenticated: true, isLoading: false, error: null },
-          });
-          return { success: true };
+          const res = await authService.login(credentials);
+          if (res.status === 'success') {
+            set({
+              auth: { user: res.user, token: res.token, isAuthenticated: true, isLoading: false, error: null },
+            });
+            return { success: true };
+          }
+          // OTP required — let caller handle the flow
+          set((state) => ({
+            auth: { ...state.auth, isLoading: false, error: null },
+          }));
+          return { success: false, error: 'OTP verification required' };
         } catch (error) {
           set((state) => ({
             auth: { ...state.auth, isLoading: false, error: (error as Error).message },

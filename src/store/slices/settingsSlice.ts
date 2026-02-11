@@ -55,6 +55,13 @@ interface PermissionGroup {
   [key: string]: unknown;
 }
 
+export interface FeatureFlags {
+  socialSignIn: boolean;
+  whiteLabelling: boolean;
+  betaPaymentGateway: boolean;
+  demoMode: boolean;
+}
+
 export interface SettingsState {
   // Data
   platformName: string;
@@ -69,6 +76,8 @@ export interface SettingsState {
 
   testimonials: Testimonial[];
   permissionGroups: PermissionGroup[];
+  featureFlags: FeatureFlags;
+  operatingDays: string[];
 
   // Meta
   loading: boolean;
@@ -162,15 +171,15 @@ const initialState: SettingsState = {
     secondary: '#1fd701',
     surface: '#f8fafc',
   },
-  loginHeroImage: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2576&auto=format&fit=crop',
+  loginHeroImage: '/uploads/busbuddy.jpg',
   heroMode: 'url',
   uploadedHeroImage: null,
 
   logoMode: 'url',
   logoUrls: {
     light: '',
-    dark: '',
-    platform: '',
+    dark: '/uploads/logo-dark.svg',
+    platform: '/uploads/logo-dark.svg',
   },
   uploadedLogos: {
     light: null,
@@ -181,14 +190,21 @@ const initialState: SettingsState = {
   testimonials: [
     {
       id: '1',
-      name: 'Riaot Escanor',
-      role: 'Project Manager at Google',
-      text: 'I Landed Multiple Projects Within A Couple Of Days - With This Tool. Definitely My Go To Freelance Platform Now!',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=2574&auto=format&fit=crop',
+      name: 'Samuel Okoye',
+      role: 'Bus Driver at Little School',
+      text: 'The students anf parents both love it! Boarding and dropping off students has never been easier.',
+      avatar: 'https://plus.unsplash.com/premium_photo-1661498011647-983403f1643c?q=80&w=800&auto=format&fit=crop',
     },
   ],
 
   permissionGroups: [],
+  featureFlags: {
+    socialSignIn: false,
+    whiteLabelling: false,
+    betaPaymentGateway: false,
+    demoMode: true,
+  },
+  operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
 
   // Meta
   loading: false,
@@ -268,6 +284,14 @@ const settingsSlice = createSlice({
       }
     },
 
+    setFeatureFlag: (state, action: PayloadAction<{ flag: keyof FeatureFlags; value: boolean }>) => {
+      state.featureFlags[action.payload.flag] = action.payload.value;
+    },
+
+    setOperatingDays: (state, action: PayloadAction<string[]>) => {
+      state.operatingDays = action.payload;
+    },
+
     clearError: (state) => {
       state.error = null;
     },
@@ -289,7 +313,7 @@ const settingsSlice = createSlice({
         deleteUploadedFile(state.uploadedHeroImage);
       }
       state.uploadedHeroImage = null;
-      state.loginHeroImage = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2576&auto=format&fit=crop';
+      state.loginHeroImage = '/uploads/busbuddy.jpg';
       state.heroMode = 'url';
     },
   },
@@ -377,6 +401,8 @@ export const {
   removeTestimonial,
   setPermissionGroups,
   togglePermission,
+  setFeatureFlag,
+  setOperatingDays,
   clearError,
   resetLogo,
   resetHeroImage,
