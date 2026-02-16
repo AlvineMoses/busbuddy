@@ -58,7 +58,6 @@ interface PermissionGroup {
 export interface FeatureFlags {
   socialSignIn: boolean;
   whiteLabelling: boolean;
-  betaPaymentGateway: boolean;
   demoMode: boolean;
 }
 
@@ -221,7 +220,6 @@ const initialState: SettingsState = {
   featureFlags: {
     socialSignIn: false,
     whiteLabelling: false,
-    betaPaymentGateway: false,
     demoMode: true,
   },
   operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],

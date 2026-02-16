@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical, Globe, ChevronDown, Trash2 } from 'lucide-react';
+import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical, Globe, ChevronDown, Trash2 } from 'lucide-react';
 import { EndpointsSettingsTab } from './EndpointsSettingsTab';
 import useAppStore from '../src/store/AppStore';
 import { UserRole } from '../types';
@@ -74,6 +75,9 @@ export const SettingsPage: React.FC = () => {
   // White label school selector
   const [showSchoolSelector, setShowSchoolSelector] = useState(false);
 
+  // Feature flags layout mode
+  const [featureFlagsView, setFeatureFlagsView] = useState<'list' | 'grid'>('grid');
+
   // Initialize profile fields from currentUser when they're empty
   useEffect(() => {
     if (currentUser && !settings.profileName) {
@@ -93,7 +97,6 @@ export const SettingsPage: React.FC = () => {
       Shield,
       Users,
       PieChart,
-      Wallet,
       Server,
       Code,
     };
@@ -973,7 +976,7 @@ export const SettingsPage: React.FC = () => {
         )}
 
         {activeTab === 'system' && (
-           <div className="max-w-3xl space-y-10 animate-in fade-in duration-500">
+           <div className="space-y-10 animate-in fade-in duration-500">
               
               {/* Operating Days */}
               <div className="space-y-6">
@@ -1011,14 +1014,47 @@ export const SettingsPage: React.FC = () => {
               <div className="w-full h-px bg-gray-100"></div>
 
               <div className="space-y-6">
-                 <h3 className="text-xl font-bold text-brand-black flex items-center gap-3">
-                    <Server className="text-blue-500" size={24}/> Feature Flags
-                 </h3>
-                 <p className="text-gray-500 text-sm">Experimental features and white-label configurations.</p>
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <h3 className="text-xl font-bold text-brand-black flex items-center gap-3">
+                        <Server className="text-blue-500" size={24}/> Feature Flags
+                     </h3>
+                     <p className="text-gray-500 text-sm mt-1">Experimental features and white-label configurations.</p>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <button
+                       onClick={() => dispatch(addToast({ message: 'Add Feature coming soon', type: 'info', duration: 2000 }))}
+                       className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-black text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                     >
+                       <Plus size={14} />
+                       Add Feature
+                     </button>
+                     <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
+                       <button
+                         onClick={() => setFeatureFlagsView('list')}
+                         className={`p-2 rounded-md transition-colors ${featureFlagsView === 'list' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                         title="List view"
+                       >
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                         </svg>
+                       </button>
+                       <button
+                         onClick={() => setFeatureFlagsView('grid')}
+                         className={`p-2 rounded-md transition-colors ${featureFlagsView === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'}`}
+                         title="Grid view"
+                       >
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                         </svg>
+                       </button>
+                     </div>
+                   </div>
+                 </div>
                  
-                 <div className="space-y-4">
+                 <div className={featureFlagsView === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
                     {/* White Labelling */}
-                    <div className="rounded-4xl bg-gray-50 border border-gray-100 overflow-hidden">
+                    <div className="rounded-4xl bg-gray-50 border border-gray-100 overflow-visible">
                        <div className="flex items-center justify-between p-6">
                           <div className="flex items-start gap-4">
                              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
@@ -1036,7 +1072,7 @@ export const SettingsPage: React.FC = () => {
                        </div>
                        {settings.featureFlags?.whiteLabelling && (
                          <div className="px-6 pb-6 pt-0">
-                           <div className="p-4 bg-white rounded-2xl border border-gray-200 space-y-3">
+                           <div className="p-4 bg-white rounded-2xl border border-gray-200 space-y-3 overflow-visible">
                              <div className="flex items-center justify-between">
                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">White-Labelled Schools</label>
                                <div className="relative">
@@ -1098,23 +1134,6 @@ export const SettingsPage: React.FC = () => {
                        )}
                     </div>
 
-                    {/* Beta Payment Gateway */}
-                    <div className="flex items-center justify-between p-6 rounded-4xl bg-gray-50 border border-gray-100">
-                       <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
-                             <Wallet size={20} />
-                          </div>
-                          <div>
-                             <h4 className="font-bold text-brand-black">Beta Payment Gateway</h4>
-                             <p className="text-xs text-gray-500 mt-1 max-w-sm">Enable Stripe Connect integration for automated parent billing.</p>
-                          </div>
-                       </div>
-                       <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.betaPaymentGateway ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'betaPaymentGateway', value: e.target.checked }))} />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
-                       </label>
-                    </div>
-
                     {/* Demo Mode */}
                     <div className="flex items-center justify-between p-6 rounded-4xl bg-amber-50 border border-amber-200">
                        <div className="flex items-start gap-4">
@@ -1160,8 +1179,8 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* Create Role Modal */}
-      {showCreateRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={() => setShowCreateRole(false)}>
+      {showCreateRole && createPortal(
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={() => setShowCreateRole(false)}>
           <div className="bg-white rounded-4xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h4 className="font-bold text-brand-black text-lg">Create New Role</h4>
@@ -1212,7 +1231,8 @@ export const SettingsPage: React.FC = () => {
               <ThemedButton variant="primary" onClick={handleSaveNewRole}>Create Role</ThemedButton>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

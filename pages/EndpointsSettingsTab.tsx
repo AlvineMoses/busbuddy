@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { addToast } from '../src/store/slices/uiSlice';
@@ -13,10 +14,11 @@ import type {
 } from '../types';
 import {
   Globe, Plus, Trash2, Edit3, Play, Save, Upload, Download,
-  CheckCircle, XCircle, AlertTriangle, Clock, ChevronDown,
+  CheckCircle, XCircle, AlertTriangle, Clock, ChevronDown, ChevronUp,
   Server, Link2, Settings2, Loader2, X, FileJson, Zap,
   Info, Eye, Code, Copy, ExternalLink, ToggleLeft, ToggleRight,
-  Search,
+  Search, Layers, MousePointerClick, FormInput, Table2, LayoutGrid,
+  FileCode2, GripVertical,
 } from 'lucide-react';
 
 // ============================================
@@ -78,8 +80,8 @@ const ConfirmDialog: React.FC<{
   onCancel: () => void;
 }> = ({ open, title, message, confirmLabel = 'Confirm', confirmVariant = 'danger', onConfirm, onCancel }) => {
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
       <div className="bg-white rounded-4xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <div className={`p-2.5 rounded-xl ${confirmVariant === 'danger' ? 'bg-red-50' : 'bg-blue-50'}`}>
@@ -102,7 +104,8 @@ const ConfirmDialog: React.FC<{
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -116,8 +119,8 @@ const ImportPreviewDialog: React.FC<{
   onCancel: () => void;
 }> = ({ open, preview, onConfirm, onCancel }) => {
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
       <div className="bg-white rounded-4xl p-8 max-w-2xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -201,7 +204,8 @@ const ImportPreviewDialog: React.FC<{
           </ThemedButton>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -216,8 +220,8 @@ const DiffPreview: React.FC<{
   onCancel: () => void;
 }> = ({ open, diff, envName, onConfirm, onCancel }) => {
   if (!open || !diff) return null;
-  return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
       <div className="bg-white rounded-4xl p-8 max-w-lg w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2.5 rounded-xl bg-green-50"><Zap size={20} className="text-green-500" /></div>
@@ -246,7 +250,8 @@ const DiffPreview: React.FC<{
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -263,8 +268,8 @@ const CodeSnippetViewer: React.FC<{ open: boolean; code: string; onClose: () => 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
       <div className="bg-white rounded-4xl p-8 max-w-3xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -288,6 +293,357 @@ const CodeSnippetViewer: React.FC<{ open: boolean; code: string; onClose: () => 
           {code}
         </pre>
       </div>
+    </div>,
+    document.body
+  );
+};
+
+// ============================================
+// PAGE → FILE MAPPING (shared constant)
+// ============================================
+const PAGE_FILE_MAP: Record<string, string> = {
+  LoginPage: 'pages/LoginPage.tsx',
+  Layout: 'components/Layout.tsx',
+  App: 'App.tsx',
+  Dashboard: 'pages/Dashboard.tsx',
+  SchoolsPage: 'pages/SchoolsPage.tsx',
+  DriversPage: 'pages/DriversPage.tsx',
+  RoutesPage: 'pages/RoutesPage.tsx',
+  TripsPage: 'pages/TripsPage.tsx',
+  StudentsPage: 'pages/StudentsPage.tsx',
+  AssignmentsPage: 'pages/AssignmentsPage.tsx',
+  ShiftsPage: 'pages/ShiftsPage.tsx',
+  NotificationsPage: 'pages/NotificationsPage.tsx',
+  SettingsPage: 'pages/SettingsPage.tsx',
+  OperationsPage: 'pages/OperationsPage.tsx',
+  ApiClient: 'src/services/ApiClient.ts',
+};
+
+const ALL_PAGE_NAMES = Object.keys(PAGE_FILE_MAP);
+
+// ============================================
+// VISUAL WIREFRAME RENDERER
+// Renders actual UI mockups (inputs, buttons, tables, forms)
+// with the API-calling element highlighted
+// ============================================
+
+/** Highlighted API-call button wrapper */
+const ApiCallHighlight: React.FC<{ constant: string; children: React.ReactNode }> = ({ constant, children }) => (
+  <Tooltip text={`This element calls ${constant}`}>
+    <div className="relative group">
+      <div className="absolute -inset-1 bg-green-400/20 rounded-xl blur-sm group-hover:bg-green-400/30 transition-all" />
+      <div className="relative ring-2 ring-green-400 rounded-xl overflow-hidden">
+        {children}
+        <div className="absolute -top-0.5 -right-0.5 flex items-center gap-1 px-2 py-0.5 rounded-bl-lg rounded-tr-xl bg-green-500 text-white text-[9px] font-bold shadow-sm">
+          <Zap size={8} /> API Call
+        </div>
+      </div>
+    </div>
+  </Tooltip>
+);
+
+/** A fake disabled input for wireframe display */
+const WireInput: React.FC<{ label: string; placeholder: string; type?: string }> = ({ label, placeholder, type }) => (
+  <div className="space-y-1.5">
+    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</label>
+    <div className="relative">
+      <div className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-400 font-medium select-none">
+        {type === 'password' ? '••••••••' : placeholder}
+      </div>
+      {type === 'password' && (
+        <Eye size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300" />
+      )}
+    </div>
+  </div>
+);
+
+/** A fake button for wireframe display */
+const WireButton: React.FC<{ label: string; variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; fullWidth?: boolean }> = ({ label, variant = 'primary', fullWidth }) => {
+  const styles = {
+    primary: 'bg-brand-black text-white',
+    secondary: 'bg-white border border-gray-200 text-gray-700',
+    danger: 'bg-red-500 text-white',
+    ghost: 'text-gray-500 hover:bg-gray-50',
+  };
+  return (
+    <div className={`px-5 py-3 rounded-xl text-sm font-bold text-center select-none ${styles[variant]} ${fullWidth ? 'w-full' : ''}`}>
+      {label}
+    </div>
+  );
+};
+
+/** A fake select dropdown for wireframe display */
+const WireSelect: React.FC<{ label: string; placeholder: string }> = ({ label, placeholder }) => (
+  <div className="space-y-1.5">
+    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</label>
+    <div className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-400 font-medium flex items-center justify-between select-none">
+      {placeholder}
+      <ChevronDown size={14} className="text-gray-300" />
+    </div>
+  </div>
+);
+
+/** Fake table rows for wireframe display */
+const WireTable: React.FC<{ columns: string[]; rows?: number; actionLabel?: string }> = ({ columns, rows = 3, actionLabel }) => (
+  <div className="border border-gray-200 rounded-xl overflow-hidden">
+    {/* Header */}
+    <div className="grid bg-gray-50 border-b border-gray-200" style={{ gridTemplateColumns: `repeat(${columns.length}${actionLabel ? ' + 1' : ''}, minmax(0, 1fr))` }}>
+      {columns.map(col => (
+        <div key={col} className="px-4 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{col}</div>
+      ))}
+      {actionLabel && <div className="px-4 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-right">Actions</div>}
+    </div>
+    {/* Rows */}
+    {Array.from({ length: rows }).map((_, i) => (
+      <div key={i} className="grid border-b border-gray-100 last:border-0" style={{ gridTemplateColumns: `repeat(${columns.length}${actionLabel ? ' + 1' : ''}, minmax(0, 1fr))` }}>
+        {columns.map(col => (
+          <div key={col} className="px-4 py-3">
+            <div className="h-3 bg-gray-100 rounded-full w-3/4" />
+          </div>
+        ))}
+        {actionLabel && (
+          <div className="px-4 py-2.5 flex items-center justify-end gap-1">
+            <div className="p-1.5 rounded-lg bg-gray-50"><Eye size={12} className="text-gray-400" /></div>
+            <div className="p-1.5 rounded-lg bg-gray-50"><Edit3 size={12} className="text-gray-400" /></div>
+            <div className="p-1.5 rounded-lg bg-gray-50"><Trash2 size={12} className="text-red-300" /></div>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+);
+
+/** The auto-fetch indicator for data-loading endpoints */
+const WireAutoFetch: React.FC<{ constant: string }> = ({ constant }) => (
+  <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+      <Zap size={14} className="text-amber-600" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-xs font-bold text-amber-700">Auto-fetched on page load</p>
+      <p className="text-[10px] text-amber-600 font-mono truncate">useEffect → {constant}</p>
+    </div>
+    <span className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[9px] font-bold shrink-0">
+      <Zap size={8} /> API Call
+    </span>
+  </div>
+);
+
+/** Renders a visual wireframe mockup based on endpoint type */
+const renderVisualWireframe = (sourceConstant: string, _pageName: string, featureDesc: string, methodStr: string): React.ReactNode => {
+  const key = sourceConstant.split('.').pop()?.toUpperCase() || '';
+
+  // ---- AUTH: Login / Verify / Forgot / Reset ----
+  if (key.includes('LOGIN') || key.includes('VERIFY') || key.includes('RESEND') || key.includes('FORGOT') || key.includes('RESET')) {
+    const isLogin = key.includes('LOGIN');
+    const isForgot = key.includes('FORGOT') || key.includes('RESET');
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-auto space-y-4">
+        <div className="text-center space-y-1">
+          <div className="w-10 h-10 rounded-xl bg-brand-black/5 flex items-center justify-center mx-auto mb-2"><Globe size={18} className="text-brand-black" /></div>
+          <p className="text-sm font-bold text-brand-black">{isForgot ? 'Reset Password' : isLogin ? 'Sign In' : 'Verify Account'}</p>
+          <p className="text-[10px] text-gray-400">{isForgot ? 'Enter your email to reset password' : isLogin ? 'Enter your credentials' : 'Enter verification code'}</p>
+        </div>
+        {isForgot ? (
+          <WireInput label="Email Address" placeholder="name@school.com" />
+        ) : isLogin ? (
+          <>
+            <WireInput label="Email Address" placeholder="name@school.com" />
+            <WireInput label="Password" placeholder="" type="password" />
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-xs text-gray-400"><div className="w-4 h-4 rounded border border-gray-300" /> Remember me</label>
+              <span className="text-xs text-blue-500 font-medium">Forgot password?</span>
+            </div>
+          </>
+        ) : (
+          <WireInput label="Verification Code" placeholder="Enter 6-digit code" />
+        )}
+        <ApiCallHighlight constant={sourceConstant}>
+          <WireButton label={featureDesc || (isForgot ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Verify')} fullWidth />
+        </ApiCallHighlight>
+      </div>
+    );
+  }
+
+  // ---- LOGOUT ----
+  if (key.includes('LOGOUT')) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden max-w-md mx-auto">
+        {/* Mini navbar */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-brand-black/10" />
+            <div className="h-3 w-20 bg-gray-200 rounded-full" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-3 w-12 bg-gray-200 rounded-full" />
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">AO</div>
+          </div>
+        </div>
+        {/* Dropdown */}
+        <div className="p-4">
+          <div className="border border-gray-200 rounded-xl p-1 space-y-0.5 max-w-45 ml-auto">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-xs text-gray-600"><Settings2 size={12} /> Settings</div>
+            <div className="border-t border-gray-100 my-1" />
+            <ApiCallHighlight constant={sourceConstant}>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-xs text-red-600 font-bold"><ExternalLink size={12} /> {featureDesc || 'Sign Out'}</div>
+            </ApiCallHighlight>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- ME / PROFILE ----
+  if (key.includes('ME') || key.includes('PROFILE')) {
+    return (
+      <div className="space-y-3">
+        <WireAutoFetch constant={sourceConstant} />
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 max-w-sm mx-auto">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-lg font-bold text-blue-600">AO</div>
+            <div className="space-y-1.5">
+              <div className="h-3.5 w-32 bg-gray-200 rounded-full" />
+              <div className="h-2.5 w-24 bg-gray-100 rounded-full" />
+              <div className="h-2.5 w-20 bg-gray-100 rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- LIST / GET ALL / BASE (collection endpoints) ----
+  if (key.includes('LIST') || key.includes('ALL') || key.includes('LIVE') || key.includes('BASE') || (key.includes('GET') && !key.includes('UPDATE'))) {
+    const entity = key.replace('LIST_', '').replace('GET_', '').replace('_ALL', '').replace('ALL_', '').toLowerCase();
+    const cols = ['Name', 'Status', 'Updated', 'Details'];
+    return (
+      <div className="space-y-3">
+        <WireAutoFetch constant={sourceConstant} />
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
+          {/* Toolbar */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 max-w-xs relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+              <div className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-gray-400">Search {entity}s…</div>
+            </div>
+            <WireButton label={`+ Add ${entity.charAt(0).toUpperCase() + entity.slice(1)}`} variant="primary" />
+          </div>
+          <WireTable columns={cols} rows={3} actionLabel="Actions" />
+        </div>
+      </div>
+    );
+  }
+
+  // ---- CREATE / UPLOAD / BULK ----
+  if (key.includes('CREATE') || key.includes('UPLOAD') || key.includes('BULK')) {
+    const entity = key.replace('CREATE_', '').replace('UPLOAD_', '').replace('BULK_', '').toLowerCase();
+    const isUpload = key.includes('UPLOAD');
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-auto space-y-4">
+        <p className="text-sm font-bold text-brand-black">{isUpload ? 'Upload File' : `Create New ${entity.charAt(0).toUpperCase() + entity.slice(1)}`}</p>
+        {isUpload ? (
+          <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center space-y-2">
+            <Upload size={24} className="mx-auto text-gray-300" />
+            <p className="text-xs text-gray-400">Drag & drop or click to browse</p>
+            <p className="text-[10px] text-gray-300">.csv, .xlsx accepted</p>
+          </div>
+        ) : (
+          <>
+            <WireInput label="Name" placeholder={`Enter ${entity} name`} />
+            <WireInput label="Email" placeholder={`${entity}@school.com`} />
+            <WireSelect label="Role / Type" placeholder="Select option…" />
+          </>
+        )}
+        <div className="flex items-center gap-2 pt-2">
+          <WireButton label="Cancel" variant="secondary" />
+          <div className="flex-1">
+            <ApiCallHighlight constant={sourceConstant}>
+              <WireButton label={featureDesc || (isUpload ? 'Upload' : 'Create')} fullWidth />
+            </ApiCallHighlight>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- UPDATE / STATUS / READ / BY_ID / STATS (single record detail) ----
+  if (key.includes('UPDATE') || key.includes('STATUS') || key.includes('READ') || key.includes('BY_ID') || key.includes('STATS')) {
+    const entity = key.replace('UPDATE_', '').replace('_STATUS', '').replace('READ_', '').toLowerCase();
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-auto space-y-4">
+        <p className="text-sm font-bold text-brand-black">Edit {entity.charAt(0).toUpperCase() + entity.slice(1)}</p>
+        <WireInput label="Name" placeholder="John Doe" />
+        <WireInput label="Email" placeholder="john@school.com" />
+        <WireSelect label="Status" placeholder="Active" />
+        <div className="flex items-center gap-2 pt-2">
+          <WireButton label="Cancel" variant="secondary" />
+          <div className="flex-1">
+            <ApiCallHighlight constant={sourceConstant}>
+              <WireButton label={featureDesc || 'Save Changes'} fullWidth />
+            </ApiCallHighlight>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- DELETE / DISABLE ----
+  if (key.includes('DELETE') || key.includes('DISABLE')) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+          <WireTable columns={['Name', 'Status', 'Created']} rows={2} actionLabel="Actions" />
+        </div>
+        {/* Confirm dialog */}
+        <div className="bg-white border-2 border-red-200 rounded-2xl p-6 max-w-xs mx-auto text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto"><AlertTriangle size={20} className="text-red-500" /></div>
+          <p className="text-sm font-bold text-gray-800">Confirm Deletion</p>
+          <p className="text-xs text-gray-500">This action cannot be undone.</p>
+          <div className="flex items-center gap-2 justify-center pt-1">
+            <WireButton label="Cancel" variant="secondary" />
+            <ApiCallHighlight constant={sourceConstant}>
+              <WireButton label={featureDesc || 'Delete'} variant="danger" />
+            </ApiCallHighlight>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- GENERATE / ANALYTICS / EXPORT ----
+  if (key.includes('GENERATE') || key.includes('ANALYTICS') || key.includes('EXPORT')) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 max-w-sm mx-auto space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><Download size={16} className="text-purple-600" /></div>
+          <div>
+            <p className="text-sm font-bold text-brand-black">{featureDesc || 'Generate Report'}</p>
+            <p className="text-[10px] text-gray-400">Export or generate analytics data</p>
+          </div>
+        </div>
+        <WireSelect label="Date Range" placeholder="Last 30 days" />
+        <WireSelect label="Format" placeholder="PDF" />
+        <ApiCallHighlight constant={sourceConstant}>
+          <WireButton label={featureDesc || 'Generate'} fullWidth />
+        </ApiCallHighlight>
+      </div>
+    );
+  }
+
+  // ---- FALLBACK: Generic handler ----
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 max-w-sm mx-auto space-y-4">
+      <p className="text-sm font-bold text-brand-black">{featureDesc || _pageName}</p>
+      <div className="p-4 bg-gray-50 rounded-xl text-center">
+        <Code size={20} className="mx-auto text-gray-300 mb-2" />
+        <p className="text-xs text-gray-400">Custom handler invokes this endpoint</p>
+      </div>
+      <ApiCallHighlight constant={sourceConstant}>
+        <div className="flex items-center justify-center gap-2 px-5 py-3 bg-brand-black text-white rounded-xl text-sm font-bold">
+          <Zap size={14} /> {methodStr.toUpperCase()} → {sourceConstant.split('.').pop()}
+        </div>
+      </ApiCallHighlight>
     </div>
   );
 };
@@ -300,7 +656,40 @@ const ViewUsageDialog: React.FC<{
   mapping: EndpointMapping | null;
   onClose: () => void;
 }> = ({ open, mapping, onClose }) => {
+  const dispatch = useDispatch<any>();
   const [viewMode, setViewMode] = useState<'code' | 'visual'>('visual');
+  const [selectedPages, setSelectedPages] = useState<string[]>([]);
+  const [activePageTab, setActivePageTab] = useState('');
+  const [showPageDropdown, setShowPageDropdown] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addFormPage, setAddFormPage] = useState('');
+  const [addFormDesc, setAddFormDesc] = useState('');
+  const [addFormElement, setAddFormElement] = useState('button');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowPageDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Sync initial selected page from mapping whenever mapping changes
+  useEffect(() => {
+    if (mapping) {
+      const pn = mapping.functionality.includes('—')
+        ? mapping.functionality.split('—')[0].trim()
+        : mapping.functionality;
+      const initial = PAGE_FILE_MAP[pn] ? pn : ALL_PAGE_NAMES[0];
+      setSelectedPages([initial]);
+      setActivePageTab(initial);
+    }
+  }, [mapping]);
+
   if (!open || !mapping) return null;
 
   // Parse functionality → page and feature description
@@ -316,11 +705,9 @@ const ViewUsageDialog: React.FC<{
   else if (['UPDATE', 'STATUS', 'READ', 'READ_ALL', 'PREFERRED_OTP_CHANNEL'].some(k => keyPart.includes(k))) method = 'put';
   else if (['DELETE', 'DISABLE'].some(k => keyPart.includes(k))) method = 'delete';
 
-  // Check if the endpoint path has a param
   const hasParam = mapping.endpointPath.includes(':') || constName.includes('(:id)');
   const cleanConstant = constName.replace('(:id)', '');
 
-  // Generate code snippet
   const codeSnippet = hasParam
     ? `import { API } from '@/config/apiEndpoints';
 import { apiClient } from '@/services/ApiClient';
@@ -342,52 +729,67 @@ const response = await apiClient.${method}(
 
 console.log(response.data);`;
 
-  // Page → file mapping for visual display
-  const PAGE_FILE_MAP: Record<string, string> = {
-    LoginPage: 'pages/LoginPage.tsx',
-    Layout: 'components/Layout.tsx',
-    App: 'App.tsx',
-    Dashboard: 'pages/Dashboard.tsx',
-    SchoolsPage: 'pages/SchoolsPage.tsx',
-    DriversPage: 'pages/DriversPage.tsx',
-    RoutesPage: 'pages/RoutesPage.tsx',
-    TripsPage: 'pages/TripsPage.tsx',
-    StudentsPage: 'pages/StudentsPage.tsx',
-    AssignmentsPage: 'pages/AssignmentsPage.tsx',
-    ShiftsPage: 'pages/ShiftsPage.tsx',
-    NotificationsPage: 'pages/NotificationsPage.tsx',
-    SettingsPage: 'pages/SettingsPage.tsx',
-    OperationsPage: 'pages/OperationsPage.tsx',
-    ApiClient: 'src/services/ApiClient.ts',
+  const sourceFile = PAGE_FILE_MAP[activePageTab] || PAGE_FILE_MAP[pageName] || 'src/services/UnifiedApiService.ts';
+
+  const togglePage = (page: string) => {
+    setSelectedPages(prev => {
+      if (prev.includes(page)) {
+        const next = prev.filter(p => p !== page);
+        if (activePageTab === page) setActivePageTab(next[0] || '');
+        return next;
+      }
+      const next = [...prev, page];
+      if (!activePageTab) setActivePageTab(page);
+      return next;
+    });
   };
 
-  const sourceFile = PAGE_FILE_MAP[pageName] || 'src/services/UnifiedApiService.ts';
+  const handleAddUsage = () => {
+    if (!addFormPage) return;
+    if (!selectedPages.includes(addFormPage)) {
+      setSelectedPages(prev => [...prev, addFormPage]);
+    }
+    setActivePageTab(addFormPage);
+    setShowAddForm(false);
+    setAddFormPage('');
+    setAddFormDesc('');
+    dispatch(addToast({
+      message: `Added ${addFormPage} as a consumer of ${mapping.sourceConstant}`,
+      type: 'success',
+      duration: 3000,
+    }));
+  };
 
-  return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white rounded-4xl p-8 max-w-2xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+  // Build the visual wireframe for the active page tab
+  const activeWireframe = activePageTab ? renderVisualWireframe(mapping.sourceConstant, activePageTab, featureDesc, method) : null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
+      <div className="bg-white rounded-4xl p-8 max-w-4xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-blue-50"><Eye size={20} className="text-blue-500" /></div>
             <div>
-              <h4 className="font-bold text-brand-black text-lg">Usage Details</h4>
-              <code className="text-xs font-mono text-gray-500">{mapping.sourceConstant}</code>
+              <h4 className="font-bold text-brand-black text-lg">Endpoint Usage Editor</h4>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${METHOD_COLORS[method.toUpperCase() as HttpMethod] || 'bg-gray-100 text-gray-700'}`}>{method.toUpperCase()}</span>
+                <code className="text-xs font-mono text-gray-500">{mapping.endpointPath}</code>
+              </div>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
         </div>
 
         {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl mb-5 w-fit">
           <button
             onClick={() => setViewMode('visual')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
               viewMode === 'visual' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Eye size={14} />
-            Visual
+            <Eye size={14} /> Visual
           </button>
           <button
             onClick={() => setViewMode('code')}
@@ -395,48 +797,180 @@ console.log(response.data);`;
               viewMode === 'code' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Code size={14} />
-            Show Code
+            <Code size={14} /> Show Code
           </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-auto">
           {viewMode === 'visual' ? (
-            <div className="space-y-4">
-              {/* Visual Flow: Endpoint → Page → Feature */}
-              <div className="relative">
-                {/* Endpoint constant */}
-                <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+            <div className="space-y-5">
+              {/* ------ Endpoint Info Banner ------ */}
+              <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center justify-between gap-4">
+                <div className="min-w-0">
                   <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">API Constant</p>
-                  <code className="text-sm font-mono font-bold text-indigo-700">{mapping.sourceConstant}</code>
-                  <p className="text-xs text-indigo-500 mt-1 font-mono">{mapping.endpointPath}</p>
+                  <code className="text-sm font-mono font-bold text-indigo-700 break-all">{mapping.sourceConstant}</code>
                 </div>
-                {/* Connector */}
-                <div className="flex justify-center py-1.5">
-                  <div className="w-0.5 h-6 bg-gray-200 rounded-full" />
-                </div>
-                {/* Page / Component */}
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Page / Component</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-blue-700">{pageName}</span>
-                    <span className="text-[10px] font-mono text-blue-400 bg-blue-100 px-2 py-0.5 rounded-lg">{sourceFile}</span>
-                  </div>
-                </div>
-                {/* Connector */}
-                <div className="flex justify-center py-1.5">
-                  <div className="w-0.5 h-6 bg-gray-200 rounded-full" />
-                </div>
-                {/* Feature/Functionality */}
-                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                  <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest mb-1">Functionality</p>
-                  <span className="text-sm font-bold text-green-700">{featureDesc || mapping.description || 'General usage'}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${METHOD_COLORS[method.toUpperCase() as HttpMethod] || 'bg-gray-100 text-gray-700'}`}>{method.toUpperCase()}</span>
+                  {hasParam && <span className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-700">:id</span>}
                 </div>
               </div>
 
-              {/* Extra Info */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              {/* ------ Multi-select Page Dropdown ------ */}
+              <div ref={dropdownRef} className="relative">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pages / Components using this endpoint</p>
+                <button
+                  onClick={() => setShowPageDropdown(prev => !prev)}
+                  className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-brand-black hover:border-gray-300 transition-colors"
+                >
+                  <span className="flex items-center gap-2 flex-wrap min-w-0">
+                    {selectedPages.length === 0 ? (
+                      <span className="text-gray-400 font-medium">Select pages…</span>
+                    ) : (
+                      selectedPages.map(p => (
+                        <span key={p} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold">
+                          <FileCode2 size={12} /> {p}
+                        </span>
+                      ))
+                    )}
+                  </span>
+                  {showPageDropdown ? <ChevronUp size={16} className="text-gray-400 shrink-0" /> : <ChevronDown size={16} className="text-gray-400 shrink-0" />}
+                </button>
+                {showPageDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+                    {ALL_PAGE_NAMES.map(page => {
+                      const isSelected = selectedPages.includes(page);
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => togglePage(page)}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
+                            isSelected ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                          }`}>
+                            {isSelected && <CheckCircle size={10} className="text-white" />}
+                          </div>
+                          <FileCode2 size={14} className={isSelected ? 'text-blue-500' : 'text-gray-400'} />
+                          <span>{page}</span>
+                          <span className="ml-auto text-[10px] font-mono text-gray-400">{PAGE_FILE_MAP[page]}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* ------ Page Subtabs ------ */}
+              {selectedPages.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-xl border border-gray-100 overflow-x-auto">
+                    {selectedPages.map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setActivePageTab(page)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                          activePageTab === page
+                            ? 'bg-white text-brand-black shadow-sm'
+                            : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        <FileCode2 size={13} /> {page}
+                      </button>
+                    ))}
+                    {/* + Add Page Button */}
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-gray-400 hover:text-brand-black hover:bg-white transition-all"
+                      title="Add a page that uses this endpoint"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+
+                  {/* ------ Visual Wireframe Preview ------ */}
+                  {activePageTab && (
+                    <div className="mt-4 border border-gray-100 rounded-2xl bg-gray-50/30 p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Layers size={14} className="text-gray-400" />
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Visual Preview</p>
+                        </div>
+                        <span className="text-[10px] font-mono text-gray-400 bg-white px-2 py-0.5 rounded-lg border border-gray-100">{PAGE_FILE_MAP[activePageTab] || 'unknown'}</span>
+                      </div>
+                      {/* Wireframe area with subtle dots background */}
+                      <div className="rounded-xl bg-white/50 p-4" style={{ backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+                        {activeWireframe}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ------ Add New Usage Inline Form ------ */}
+              {showAddForm && (
+                <div className="p-5 bg-blue-50/50 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs font-bold text-brand-black">Add New Page Usage</p>
+                    <button onClick={() => setShowAddForm(false)} className="p-1 rounded-lg hover:bg-blue-100 text-gray-400 transition-colors"><X size={14} /></button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Page / Component</label>
+                      <select
+                        value={addFormPage}
+                        onChange={e => setAddFormPage(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                      >
+                        <option value="">Select…</option>
+                        {ALL_PAGE_NAMES.filter(p => !selectedPages.includes(p)).map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Element Type</label>
+                      <select
+                        value={addFormElement}
+                        onChange={e => setAddFormElement(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                      >
+                        <option value="button">Button</option>
+                        <option value="form">Form</option>
+                        <option value="effect">useEffect</option>
+                        <option value="handler">Handler</option>
+                        <option value="table">Table</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Description</label>
+                      <input
+                        type="text"
+                        value={addFormDesc}
+                        onChange={e => setAddFormDesc(e.target.value)}
+                        placeholder="e.g. Submit button"
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <ThemedButton variant="cancel" onClick={() => setShowAddForm(false)}>Cancel</ThemedButton>
+                    <button
+                      onClick={handleAddUsage}
+                      disabled={!addFormPage}
+                      className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold bg-brand-black text-white hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      <Plus size={13} /> Add Usage
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ------ Endpoint Metadata Row ------ */}
+              <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">HTTP Method</p>
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${METHOD_COLORS[method.toUpperCase() as HttpMethod] || 'bg-gray-100 text-gray-700'}`}>
@@ -447,10 +981,14 @@ console.log(response.data);`;
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Parameters</p>
                   <span className="text-sm text-gray-700">{hasParam ? 'Dynamic (:id)' : 'None'}</span>
                 </div>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Consumers</p>
+                  <span className="text-sm font-bold text-gray-700">{selectedPages.length} page{selectedPages.length !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
           ) : (
-            /* Show Code */
+            /* ---- Show Code ---- */
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-bold text-gray-500">Example usage in <code className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">{sourceFile}</code></p>
@@ -458,8 +996,7 @@ console.log(response.data);`;
                   onClick={() => navigator.clipboard.writeText(codeSnippet)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold transition-colors"
                 >
-                  <Copy size={12} />
-                  Copy
+                  <Copy size={12} /> Copy
                 </button>
               </div>
               <pre className="overflow-auto bg-gray-900 text-green-400 p-5 rounded-2xl text-sm font-mono leading-relaxed">
@@ -474,7 +1011,8 @@ console.log(response.data);`;
           <ThemedButton variant="cancel" onClick={onClose}>Close</ThemedButton>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
