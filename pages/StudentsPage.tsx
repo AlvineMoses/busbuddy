@@ -4,8 +4,9 @@ import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
 import { ThemedDataTable, TableColumn, ActionMenuItem } from '../src/components/ThemedDataTable';
-import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, LayoutGrid, List as ListIcon, MapPin } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, LayoutGrid, List as ListIcon, MapPin, ArrowRight } from 'lucide-react';
 import { User } from '../types';
+import { MOCK_ROUTES } from '../services/mockData';
 import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
 import { PlacesAutocomplete, PlaceResult } from '../src/components/PlacesAutocomplete';
 import { PhoneInput } from '../src/components/PhoneInput';
@@ -43,11 +44,18 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  trips: false,
  transfer: false,
  add: false,
- bulkUpload: false
+ bulkUpload: false,
+ changeRoute: false
  });
 
  // Form State for Add/Edit
  const [formData, setFormData] = useState<any>({});
+ // Change Route State
+ const [changeRouteForm, setChangeRouteForm] = useState({
+ currentRoute: '',
+ newRoute: ''
+ });
+ const [mockRoutes] = useState(MOCK_ROUTES);
  // Map markers for pickup/dropoff
  const [pickupMarker, setPickupMarker] = useState<{ lat: number; lng: number } | null>(null);
  const [dropoffMarker, setDropoffMarker] = useState<{ lat: number; lng: number } | null>(null);
@@ -103,12 +111,13 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  setOpenActionId(null);
  };
 
- const closeModal = (type: 'edit' | 'trips' | 'transfer' | 'add' | 'bulkUpload') => {
+ const closeModal = (type: 'edit' | 'trips' | 'transfer' | 'add' | 'bulkUpload' | 'changeRoute') => {
  setModals(prev => ({ ...prev, [type]: false }));
  setSelectedStudent(null);
  setFormData({});
  setPickupMarker(null);
  setDropoffMarker(null);
+ setChangeRouteForm({ currentRoute: '', newRoute: '' });
  };
 
  const handleSaveEdit = () => {
@@ -138,7 +147,39 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  status: 'WAITING'
  };
  setStudents([...students, newStudent]);
- closeModal('add');
+ cl
+
+ const openChangeRouteModal = (student: any) => {
+   setSelectedStudent(student);
+   // Note: In real implementation, get student's assignedRoutes from Student interface
+   // For now, set a default current route
+   setChangeRouteForm({
+     currentRoute: '',
+     newRoute: ''
+   });
+   setModals(prev => ({ ...prev, changeRoute: true }));
+   setOpenActionId(null);
+ };
+
+ const handleChangeRoute = () => {
+   if (!changeRouteForm.newRoute) {
+     alert('Please select a new route');
+     return;
+   }
+
+   // In real implementation with Student interface having assignedRoutes:
+   // 1. Remove student from old route's stops
+   // 2. Add student to new route's stops
+   // 3. Update student.assignedRoutes array
+   
+   console.log('Changing route for student:', selectedStudent?.id, {
+     from: changeRouteForm.currentRoute,
+     to: changeRouteForm.newRoute
+   });
+
+   alert(`Route changed successfully for ${selectedStudent?.name}!`);
+   closeModal('changeRoute');
+ };oseModal('add');
  };
 
  return (
@@ -420,6 +461,11 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
        onClick: (student) => openModal('trips', student),
      },
      {
+       label: 'Change Route',
+       icon: <ArrowRight size={14} />,
+       onClick: (student) => openChangeRouteModal(student),
+     },
+     {
        label: 'Transfer',
        icon: <RefreshCw size={14} />,
        onClick: (student) => openModal('transfer', student),
@@ -626,6 +672,80 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
        <option value="">Keep Current Grade ({selectedStudent?.grade})</option>
        {grades.map(g => <option key={g} value={g}>{g}</option>)}
      </ThemedSelect>
+   </div>
+ </ThemedModal>
+
+ {/* Change Route Modal */}
+ <ThemedModal
+   isOpen={modals.changeRoute && !!selectedStudent}
+   onClose={() => closeModal('changeRoute')}
+   title="Change Student Route"
+   size="lg"
+   onConfirm={handleChangeRoute}
+   confirmLabel="Confirm Route Change"
+ >
+   <div className="space-y-6">
+     {/* Student Info */}
+     <div className="p-4 bg-gray-50 rounded-xl">
+       <p className="text-sm font-bold text-brand-black mb-1">
+         {selectedStudent?.name}
+       </p>
+       <p className="text-xs text-gray-400">
+         {selectedStudent?.school} · {selectedStudent?.grade}
+       </p>
+     </div>
+
+     {/* Current Route */}
+     <div>
+       <ThemedSelect
+         label="Current Route"
+         value={changeRouteForm.currentRoute}
+         onChange={(e) => setChangeRouteForm({ ...changeRouteForm, currentRoute: e.target.value })}
+       >
+         <option value="">Select current route...</option>
+         {mockRoutes
+           .filter(route => route.schoolId === 'S1') // Filter by student's school
+           .map(route => (
+             <option key={route.id} value={route.id}>
+               {route.name} ({route.type})
+             </option>
+           ))}
+       </ThemedSelect>
+       {changeRouteForm.currentRoute && (
+         <p className="mt-2 text-xs text-gray-500">
+           Current route will be unassigned
+         </p>
+       )}
+     </div>
+
+     {/* New Route */}
+     <div>
+       <ThemedSelect
+         label="New Route"
+         value={changeRouteForm.newRoute}
+         onChange={(e) => setChangeRouteForm({ ...changeRouteForm, newRoute: e.target.value })}
+       >
+         <option value="">Select new route...</option>
+         {mockRoutes
+           .filter(route => 
+             route.schoolId === 'S1' && // Filter by student's school
+             route.id !== changeRouteForm.currentRoute // Exclude current route
+           )
+           .map(route => (
+             <option key={route.id} value={route.id}>
+               {route.name} ({route.type}) - {route.status}
+             </option>
+           ))}
+       </ThemedSelect>
+       {changeRouteForm.newRoute && (
+         <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+           <p className="text-xs font-bold text-blue-900 mb-1">Route Change Summary</p>
+           <p className="text-xs text-blue-700">
+             Student will be assigned to the selected route. Their pickup/dropoff locations will be added as stops on the new route.
+           </p>
+         </div>
+       )}
+     </div>
    </div>
  </ThemedModal>
 

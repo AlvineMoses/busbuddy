@@ -4,7 +4,7 @@ import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect, ThemedTimeInput } from '../src/components/ThemedFormField';
-import { TransportRoute, RouteHealth, School, Trip, Student, Location } from '../types';
+import { TransportRoute, RouteHealth, School, Trip, Student, Location, Driver, Shift } from '../types';
 import { 
  Search, 
  Plus, 
@@ -32,6 +32,7 @@ import {
 import { ThemedDataTable } from '../src/components/ThemedDataTable';
 import { TripsPage } from './TripsPage';
 import { APIProvider, Map as GoogleMap, Marker } from '@vis.gl/react-google-maps';
+import { MOCK_DRIVERS } from '../services/mockData';
 
 interface RoutesPageProps {
  routes: TransportRoute[];
@@ -69,6 +70,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
  const [isAddStopModalOpen, setIsAddStopModalOpen] = useState(false);
+ const [isAddDriverModalOpen, setIsAddDriverModalOpen] = useState(false);
  
  const [newRoute, setNewRoute] = useState<Partial<TransportRoute>>({ type: 'PICKUP', health: RouteHealth.NORMAL, status: 'ACTIVE' });
  const [routeTime, setRouteTime] = useState('07:00');
@@ -156,6 +158,18 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  ]);
  const [studentSearchTerm, setStudentSearchTerm] = useState('');
  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+
+ // Driver assignment state
+ const [mockDrivers] = useState<Driver[]>(MOCK_DRIVERS as Driver[]);
+ const [driverForm, setDriverForm] = useState({
+   driverId: '',
+   vehicle: '',
+   phone: '',
+   shiftDate: new Date().toISOString().split('T')[0],
+   shiftTime: '07:00',
+   recurring: false,
+   recurringDates: [] as string[]
+ });
 
  // Initialize day times when operating days or time changes
  useEffect(() => {
@@ -298,6 +312,55 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
      }
      return s;
    }));
+ };
+
+ // Handle driver assignment to route
+ const handleAddDriver = () => {
+   if (!driverForm.driverId) {
+     alert('Please select a driver');
+     return;
+   }
+   
+   // Check for duplicate: same school + driver + route + date/time
+   const selectedRoute = filteredRoutes.find(r => r.id === selectedStopRouteId);
+   // In a real implementation, check against existing shifts/assignments
+   // For now, just show success and close modal
+   
+   console.log('Creating shift assignment:', {
+     routeId: selectedStopRouteId,
+     schoolId: selectedRoute?.schoolId,
+     driverId: driverForm.driverId,
+     vehicle: driverForm.vehicle,
+     phone: driverForm.phone,
+     shiftDate: driverForm.shiftDate,
+     shiftTime: driverForm.shiftTime,
+     recurring: driverForm.recurring,
+     recurringDates: driverForm.recurringDates
+   });
+   
+   alert('Driver assigned to route successfully!');
+   setIsAddDriverModalOpen(false);
+   setDriverForm({
+     driverId: '',
+     vehicle: '',
+     phone: '',
+     shiftDate: new Date().toISOString().split('T')[0],
+     shiftTime: '07:00',
+     recurring: false,
+     recurringDates: []
+   });
+ };
+
+ const handleDriverSelect = (driverId: string) => {
+   const driver = mockDrivers.find(d => d.id === driverId);
+   if (driver) {
+     setDriverForm({
+       ...driverForm,
+       driverId,
+       vehicle: driver.vehicle,
+       phone: driver.phone
+     });
+   }
  };
 
  const handleAddStop = () => {
@@ -759,7 +822,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
            </ThemedButton>
            <ThemedButton
              variant="secondary"
-             onClick={() => setIsAddStopModalOpen(true)}
+             onClick={() => setIsAddDriverModalOpen(true)}
              icon={User}
              className="py-4"
            >
@@ -1231,6 +1294,162 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
      onChange={(e) => setNewStop(e.target.value)}
      autoFocus
    />
+ </ThemedModal>
+
+ {/* Add Driver to Route Modal */}
+ <ThemedModal
+   isOpen={isAddDriverModalOpen}
+   onClose={() => setIsAddDriverModalOpen(false)}
+   title="Add Driver to Route"
+   size="lg"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleAddDriver}
+       icon={Check}
+     >
+       Confirm Assignment
+     </ThemedButton>
+   }
+ >
+   <div className="space-y-6">
+     {/* Institution - Read Only */}
+     <ThemedInput
+       label="Institution"
+       type="text"
+       value={schools.find(s => s.id === filteredRoutes.find(r => r.id === selectedStopRouteId)?.schoolId)?.name || ''}
+       disabled
+     />
+
+     {/* Driver Name Dropdown */}
+     <div>
+       <ThemedSelect
+         label="Driver Name"
+         value={driverForm.driverId}
+         onChange={(e) => handleDriverSelect(e.target.value)}
+       >
+         <option value="">Select a driver...</option>
+         {mockDrivers.map(driver => (
+           <option key={driver.id} value={driver.id}>
+             {driver.name} ({driver.status})
+           </option>
+         ))}
+       </ThemedSelect>
+     </div>
+
+     {/* Driver Profile Photo */}
+     {driverForm.driverId && (
+       <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+         <img 
+           src={mockDrivers.find(d => d.id === driverForm.driverId)?.avatar}
+           alt="Driver"
+           className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
+         />
+         <div>
+           <p className="font-bold text-sm text-brand-black">
+             {mockDrivers.find(d => d.id === driverForm.driverId)?.name}
+           </p>
+           <p className="text-xs text-gray-400">
+             License: {mockDrivers.find(d => d.id === driverForm.driverId)?.license}
+           </p>
+         </div>
+       </div>
+     )}
+
+     {/* Vehicle - Editable */}
+     <ThemedInput
+       label="Vehicle"
+       type="text"
+       placeholder="e.g. Toyota Coaster (KAA 101B)"
+       value={driverForm.vehicle}
+       onChange={(e) => setDriverForm({ ...driverForm, vehicle: e.target.value })}
+     />
+
+     {/* Driver Phone - Editable */}
+     <ThemedInput
+       label="Driver Phone Number"
+       type="tel"
+       placeholder="+254 712 345 678"
+       value={driverForm.phone}
+       onChange={(e) => setDriverForm({ ...driverForm, phone: e.target.value })}
+     />
+
+     {/* Shift Date and Time */}
+     <div className="grid grid-cols-2 gap-4">
+       <ThemedInput
+         label="Shift Date"
+         type="date"
+         value={driverForm.shiftDate}
+         onChange={(e) => setDriverForm({ ...driverForm, shiftDate: e.target.value })}
+       />
+       <ThemedInput
+         label="Shift Time"
+         type="time"
+         value={driverForm.shiftTime}
+         onChange={(e) => setDriverForm({ ...driverForm, shiftTime: e.target.value })}
+       />
+     </div>
+
+     {/* Recurring Toggle */}
+     <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+       <input
+         type="checkbox"
+         id="recurring"
+         checked={driverForm.recurring}
+         onChange={(e) => setDriverForm({ ...driverForm, recurring: e.target.checked })}
+         className="w-5 h-5 rounded border-gray-300 text-brand-lilac focus:ring-brand-lilac/20"
+       />
+       <label htmlFor="recurring" className="text-sm font-bold text-brand-black cursor-pointer">
+         Recurring Assignment
+       </label>
+     </div>
+
+     {/* Multi-Date Selector (shown when recurring is enabled) */}
+     {driverForm.recurring && (
+       <div>
+         <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+           Select Recurring Dates
+         </label>
+         <div className="p-4 bg-gray-50 rounded-xl space-y-2">
+           <p className="text-xs text-gray-500 mb-3">
+             Select additional dates for this recurring assignment
+           </p>
+           <input
+             type="date"
+             multiple
+             className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-lilac/20 focus:border-brand-lilac"
+             onChange={(e) => {
+               const date = e.target.value;
+               if (date && !driverForm.recurringDates.includes(date)) {
+                 setDriverForm({
+                   ...driverForm,
+                   recurringDates: [...driverForm.recurringDates, date]
+                 });
+               }
+             }}
+           />
+           {driverForm.recurringDates.length > 0 && (
+             <div className="mt-3 space-y-2">
+               {driverForm.recurringDates.map((date, idx) => (
+                 <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                   <span className="text-sm font-medium">{new Date(date).toLocaleDateString()}</span>
+                   <button
+                     onClick={() => setDriverForm({
+                       ...driverForm,
+                       recurringDates: driverForm.recurringDates.filter((_, i) => i !== idx)
+                     })}
+                     className="text-red-500 hover:text-red-700 text-xs font-bold"
+                   >
+                     Remove
+                   </button>
+                 </div>
+               ))}
+             </div>
+           )}
+         </div>
+       </div>
+     )}
+   </div>
  </ThemedModal>
 
  </div>
