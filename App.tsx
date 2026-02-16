@@ -11,7 +11,7 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ToastContainer } from './components/ToastContainer';
 import { User, UserRole } from './types';
-import { SCHOOLS, MOCK_ROUTES, MOCK_TRIPS } from './services/mockData';
+import { SCHOOLS } from './services/mockData';
 import useAppStore from './src/store/AppStore';
 import store from './src/store';
 import { fetchSettings } from './src/store/slices/settingsSlice';
@@ -58,18 +58,7 @@ function AppContent() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  // Filter data based on selected school
-  const filteredRoutes = currentSchoolId 
-    ? MOCK_ROUTES.filter(r => r.schoolId === currentSchoolId)
-    : MOCK_ROUTES;
-
-  const filteredTrips = currentSchoolId
-     ? MOCK_TRIPS.filter(t => {
-         const route = MOCK_ROUTES.find(r => r.id === t.routeId);
-         return route?.schoolId === currentSchoolId;
-     })
-     : MOCK_TRIPS;
-
+  // SMART DATA-FLOW: All data filtering now handled by hooks in individual pages
   // Derive activePage from URL path for Layout highlighting
   const activePage = location.pathname.split('/')[1] || 'dashboard';
 

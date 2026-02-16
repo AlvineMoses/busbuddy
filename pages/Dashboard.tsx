@@ -112,7 +112,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  // Filter drivers by status for live feed
  const filteredDrivers = (drivers as Driver[]).filter((d: Driver) => {
  if (driverSubTab === 'all') return true;
- if (driverSubTab === 'online') return d.status === 'ONLINE';
+ if (driverSubTab === 'online') return d.status === 'AVAILABLE';
  if (driverSubTab === 'on-trip') return d.status === 'ON_TRIP';
  return true;
  });
@@ -200,7 +200,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{driver.vehicle}</p>
  </div>
  </div>
- <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${driver.status === 'ONLINE' ? 'bg-green-50 text-green-600 border-green-100' : driver.status === 'ON_TRIP' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
+ <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${driver.status === 'AVAILABLE' ? 'bg-green-50 text-green-600 border-green-100' : driver.status === 'ON_TRIP' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
  {driver.status.replace('_', ' ')}
  </span>
  </div>

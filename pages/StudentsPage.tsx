@@ -186,7 +186,6 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
 
    alert(`Route changed successfully for ${selectedStudent?.name}!`);
    closeModal('changeRoute');
- };oseModal('add');
  };
 
  return (
@@ -895,9 +894,16 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  {modals.bulkUpload && <BulkUploadModal
  schools={schools}
  onClose={() => closeModal('bulkUpload')}
- onImport={(importedStudents) => {
- setStudents(prev => [...prev, ...importedStudents]);
+ onImport={async (importedStudents) => {
+ try {
+ // Create each student individually using the centralized hook
+ for (const student of importedStudents) {
+ await createStudent(student);
+ }
  closeModal('bulkUpload');
+ } catch (err: any) {
+ alert('Failed to import students: ' + (err?.message || 'Unknown error'));
+ }
  }}
  />}
 
