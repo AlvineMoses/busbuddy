@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical } from 'lucide-react';
+import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical, Globe } from 'lucide-react';
+import { EndpointsSettingsTab } from './EndpointsSettingsTab';
+import useAppStore from '../src/store/AppStore';
+import { UserRole } from '../types';
 import { 
   fetchSettings, 
   updateSettings, 
@@ -49,6 +52,8 @@ interface Testimonial {
 export const SettingsPage: React.FC = () => {
   const dispatch = useDispatch<any>();
   const settings = useSelector((state: any) => state.settings);
+  const currentUser = useAppStore((state: any) => state.auth.user);
+  const isSuperAdmin = currentUser?.role === UserRole.SUPER_ADMIN;
   const [activeTab, setActiveTab] = useState('general');
 
   // Icon mapper: string name -> React component
@@ -359,6 +364,17 @@ export const SettingsPage: React.FC = () => {
         >
           System
         </button>
+        {isSuperAdmin && (
+          <button
+            onClick={() => setActiveTab('endpoints')}
+            className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
+              activeTab === 'endpoints' ? 'text-white shadow-lg' : 'text-gray-400 hover:text-brand-black'
+            }`}
+            style={activeTab === 'endpoints' ? { backgroundColor: settings.colors.primary } : undefined}
+          >
+            <span className="flex items-center gap-2"><Globe size={14} /> Endpoints</span>
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 md:p-12 min-h-[600px]">
@@ -957,6 +973,10 @@ export const SettingsPage: React.FC = () => {
               </div>
 
            </div>
+        )}
+
+        {activeTab === 'endpoints' && (
+          <EndpointsSettingsTab />
         )}
       </div>
     </div>
