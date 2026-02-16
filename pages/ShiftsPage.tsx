@@ -5,7 +5,7 @@ import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect, ThemedTextarea, ThemedTimeInput } from '../src/components/ThemedFormField';
 import { ThemedDataTable, TableColumn } from '../src/components/ThemedDataTable';
 import { Calendar, Plus, Edit2, Copy, Trash2, Search, Download } from 'lucide-react';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 
 interface ShiftsPageProps {
  currentUser?: User;
@@ -285,7 +285,7 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
    isOpen={isModalOpen}
    onClose={() => setIsModalOpen(false)}
    title={editingShift ? 'Edit Shift' : 'Create New Shift'}
-   size="lg"
+   size="2xl"
    className="max-h-[90vh] overflow-y-auto"
    footer={
      <div className="flex items-center gap-3 w-full">
@@ -299,15 +299,15 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
    }
  >
    <div className="space-y-4">
-     <ThemedInput
-       label="Shift Name"
-       type="text"
-       value={shiftForm.shiftName || ''}
-       onChange={e => setShiftForm({...shiftForm, shiftName: e.target.value})}
-       placeholder="e.g. Morning Pickup"
-     />
-
-     <div className="grid grid-cols-2 gap-4">
+     {/* Row 1: Shift Name, Shift Code, Scheduled Time */}
+     <div className="grid grid-cols-3 gap-4">
+       <ThemedInput
+         label="Shift Name"
+         type="text"
+         value={shiftForm.shiftName || ''}
+         onChange={e => setShiftForm({...shiftForm, shiftName: e.target.value})}
+         placeholder="e.g. Morning Pickup"
+       />
        <ThemedInput
          label="Shift Code"
          type="text"
@@ -322,59 +322,107 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
        />
      </div>
 
-     <ThemedInput
-       label="School"
-       type="text"
-       value={shiftForm.school || ''}
-       onChange={e => setShiftForm({...shiftForm, school: e.target.value})}
-       placeholder="e.g. Greenwood Academy"
-     />
+     {/* Row 2: School, Driver, Assigned Route */}
+     <div className="grid grid-cols-3 gap-4">
+       <ThemedInput
+         label="School"
+         type="text"
+         value={shiftForm.school || ''}
+         onChange={e => setShiftForm({...shiftForm, school: e.target.value})}
+         placeholder="e.g. Greenwood Academy"
+       />
+       <ThemedInput
+         label="Driver"
+         type="text"
+         value={shiftForm.drivers?.[0] || ''}
+         onChange={e => setShiftForm({...shiftForm, drivers: [e.target.value]})}
+         placeholder="Assign a driver"
+       />
+       <ThemedInput
+         label="Assigned Route"
+         type="text"
+         value={shiftForm.assignedRoute || ''}
+         onChange={e => setShiftForm({...shiftForm, assignedRoute: e.target.value})}
+         placeholder="e.g. Route A - Westlands"
+       />
+     </div>
 
-     <ThemedInput
-       label="Assigned Route"
-       type="text"
-       value={shiftForm.assignedRoute || ''}
-       onChange={e => setShiftForm({...shiftForm, assignedRoute: e.target.value})}
-       placeholder="e.g. Route A - Westlands"
-     />
+     {/* Row 3: Days (Multi-select) + Status (Toggle) */}
+     <div className="grid grid-cols-2 gap-4">
+       <div>
+         <label className="block text-sm font-bold text-gray-600 mb-1">Days</label>
+         <div className="flex flex-wrap gap-2 mt-2">
+           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+             <button
+               key={day}
+               type="button"
+               onClick={() => toggleDay(day)}
+               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                 (shiftForm.days || []).includes(day)
+                   ? 'text-white'
+                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+               }`}
+             >
+               {day}
+             </button>
+           ))}
+         </div>
+       </div>
 
-     <div>
-       <label className="block text-sm font-bold text-gray-600 mb-1">Days</label>
-       <div className="flex flex-wrap gap-2 mt-2">
-         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-           <button
-             key={day}
-             type="button"
-             onClick={() => toggleDay(day)}
-             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-               (shiftForm.days || []).includes(day)
-                 ? 'text-white'
-                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-             }`}
+       <div>
+         <label className="block text-sm font-bold text-gray-600 mb-1">Status</label>
+         {currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.ADMIN ? (
+           <div className="flex items-center gap-3 mt-2">
+             <button
+               type="button"
+               onClick={() => setShiftForm({...shiftForm, status: 'ACTIVE'})}
+               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                 shiftForm.status === 'ACTIVE'
+                   ? 'bg-green-500 text-white'
+                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+               }`}
+             >
+               Active
+             </button>
+             <button
+               type="button"
+               onClick={() => setShiftForm({...shiftForm, status: 'INACTIVE'})}
+               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                 shiftForm.status === 'INACTIVE'
+                   ? 'bg-red-500 text-white'
+                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+               }`}
+             >
+               Suspended
+             </button>
+           </div>
+         ) : (
+           <div
+             onClick={() => {
+               if (shiftForm.status === 'INACTIVE') {
+                 alert('Please contact your admin to unsuspend this shift.');
+               }
+             }}
+             className="mt-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg cursor-default"
            >
-             {day}
-           </button>
-         ))}
+             <span className={`text-sm font-bold ${shiftForm.status === 'ACTIVE' ? 'text-green-600' : 'text-red-600'}`}>
+               {shiftForm.status === 'ACTIVE' ? 'Active' : 'Suspended'}
+             </span>
+           </div>
+         )}
        </div>
      </div>
 
-     <ThemedSelect
-       label="Status"
-       value={shiftForm.status || 'ACTIVE'}
-       onChange={e => setShiftForm({...shiftForm, status: e.target.value as Shift['status']})}
-     >
-       <option value="ACTIVE">Active</option>
-       <option value="INACTIVE">Inactive</option>
-       <option value="PENDING">Pending</option>
-     </ThemedSelect>
-
-     <ThemedTextarea
-       label="Notes"
-       value={shiftForm.notes || ''}
-       onChange={e => setShiftForm({...shiftForm, notes: e.target.value})}
-       rows={3}
-       placeholder="Optional notes..."
-     />
+     {/* Row 4: Notes (Conditional - shown when INACTIVE or for SUPER_ADMIN/ADMIN) */}
+     {((currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.ADMIN) || shiftForm.status === 'INACTIVE') && (
+       <ThemedTextarea
+         label="Notes"
+         value={shiftForm.notes || ''}
+         onChange={e => setShiftForm({...shiftForm, notes: e.target.value})}
+         rows={3}
+         placeholder="Optional notes..."
+       />
+     )}
    </div>
  </ThemedModal>
  </div>

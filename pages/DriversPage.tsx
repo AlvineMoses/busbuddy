@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
-import { ThemedInput } from '../src/components/ThemedFormField';
+import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
 import { ThemedDataTable, TableColumn, ActionMenuItem } from '../src/components/ThemedDataTable';
-import { Search, Filter, Plus, Phone, Car, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon } from 'lucide-react';
-import { User as UserType } from '../types';
+import { Search, Filter, Plus, Phone, Car, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon, Users } from 'lucide-react';
+import { User as UserType, UserRole } from '../types';
+import { MOCK_ROUTES, SCHOOLS } from '../services/mockData';
 
 interface DriversPageProps {
  currentUser: UserType;
@@ -28,6 +29,7 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  // Modals
  const [qrModalOpen, setQrModalOpen] = useState(false);
  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+ const [addDriverAssignmentModalOpen, setAddDriverAssignmentModalOpen] = useState(false);
  
  // Selection
  const [selectedDriverId, setSelectedDriverId] = useState('');
@@ -37,6 +39,16 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  const [driverForm, setDriverForm] = useState<any>({ name: '', vehicle: '', phone: '', email: '' });
  const [isEditing, setIsEditing] = useState(false);
  const [openActionId, setOpenActionId] = useState<string | null>(null);
+
+ // Driver Assignment State
+ const [driverAssignmentForm, setDriverAssignmentForm] = useState({
+   driverId: '',
+   schoolId: '',
+   routeId: '',
+   days: [] as string[],
+   time: '07:00'
+ });
+ const [mockRoutes] = useState(MOCK_ROUTES);
 
  const filteredDrivers = drivers.filter(d => 
  d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -90,6 +102,32 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  alert("Downloading QR Code Access Card for " + selectedDriver?.name);
  };
 
+ const toggleDay = (day: string) => {
+   const current = driverAssignmentForm.days || [];
+   setDriverAssignmentForm({ 
+     ...driverAssignmentForm, 
+     days: current.includes(day) ? current.filter(d => d !== day) : [...current, day] 
+   });
+ };
+
+ const handleDriverAssignment = () => {
+   if (!driverAssignmentForm.driverId || !driverAssignmentForm.routeId) {
+     alert('Please select a driver and route');
+     return;
+   }
+   
+   console.log('Creating driver assignment:', driverAssignmentForm);
+   alert('Driver assigned successfully!');
+   setAddDriverAssignmentModalOpen(false);
+   setDriverAssignmentForm({
+     driverId: '',
+     schoolId: '',
+     routeId: '',
+     days: [],
+     time: '07:00'
+   });
+ };
+
  return (
  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative" onClick={() => setOpenActionId(null)}>
  
@@ -102,6 +140,9 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  </div>
  
  <div className="flex gap-3">
+ <ThemedButton variant="ghost" onClick={() => setAddDriverAssignmentModalOpen(true)} icon={Users}>
+ Add Driver
+ </ThemedButton>
  <ThemedButton variant="ghost" onClick={() => { setQrModalOpen(true); setSelectedDriverId(''); setGeneratedOtp(null); }} icon={QrCode}>
  Driver QR
  </ThemedButton>
@@ -393,6 +434,98 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
        onChange={e => setDriverForm({...driverForm, vehicle: e.target.value})}
        placeholder="e.g. BUS-101"
      />
+   </div>
+ </ThemedModal>
+
+ {/* Add Driver Assignment Modal */}
+ <ThemedModal
+   isOpen={addDriverAssignmentModalOpen}
+   onClose={() => setAddDriverAssignmentModalOpen(false)}
+   title="Add Driver Assignment"
+   size="lg"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleDriverAssignment}
+       icon={Check}
+     >
+       Assign Driver
+     </ThemedButton>
+   }
+ >
+   <div className="space-y-4">
+     <ThemedSelect
+       label="Select Driver"
+       value={driverAssignmentForm.driverId}
+       onChange={e => setDriverAssignmentForm({...driverAssignmentForm, driverId: e.target.value})}
+     >
+       <option value="">Choose a driver...</option>
+       {drivers.map(driver => (
+         <option key={driver.id} value={driver.id}>
+           {driver.name} - {driver.vehicle}
+         </option>
+       ))}
+     </ThemedSelect>
+
+     {(currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.ADMIN) && (
+       <ThemedSelect
+         label="Select School"
+         value={driverAssignmentForm.schoolId}
+         onChange={e => setDriverAssignmentForm({...driverAssignmentForm, schoolId: e.target.value})}
+       >
+         <option value="">Choose a school...</option>
+         {SCHOOLS.map(school => (
+           <option key={school.id} value={school.id}>
+             {school.name}
+           </option>
+         ))}
+       </ThemedSelect>
+     )}
+
+     <ThemedSelect
+       label="Select Route"
+       value={driverAssignmentForm.routeId}
+       onChange={e => setDriverAssignmentForm({...driverAssignmentForm, routeId: e.target.value})}
+     >
+       <option value="">Choose a route...</option>
+       {mockRoutes
+         .filter(route => !driverAssignmentForm.schoolId || route.schoolId === driverAssignmentForm.schoolId)
+         .map(route => (
+           <option key={route.id} value={route.id}>
+             {route.name} - {route.type}
+           </option>
+         ))}
+     </ThemedSelect>
+
+     <div>
+       <label className="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
+       <div className="grid grid-cols-7 gap-2">
+         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+           <button
+             key={day}
+             type="button"
+             onClick={() => toggleDay(day)}
+             className={`px-2 py-2 text-xs font-medium rounded-lg border transition-colors ${
+               (driverAssignmentForm.days || []).includes(day)
+                 ? 'bg-blue-500 text-white border-blue-500'
+                 : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
+             }`}
+           >
+             {day}
+           </button>
+         ))}
+       </div>
+     </div>
+
+     <div>
+       <label className="block text-sm font-medium text-gray-700 mb-2">Select Time</label>
+       <input
+         type="time"
+         value={driverAssignmentForm.time}
+         onChange={e => setDriverAssignmentForm({...driverAssignmentForm, time: e.target.value})}
+         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+       />
+     </div>
    </div>
  </ThemedModal>
 
