@@ -213,6 +213,32 @@ export const endpointConfigService = {
     return getStore().endpoints;
   },
 
+  /**
+   * Returns system endpoints derived from apiEndpoints.ts as EndpointDefinition objects.
+   * These are read-only and represent the built-in endpoint configuration.
+   */
+  getSystemEndpoints(): EndpointDefinition[] {
+    const derived = deriveEndpointsFromConfig();
+    return derived.map((d, idx) => ({
+      id: `sys_${idx}`,
+      environmentId: '',
+      method: inferMethod(d.key) as HttpMethod,
+      path: d.path,
+      description: `${d.group} → ${d.key}${d.isDynamic ? ' (dynamic)' : ''}`,
+      status: 'ACTIVE' as EndpointStatus,
+      parameters: '',
+      headers: '',
+      body: '',
+    }));
+  },
+
+  /**
+   * Returns all endpoints: system (from apiEndpoints.ts) + user-created (from localStorage).
+   */
+  getAllEndpoints(): EndpointDefinition[] {
+    return [...this.getSystemEndpoints(), ...this.getEndpoints()];
+  },
+
   saveEndpoint(ep: Omit<EndpointDefinition, 'id'>): EndpointDefinition {
     const store = getStore();
     const newEp: EndpointDefinition = { ...ep, id: `ep_${Date.now()}` };
@@ -292,7 +318,14 @@ export const endpointConfigService = {
 
   // --------------- IMPORT / EXPORT ---------------
   exportConfig(): string {
-    return JSON.stringify(getStore(), null, 2);
+    const store = getStore();
+    const systemEndpoints = this.getSystemEndpoints();
+    return JSON.stringify({
+      ...store,
+      systemEndpoints,
+      exportedAt: new Date().toISOString(),
+      version: '1.0',
+    }, null, 2);
   },
 
   importConfig(json: string): { success: boolean; error?: string } {

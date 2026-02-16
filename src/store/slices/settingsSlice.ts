@@ -62,6 +62,15 @@ export interface FeatureFlags {
   demoMode: boolean;
 }
 
+export interface CustomRole {
+  id: string;
+  name: string;
+  type: 'admin' | 'school_admin' | 'custom';
+  description: string;
+  permissions: Record<string, boolean>;
+  createdAt: string;
+}
+
 export interface SettingsState {
   // Data
   platformName: string;
@@ -78,6 +87,17 @@ export interface SettingsState {
   permissionGroups: PermissionGroup[];
   featureFlags: FeatureFlags;
   operatingDays: string[];
+
+  // Profile (synced to auth user on save)
+  profileName: string;
+  profileEmail: string;
+  notificationPrefs: Record<string, boolean>;
+
+  // White labelling
+  whiteLabelSchools: string[];
+
+  // Custom roles
+  customRoles: CustomRole[];
 
   // Meta
   loading: boolean;
@@ -206,6 +226,21 @@ const initialState: SettingsState = {
   },
   operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
 
+  // Profile
+  profileName: '',
+  profileEmail: '',
+  notificationPrefs: {
+    'Email Alerts for Safety Incidents': true,
+    'SMS Notifications for Delays': false,
+    'Weekly Analytics Report': false,
+  },
+
+  // White labelling
+  whiteLabelSchools: [],
+
+  // Custom roles
+  customRoles: [],
+
   // Meta
   loading: false,
   error: null,
@@ -290,6 +325,37 @@ const settingsSlice = createSlice({
 
     setOperatingDays: (state, action: PayloadAction<string[]>) => {
       state.operatingDays = action.payload;
+    },
+
+    setProfileName: (state, action: PayloadAction<string>) => {
+      state.profileName = action.payload;
+    },
+
+    setProfileEmail: (state, action: PayloadAction<string>) => {
+      state.profileEmail = action.payload;
+    },
+
+    setNotificationPref: (state, action: PayloadAction<{ key: string; value: boolean }>) => {
+      state.notificationPrefs[action.payload.key] = action.payload.value;
+    },
+
+    setWhiteLabelSchools: (state, action: PayloadAction<string[]>) => {
+      state.whiteLabelSchools = action.payload;
+    },
+
+    addCustomRole: (state, action: PayloadAction<CustomRole>) => {
+      state.customRoles.push(action.payload);
+    },
+
+    updateCustomRole: (state, action: PayloadAction<{ id: string; updates: Partial<CustomRole> }>) => {
+      const idx = state.customRoles.findIndex(r => r.id === action.payload.id);
+      if (idx !== -1) {
+        state.customRoles[idx] = { ...state.customRoles[idx], ...action.payload.updates };
+      }
+    },
+
+    deleteCustomRole: (state, action: PayloadAction<string>) => {
+      state.customRoles = state.customRoles.filter(r => r.id !== action.payload);
     },
 
     clearError: (state) => {
@@ -403,6 +469,13 @@ export const {
   togglePermission,
   setFeatureFlag,
   setOperatingDays,
+  setProfileName,
+  setProfileEmail,
+  setNotificationPref,
+  setWhiteLabelSchools,
+  addCustomRole,
+  updateCustomRole,
+  deleteCustomRole,
   clearError,
   resetLogo,
   resetHeroImage,

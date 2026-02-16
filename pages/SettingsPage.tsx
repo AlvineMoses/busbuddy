@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical, Globe } from 'lucide-react';
+import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Wallet, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical, Globe, ChevronDown, Trash2 } from 'lucide-react';
 import { EndpointsSettingsTab } from './EndpointsSettingsTab';
 import useAppStore from '../src/store/AppStore';
 import { UserRole } from '../types';
+import { SCHOOLS } from '../services/mockData';
 import { 
   fetchSettings, 
   updateSettings, 
@@ -22,8 +23,15 @@ import {
   setFeatureFlag,
   setOperatingDays,
   resetLogo,
-  resetHeroImage
+  resetHeroImage,
+  setProfileName,
+  setProfileEmail,
+  setNotificationPref,
+  setWhiteLabelSchools,
+  addCustomRole,
+  deleteCustomRole,
 } from '../src/store/slices/settingsSlice';
+import type { CustomRole } from '../src/store/slices/settingsSlice';
 import { addToast } from '../src/store/slices/uiSlice';
 import { getUploadedFileUrl, formatFileSize, getUploadedFileMetadata } from '../src/services/fileUploadService';
 
@@ -53,8 +61,28 @@ export const SettingsPage: React.FC = () => {
   const dispatch = useDispatch<any>();
   const settings = useSelector((state: any) => state.settings);
   const currentUser = useAppStore((state: any) => state.auth.user);
+  const setUser = useAppStore((state: any) => state.setUser);
   const isSuperAdmin = currentUser?.role === UserRole.SUPER_ADMIN;
   const [activeTab, setActiveTab] = useState('general');
+
+  // Create Role modal
+  const [showCreateRole, setShowCreateRole] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleType, setNewRoleType] = useState<'admin' | 'school_admin' | 'custom'>('custom');
+  const [newRoleDesc, setNewRoleDesc] = useState('');
+
+  // White label school selector
+  const [showSchoolSelector, setShowSchoolSelector] = useState(false);
+
+  // Initialize profile fields from currentUser when they're empty
+  useEffect(() => {
+    if (currentUser && !settings.profileName) {
+      dispatch(setProfileName(currentUser.name));
+    }
+    if (currentUser && !settings.profileEmail) {
+      dispatch(setProfileEmail(currentUser.email));
+    }
+  }, [currentUser, dispatch, settings.profileName, settings.profileEmail]);
 
   // Icon mapper: string name -> React component
   const getIcon = (iconName: string) => {
@@ -138,11 +166,25 @@ export const SettingsPage: React.FC = () => {
         testimonials: settings.testimonials,
         permissionGroups: settings.permissionGroups,
         featureFlags: settings.featureFlags,
-        operatingDays: settings.operatingDays
+        operatingDays: settings.operatingDays,
+        profileName: settings.profileName,
+        profileEmail: settings.profileEmail,
+        notificationPrefs: settings.notificationPrefs,
+        whiteLabelSchools: settings.whiteLabelSchools,
+        customRoles: settings.customRoles,
       };
       
       // @ts-ignore - async thunk from JS file
       await (dispatch as any)(updateSettings(dataToSave)).unwrap();
+
+      // Sync profile changes back to the Zustand auth user
+      if (currentUser && (settings.profileName !== currentUser.name || settings.profileEmail !== currentUser.email)) {
+        setUser({
+          ...currentUser,
+          name: settings.profileName || currentUser.name,
+          email: settings.profileEmail || currentUser.email,
+        });
+      }
       
       dispatch(addToast({
         message: 'Settings saved successfully!',
@@ -160,11 +202,33 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleCreateRole = () => {
-    dispatch(addToast({
-      message: 'Role Creation Wizard would open here.',
-      type: 'info',
-      duration: 3000
-    }));
+    setNewRoleName('');
+    setNewRoleType('custom');
+    setNewRoleDesc('');
+    setShowCreateRole(true);
+  };
+
+  const handleSaveNewRole = () => {
+    if (!newRoleName.trim()) {
+      dispatch(addToast({ message: 'Role name is required.', type: 'error', duration: 3000 }));
+      return;
+    }
+    const role: CustomRole = {
+      id: `role_${Date.now()}`,
+      name: newRoleName.trim(),
+      type: newRoleType,
+      description: newRoleDesc.trim(),
+      permissions: {},
+      createdAt: new Date().toISOString(),
+    };
+    dispatch(addCustomRole(role));
+    setShowCreateRole(false);
+    dispatch(addToast({ message: `Role "${role.name}" created successfully!`, type: 'success', duration: 3000 }));
+  };
+
+  const handleDeleteRole = (roleId: string, roleName: string) => {
+    dispatch(deleteCustomRole(roleId));
+    dispatch(addToast({ message: `Role "${roleName}" deleted.`, type: 'success', duration: 3000 }));
   };
 
   // Hero Image Upload
@@ -377,7 +441,7 @@ export const SettingsPage: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 md:p-12 min-h-[600px]">
+      <div className="bg-white rounded-4xl shadow-sm border border-gray-100 p-8 md:p-12 min-h-150">
         {activeTab === 'general' && (
            <div className="max-w-3xl space-y-10 animate-in fade-in duration-500">
               
@@ -388,11 +452,21 @@ export const SettingsPage: React.FC = () => {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
-                       <input type="text" defaultValue="Sarah Super" className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" />
+                       <input 
+                         type="text" 
+                         value={settings.profileName || ''} 
+                         onChange={(e) => dispatch(setProfileName(e.target.value))}
+                         className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-                       <input type="email" defaultValue="sarah@platform.com" className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" />
+                       <input 
+                         type="email" 
+                         value={settings.profileEmail || ''} 
+                         onChange={(e) => dispatch(setProfileEmail(e.target.value))}
+                         className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+                       />
                     </div>
                  </div>
               </div>
@@ -404,12 +478,17 @@ export const SettingsPage: React.FC = () => {
                     <Bell className="text-brand-orange" size={24}/> Notifications
                  </h3>
                  <div className="space-y-4">
-                    {['Email Alerts for Safety Incidents', 'SMS Notifications for Delays', 'Weekly Analytics Report'].map((item, idx) => (
-                       <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-transparent hover:border-gray-200 transition-colors">
+                    {['Email Alerts for Safety Incidents', 'SMS Notifications for Delays', 'Weekly Analytics Report'].map((item) => (
+                       <div key={item} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-transparent hover:border-gray-200 transition-colors">
                           <span className="font-bold text-brand-black text-sm">{item}</span>
                           <label className="relative inline-flex items-center cursor-pointer">
-                             <input type="checkbox" className="sr-only peer" defaultChecked={idx === 0} />
-                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-green"></div>
+                             <input 
+                               type="checkbox" 
+                               className="sr-only peer" 
+                               checked={settings.notificationPrefs?.[item] ?? false} 
+                               onChange={(e) => dispatch(setNotificationPref({ key: item, value: e.target.checked }))}
+                             />
+                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-green"></div>
                           </label>
                        </div>
                     ))}
@@ -686,7 +765,7 @@ export const SettingsPage: React.FC = () => {
                             )}
 
                             <div className="p-4 bg-gray-50 rounded-2xl text-xs text-gray-500 leading-relaxed flex items-start gap-2">
-                                <Info size={14} className="flex-shrink-0 mt-0.5" />
+                                <Info size={14} className="shrink-0 mt-0.5" />
                                 <span>Accepted formats: PNG, JPG, SVG. Max 5 MB. Recommended resolution: 1920x1080 or higher.</span>
                             </div>
 
@@ -701,7 +780,7 @@ export const SettingsPage: React.FC = () => {
                               </button>
                             )}
                         </div>
-                        <div className="aspect-video rounded-[2rem] overflow-hidden border border-gray-200 shadow-md relative group">
+                        <div className="aspect-video rounded-4xl overflow-hidden border border-gray-200 shadow-md relative group">
                             {settings.loginHeroImage ? (
                                 <img 
                                     src={getUploadedFileUrl(settings.loginHeroImage) || undefined} 
@@ -729,7 +808,7 @@ export const SettingsPage: React.FC = () => {
                     </h3>
                     
                     {settings.testimonials.map((t: any, idx: number) => (
-                        <div key={t.id} className="p-6 rounded-[2rem] bg-gray-50 border border-gray-200 space-y-4 relative">
+                        <div key={t.id} className="p-6 rounded-4xl bg-gray-50 border border-gray-200 space-y-4 relative">
                             <div className="absolute top-4 right-4 text-gray-300 font-bold text-6xl opacity-20 select-none">“</div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -814,7 +893,7 @@ export const SettingsPage: React.FC = () => {
                         <h4 className="text-lg font-bold text-brand-black uppercase tracking-wide">{group.category}</h4>
                      </div>
                      
-                     <div className="overflow-hidden rounded-[2rem] border border-gray-100 shadow-sm bg-white">
+                     <div className="overflow-hidden rounded-4xl border border-gray-100 shadow-sm bg-white">
                         <table className="w-full text-left">
                            <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
                               <tr>
@@ -858,6 +937,38 @@ export const SettingsPage: React.FC = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Custom Roles Section */}
+              {settings.customRoles && settings.customRoles.length > 0 && (
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <h4 className="text-lg font-bold text-brand-black uppercase tracking-wide">Custom Roles</h4>
+                  <div className="grid gap-3">
+                    {settings.customRoles.map((role: CustomRole) => (
+                      <div key={role.id} className="flex items-center justify-between p-5 rounded-2xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-colors">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-brand-black text-sm">{role.name}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              role.type === 'admin' ? 'bg-brand-black/10 text-brand-black' : 
+                              role.type === 'school_admin' ? 'bg-brand-lilac/10 text-brand-lilac' : 
+                              'bg-gray-200 text-gray-600'
+                            }`}>{role.type.replace('_', ' ')}</span>
+                          </div>
+                          {role.description && <p className="text-xs text-gray-400 mt-1">{role.description}</p>}
+                          <p className="text-[10px] text-gray-300 mt-1">Created {new Date(role.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteRole(role.id, role.name)}
+                          className="p-2 rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                          title="Delete role"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
            </div>
         )}
 
@@ -906,23 +1017,89 @@ export const SettingsPage: React.FC = () => {
                  <p className="text-gray-500 text-sm">Experimental features and white-label configurations.</p>
                  
                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-6 rounded-[2rem] bg-gray-50 border border-gray-100">
-                       <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
-                             <Code size={20} />
+                    {/* White Labelling */}
+                    <div className="rounded-4xl bg-gray-50 border border-gray-100 overflow-hidden">
+                       <div className="flex items-center justify-between p-6">
+                          <div className="flex items-start gap-4">
+                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
+                                <Code size={20} />
+                             </div>
+                             <div>
+                                <h4 className="font-bold text-brand-black">White Labelling</h4>
+                                <p className="text-xs text-gray-500 mt-1 max-w-sm">Remove 'SchoolTransact' branding and use custom domain/logos for tenant portals.</p>
+                             </div>
                           </div>
-                          <div>
-                             <h4 className="font-bold text-brand-black">White Labelling</h4>
-                             <p className="text-xs text-gray-500 mt-1 max-w-sm">Remove 'SchoolTransact' branding and use custom domain/logos for tenant portals.</p>
-                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.whiteLabelling ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'whiteLabelling', value: e.target.checked }))} />
+                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
+                          </label>
                        </div>
-                       <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.whiteLabelling ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'whiteLabelling', value: e.target.checked }))} />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
-                       </label>
+                       {settings.featureFlags?.whiteLabelling && (
+                         <div className="px-6 pb-6 pt-0">
+                           <div className="p-4 bg-white rounded-2xl border border-gray-200 space-y-3">
+                             <div className="flex items-center justify-between">
+                               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">White-Labelled Schools</label>
+                               <div className="relative">
+                                 <button 
+                                   onClick={() => setShowSchoolSelector(!showSchoolSelector)}
+                                   className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-brand-black hover:bg-gray-100 transition-colors"
+                                 >
+                                   Select Schools <ChevronDown size={12} />
+                                 </button>
+                                 {showSchoolSelector && (
+                                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                     {SCHOOLS.map(school => {
+                                       const isSelected = (settings.whiteLabelSchools || []).includes(school.id);
+                                       return (
+                                         <button
+                                           key={school.id}
+                                           onClick={() => {
+                                             const current = settings.whiteLabelSchools || [];
+                                             const updated = isSelected
+                                               ? current.filter((id: string) => id !== school.id)
+                                               : [...current, school.id];
+                                             dispatch(setWhiteLabelSchools(updated));
+                                           }}
+                                           className={`w-full text-left px-4 py-3 text-xs font-bold rounded-xl flex items-center justify-between transition-colors mb-0.5 ${
+                                             isSelected ? 'bg-brand-black/5 text-brand-black' : 'text-gray-500 hover:bg-gray-50'
+                                           }`}
+                                         >
+                                           {school.name}
+                                           {isSelected && <Check size={14} className="text-brand-green" />}
+                                         </button>
+                                       );
+                                     })}
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+                             {(settings.whiteLabelSchools || []).length > 0 ? (
+                               <div className="flex flex-wrap gap-2">
+                                 {(settings.whiteLabelSchools || []).map((schoolId: string) => {
+                                   const school = SCHOOLS.find(s => s.id === schoolId);
+                                   return school ? (
+                                     <span key={schoolId} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-black/5 rounded-full text-xs font-bold text-brand-black">
+                                       {school.name}
+                                       <button 
+                                         onClick={() => dispatch(setWhiteLabelSchools((settings.whiteLabelSchools || []).filter((id: string) => id !== schoolId)))}
+                                         className="hover:text-red-500 transition-colors"
+                                       >
+                                         <X size={12} />
+                                       </button>
+                                     </span>
+                                   ) : null;
+                                 })}
+                               </div>
+                             ) : (
+                               <p className="text-xs text-gray-400">No schools selected for white labelling.</p>
+                             )}
+                           </div>
+                         </div>
+                       )}
                     </div>
 
-                    <div className="flex items-center justify-between p-6 rounded-[2rem] bg-gray-50 border border-gray-100">
+                    {/* Beta Payment Gateway */}
+                    <div className="flex items-center justify-between p-6 rounded-4xl bg-gray-50 border border-gray-100">
                        <div className="flex items-start gap-4">
                           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
                              <Wallet size={20} />
@@ -934,11 +1111,12 @@ export const SettingsPage: React.FC = () => {
                        </div>
                        <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.betaPaymentGateway ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'betaPaymentGateway', value: e.target.checked }))} />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
                        </label>
                     </div>
 
-                    <div className="flex items-center justify-between p-6 rounded-[2rem] bg-amber-50 border border-amber-200">
+                    {/* Demo Mode */}
+                    <div className="flex items-center justify-between p-6 rounded-4xl bg-amber-50 border border-amber-200">
                        <div className="flex items-start gap-4">
                           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-amber-600 shadow-sm">
                              <FlaskConical size={20} />
@@ -950,11 +1128,12 @@ export const SettingsPage: React.FC = () => {
                        </div>
                        <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.demoMode ?? true} onChange={(e) => dispatch(setFeatureFlag({ flag: 'demoMode', value: e.target.checked }))} />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                        </label>
                     </div>
 
-                    <div className="flex items-center justify-between p-6 rounded-[2rem] bg-gray-50 border border-gray-100">
+                    {/* Social Sign-in */}
+                    <div className="flex items-center justify-between p-6 rounded-4xl bg-gray-50 border border-gray-100">
                        <div className="flex items-start gap-4">
                           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
                              <Users size={20} />
@@ -966,7 +1145,7 @@ export const SettingsPage: React.FC = () => {
                        </div>
                        <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" checked={settings.featureFlags?.socialSignIn ?? false} onChange={(e) => dispatch(setFeatureFlag({ flag: 'socialSignIn', value: e.target.checked }))} />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-black"></div>
                        </label>
                     </div>
                  </div>
@@ -979,6 +1158,62 @@ export const SettingsPage: React.FC = () => {
           <EndpointsSettingsTab />
         )}
       </div>
+
+      {/* Create Role Modal */}
+      {showCreateRole && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={() => setShowCreateRole(false)}>
+          <div className="bg-white rounded-4xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="font-bold text-brand-black text-lg">Create New Role</h4>
+              <button onClick={() => setShowCreateRole(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Role Name</label>
+                <input 
+                  type="text" 
+                  value={newRoleName} 
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                  placeholder="e.g. Fleet Manager"
+                  className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Role Type</label>
+                <div className="flex gap-2">
+                  {(['admin', 'school_admin', 'custom'] as const).map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setNewRoleType(type)}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                        newRoleType === type 
+                          ? 'bg-brand-black text-white border-brand-black' 
+                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {type === 'admin' ? 'Admin' : type === 'school_admin' ? 'School Admin' : 'Custom'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Description</label>
+                <textarea 
+                  rows={3} 
+                  value={newRoleDesc} 
+                  onChange={(e) => setNewRoleDesc(e.target.value)}
+                  placeholder="Brief description of this role's responsibilities"
+                  className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-medium resize-none focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+              <ThemedButton variant="cancel" onClick={() => setShowCreateRole(false)}>Cancel</ThemedButton>
+              <ThemedButton variant="primary" onClick={handleSaveNewRole}>Create Role</ThemedButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

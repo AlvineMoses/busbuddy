@@ -300,37 +300,176 @@ const ViewUsageDialog: React.FC<{
   mapping: EndpointMapping | null;
   onClose: () => void;
 }> = ({ open, mapping, onClose }) => {
+  const [viewMode, setViewMode] = useState<'code' | 'visual'>('visual');
   if (!open || !mapping) return null;
+
+  // Parse functionality → page and feature description
+  const [pageName, featureDesc] = mapping.functionality.includes('—')
+    ? mapping.functionality.split('—').map(s => s.trim())
+    : [mapping.functionality, ''];
+
+  // Infer HTTP method from the constant name for code snippet
+  const constName = mapping.sourceConstant;
+  const keyPart = constName.split('.').pop()?.toUpperCase() || '';
+  let method = 'get';
+  if (['LOGIN', 'UPLOAD', 'GENERATE', 'VERIFY', 'RESEND', 'FORGOT', 'RESET', 'FLAG', 'DUPLICATE', 'BULK_UPLOAD', 'CREATE'].some(k => keyPart.includes(k))) method = 'post';
+  else if (['UPDATE', 'STATUS', 'READ', 'READ_ALL', 'PREFERRED_OTP_CHANNEL'].some(k => keyPart.includes(k))) method = 'put';
+  else if (['DELETE', 'DISABLE'].some(k => keyPart.includes(k))) method = 'delete';
+
+  // Check if the endpoint path has a param
+  const hasParam = mapping.endpointPath.includes(':') || constName.includes('(:id)');
+  const cleanConstant = constName.replace('(:id)', '');
+
+  // Generate code snippet
+  const codeSnippet = hasParam
+    ? `import { API } from '@/config/apiEndpoints';
+import { apiClient } from '@/services/ApiClient';
+
+// ${mapping.description || featureDesc || pageName}
+const id = 'resource-id';
+const response = await apiClient.${method}(
+  ${cleanConstant}.replace(':id', id)${method === 'post' || method === 'put' ? ',\n  { /* request body */ }' : ''}
+);
+
+console.log(response.data);`
+    : `import { API } from '@/config/apiEndpoints';
+import { apiClient } from '@/services/ApiClient';
+
+// ${mapping.description || featureDesc || pageName}
+const response = await apiClient.${method}(
+  ${cleanConstant}${method === 'post' || method === 'put' ? ',\n  { /* request body */ }' : ''}
+);
+
+console.log(response.data);`;
+
+  // Page → file mapping for visual display
+  const PAGE_FILE_MAP: Record<string, string> = {
+    LoginPage: 'pages/LoginPage.tsx',
+    Layout: 'components/Layout.tsx',
+    App: 'App.tsx',
+    Dashboard: 'pages/Dashboard.tsx',
+    SchoolsPage: 'pages/SchoolsPage.tsx',
+    DriversPage: 'pages/DriversPage.tsx',
+    RoutesPage: 'pages/RoutesPage.tsx',
+    TripsPage: 'pages/TripsPage.tsx',
+    StudentsPage: 'pages/StudentsPage.tsx',
+    AssignmentsPage: 'pages/AssignmentsPage.tsx',
+    ShiftsPage: 'pages/ShiftsPage.tsx',
+    NotificationsPage: 'pages/NotificationsPage.tsx',
+    SettingsPage: 'pages/SettingsPage.tsx',
+    OperationsPage: 'pages/OperationsPage.tsx',
+    ApiClient: 'src/services/ApiClient.ts',
+  };
+
+  const sourceFile = PAGE_FILE_MAP[pageName] || 'src/services/UnifiedApiService.ts';
+
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white rounded-4xl p-8 max-w-lg w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-4xl p-8 max-w-2xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-blue-50"><Eye size={20} className="text-blue-500" /></div>
-            <h4 className="font-bold text-brand-black text-lg">Usage Details</h4>
+            <div>
+              <h4 className="font-bold text-brand-black text-lg">Usage Details</h4>
+              <code className="text-xs font-mono text-gray-500">{mapping.sourceConstant}</code>
+            </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
         </div>
 
-        <div className="space-y-4">
-          <div className="p-4 bg-gray-50 rounded-xl">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Constant</p>
-            <code className="text-sm font-mono font-bold text-brand-black">{mapping.sourceConstant}</code>
-          </div>
-          <div className="p-4 bg-gray-50 rounded-xl">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Path</p>
-            <code className="text-sm font-mono text-brand-black">{mapping.endpointPath}</code>
-          </div>
-          <div className="p-4 bg-gray-50 rounded-xl">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Used By</p>
-            <p className="text-sm font-bold text-brand-black">{mapping.functionality}</p>
-          </div>
-          <div className="p-4 bg-gray-50 rounded-xl">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Source File</p>
-            <code className="text-xs font-mono text-gray-600">src/config/apiEndpoints.ts</code>
-          </div>
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
+          <button
+            onClick={() => setViewMode('visual')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'visual' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Eye size={14} />
+            Visual
+          </button>
+          <button
+            onClick={() => setViewMode('code')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'code' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Code size={14} />
+            Show Code
+          </button>
         </div>
 
+        {/* Content */}
+        <div className="flex-1 overflow-auto">
+          {viewMode === 'visual' ? (
+            <div className="space-y-4">
+              {/* Visual Flow: Endpoint → Page → Feature */}
+              <div className="relative">
+                {/* Endpoint constant */}
+                <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">API Constant</p>
+                  <code className="text-sm font-mono font-bold text-indigo-700">{mapping.sourceConstant}</code>
+                  <p className="text-xs text-indigo-500 mt-1 font-mono">{mapping.endpointPath}</p>
+                </div>
+                {/* Connector */}
+                <div className="flex justify-center py-1.5">
+                  <div className="w-0.5 h-6 bg-gray-200 rounded-full" />
+                </div>
+                {/* Page / Component */}
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Page / Component</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-blue-700">{pageName}</span>
+                    <span className="text-[10px] font-mono text-blue-400 bg-blue-100 px-2 py-0.5 rounded-lg">{sourceFile}</span>
+                  </div>
+                </div>
+                {/* Connector */}
+                <div className="flex justify-center py-1.5">
+                  <div className="w-0.5 h-6 bg-gray-200 rounded-full" />
+                </div>
+                {/* Feature/Functionality */}
+                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                  <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest mb-1">Functionality</p>
+                  <span className="text-sm font-bold text-green-700">{featureDesc || mapping.description || 'General usage'}</span>
+                </div>
+              </div>
+
+              {/* Extra Info */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">HTTP Method</p>
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${METHOD_COLORS[method.toUpperCase() as HttpMethod] || 'bg-gray-100 text-gray-700'}`}>
+                    {method.toUpperCase()}
+                  </span>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Parameters</p>
+                  <span className="text-sm text-gray-700">{hasParam ? 'Dynamic (:id)' : 'None'}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Show Code */
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-gray-500">Example usage in <code className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">{sourceFile}</code></p>
+                <button
+                  onClick={() => navigator.clipboard.writeText(codeSnippet)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold transition-colors"
+                >
+                  <Copy size={12} />
+                  Copy
+                </button>
+              </div>
+              <pre className="overflow-auto bg-gray-900 text-green-400 p-5 rounded-2xl text-sm font-mono leading-relaxed">
+                {codeSnippet}
+              </pre>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
           <ThemedButton variant="cancel" onClick={onClose}>Close</ThemedButton>
         </div>
@@ -434,7 +573,7 @@ export const EndpointsSettingsTab: React.FC = () => {
   // ============================================
   const loadData = useCallback(() => {
     setEnvironments(endpointConfigService.getEnvironments());
-    setEndpoints(endpointConfigService.getEndpoints());
+    setEndpoints(endpointConfigService.getAllEndpoints());
     setMappings(endpointConfigService.getAutoMappings());
   }, []);
 
@@ -1023,7 +1162,7 @@ export const EndpointsSettingsTab: React.FC = () => {
           {/* Action Bar */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="text-sm text-gray-500">
-              {endpoints.length} endpoint{endpoints.length !== 1 ? 's' : ''} configured
+              {endpoints.length} endpoint{endpoints.length !== 1 ? 's' : ''} ({endpoints.filter(e => e.id.startsWith('sys_')).length} system, {endpoints.filter(e => !e.id.startsWith('sys_')).length} custom)
             </div>
             <div className="flex items-center gap-3">
               <ThemedButton variant="ghost" onClick={() => importFileRef.current?.click()} icon={FileJson}>
@@ -1053,10 +1192,12 @@ export const EndpointsSettingsTab: React.FC = () => {
                     {endpoints.map(ep => {
                       const env = environments.find(e => e.id === ep.environmentId);
                       const statusStyle = STATUS_COLORS[ep.status];
+                      const isSystem = ep.id.startsWith('sys_');
                       return (
                         <tr key={ep.id} className={`hover:bg-gray-50/50 transition-colors ${ep.status === 'DISABLED' ? 'opacity-50' : ''}`}>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2 min-w-0">
+                              {isSystem && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg shrink-0">System</span>}
                               {env && <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-lg shrink-0">{env.name}</span>}
                               <code className="text-sm font-mono font-bold text-brand-black truncate">{ep.path}</code>
                             </div>
@@ -1076,16 +1217,23 @@ export const EndpointsSettingsTab: React.FC = () => {
                             <span className="text-sm text-gray-600">{ep.description || '—'}</span>
                           </td>
                           <td className="px-6 py-4">
-                            <button
-                              onClick={() => handleToggleStatus(ep)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 ${statusStyle.bg} ${statusStyle.text} ${
-                                ep.status === 'ACTIVE' ? 'hover:ring-green-200' : 'hover:ring-gray-200'
-                              }`}
-                              title={`Click to ${ep.status === 'ACTIVE' ? 'disable' : 'enable'}`}
-                            >
-                              {ep.status === 'ACTIVE' ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
-                              {ep.status}
-                            </button>
+                            {isSystem ? (
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${statusStyle.bg} ${statusStyle.text}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
+                                {ep.status}
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleToggleStatus(ep)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 ${statusStyle.bg} ${statusStyle.text} ${
+                                  ep.status === 'ACTIVE' ? 'hover:ring-green-200' : 'hover:ring-gray-200'
+                                }`}
+                                title={`Click to ${ep.status === 'ACTIVE' ? 'disable' : 'enable'}`}
+                              >
+                                {ep.status === 'ACTIVE' ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
+                                {ep.status}
+                              </button>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-2">
@@ -1098,16 +1246,20 @@ export const EndpointsSettingsTab: React.FC = () => {
                                   {testingId === ep.id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
                                 </button>
                               </Tooltip>
-                              <Tooltip text="Edit">
-                                <button onClick={() => handleEditEndpoint(ep)} className="p-2 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
-                                  <Edit3 size={14} />
-                                </button>
-                              </Tooltip>
-                              <Tooltip text="Delete">
-                                <button onClick={() => handleDeleteEndpoint(ep.id)} className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                                  <Trash2 size={14} />
-                                </button>
-                              </Tooltip>
+                              {!isSystem && (
+                                <>
+                                  <Tooltip text="Edit">
+                                    <button onClick={() => handleEditEndpoint(ep)} className="p-2 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
+                                      <Edit3 size={14} />
+                                    </button>
+                                  </Tooltip>
+                                  <Tooltip text="Delete">
+                                    <button onClick={() => handleDeleteEndpoint(ep.id)} className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </Tooltip>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1122,7 +1274,7 @@ export const EndpointsSettingsTab: React.FC = () => {
           {endpoints.length === 0 && !showEndpointForm && (
             <div className="text-center py-16 text-gray-400">
               <Link2 size={48} className="mx-auto mb-4 opacity-30" />
-              <p className="font-bold text-lg">No endpoints configured</p>
+              <p className="font-bold text-lg">No endpoints found</p>
               <p className="text-sm mt-1">Add endpoints manually or import from a JSON / Postman collection.</p>
             </div>
           )}

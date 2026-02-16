@@ -17,7 +17,7 @@ import store from './src/store';
 import { fetchSettings } from './src/store/slices/settingsSlice';
 
 function AppContent() {
-  const { auth, ui, setSelectedSchool, setUser, logout } = useAppStore();
+  const { auth, ui, entities, setSelectedSchool, setUser, logout } = useAppStore();
   const dispatch = useDispatch();
   const currentUser = auth.user;
   const currentSchoolId = ui.selectedSchoolId;
@@ -81,7 +81,7 @@ function AppContent() {
       activePage={activePage}
       onNavigate={(page: string) => navigate(`/${page}`)}
       onLogout={handleLogout}
-      notifications={ui.notifications || []}
+      notifications={entities.notifications || []}
     >
       <ToastContainer />
       <Routes>
