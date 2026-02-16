@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
+import { ThemedModal } from '../src/components/ThemedModal';
+import { ThemedInput, ThemedSelect, ThemedTimeInput } from '../src/components/ThemedFormField';
 import { TransportRoute, RouteHealth, School, Trip } from '../types';
 import { 
  Search, 
@@ -20,12 +21,12 @@ import {
  Eye,
  PauseCircle,
  PlayCircle,
- X,
  Check,
  LayoutGrid,
  Save
 } from 'lucide-react';
 import { TripsPage } from './TripsPage';
+import { APIProvider, Map as GoogleMap, Marker } from '@vis.gl/react-google-maps';
 
 interface RoutesPageProps {
  routes: TransportRoute[];
@@ -33,6 +34,9 @@ interface RoutesPageProps {
  currentSchoolId: string | undefined;
  trips: Trip[];
 }
+
+const GOOGLE_MAPS_API_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
+const DEFAULT_CENTER = { lat: -1.286389, lng: 36.817223 }; // Default to Nairobi
 
 export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, schools, currentSchoolId, trips }) => {
  const [routes, setRoutes] = useState<TransportRoute[]>(initialRoutes);
@@ -52,7 +56,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
 
  const [activeTab, setActiveTab] = useState<'routes' | 'stops' | 'trips'>('routes');
  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
- const [stopViewMode, setStopViewMode] = useState<'list' | 'map'>('list');
+ const [stopViewMode, setStopViewMode] = useState<'list' | 'map'>('map');
  const [searchTerm, setSearchTerm] = useState('');
  const [openActionId, setOpenActionId] = useState<string | null>(null);
 
@@ -166,6 +170,16 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  setIsAddStopModalOpen(false);
  }
  };
+
+ // Mock stop positions for the map (in production, these would come from real data)
+ const getMockStopPositions = () => [
+   { lat: -1.286389, lng: 36.817223, name: 'Stop Location A', address: '123 Example Street, District 1', time: '07:01 AM' },
+   { lat: -1.288500, lng: 36.819000, name: 'Stop Location B', address: '123 Example Street, District 2', time: '07:02 AM' },
+   { lat: -1.290000, lng: 36.821000, name: 'Stop Location C', address: '123 Example Street, District 3', time: '07:03 AM' },
+   { lat: -1.291500, lng: 36.823000, name: 'Stop Location D', address: '123 Example Street, District 4', time: '07:04 AM' },
+   { lat: -1.293000, lng: 36.825000, name: 'Stop Location E', address: '123 Example Street, District 5', time: '07:05 AM' },
+   { lat: -1.294500, lng: 36.827000, name: 'Stop Location F', address: '123 Example Street, District 6', time: '07:06 AM' },
+ ];
 
  return (
  <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700" onClick={() => setOpenActionId(null)}>
@@ -545,15 +559,38 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  ))}
  </div>
  ) : (
- <div className="w-full h-full bg-gray-50 rounded-[2rem] flex items-center justify-center relative overflow-hidden">
- <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
- <div className="flex flex-col items-center gap-3 text-gray-400 z-10">
- <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-2">
- <RouteIcon size={32} className="text-gray-300"/>
- </div>
- <p className="font-bold text-sm">Visual Map View</p>
- <p className="text-xs">Interactive stop plotting enabled</p>
- </div>
+ <div className="w-full h-full rounded-[2rem] overflow-hidden">
+   {!GOOGLE_MAPS_API_KEY ? (
+     <div className="w-full h-full bg-gray-50 rounded-[2rem] flex items-center justify-center relative overflow-hidden">
+       <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+       <div className="flex flex-col items-center gap-3 text-gray-400 z-10">
+         <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-2">
+           <RouteIcon size={32} className="text-gray-300"/>
+         </div>
+         <p className="font-bold text-sm">Map Unavailable</p>
+         <p className="text-xs">Google Maps API key not configured</p>
+       </div>
+     </div>
+   ) : (
+     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+       <GoogleMap
+         defaultCenter={DEFAULT_CENTER}
+         defaultZoom={13}
+         mapId="busbudd-stops-map"
+         disableDefaultUI={true}
+         gestureHandling="greedy"
+         style={{ width: '100%', height: '100%', borderRadius: '2rem' }}
+       >
+         {getMockStopPositions().map((stop, index) => (
+           <Marker
+             key={index}
+             position={{ lat: stop.lat, lng: stop.lng }}
+             title={`${index + 1}. ${stop.name}`}
+           />
+         ))}
+       </GoogleMap>
+     </APIProvider>
+   )}
  </div>
  )}
  </div>
@@ -562,217 +599,175 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  )}
 
  {/* Create Route Modal */}
- {isCreateModalOpen && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsCreateModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-3xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Create New Route</h3>
- <button onClick={() => setIsCreateModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
- {/* Left Column */}
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School</label>
- <select 
- value={newRoute.schoolId || ''}
- onChange={(e) => setNewRoute({...newRoute, schoolId: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-medium"
+ <ThemedModal
+   isOpen={isCreateModalOpen}
+   onClose={() => setIsCreateModalOpen(false)}
+   title="Create New Route"
+   size="xl"
+   className="max-h-[90vh] overflow-y-auto"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleCreateRoute}
+       icon={Check}
+     >
+       Create Route
+     </ThemedButton>
+   }
  >
- <option value="" disabled>Select School</option>
- {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
- </select>
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Route Name</label>
- <input 
- type="text" 
- placeholder="e.g. Route A - North" 
- value={newRoute.name || ''}
- onChange={(e) => setNewRoute({...newRoute, name: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-bold" 
- />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Type</label>
- <select 
- value={newRoute.type}
- onChange={(e) => setNewRoute({...newRoute, type: e.target.value as any})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-medium"
- >
- <option value="PICKUP">Pickup</option>
- <option value="DROPOFF">Dropoff</option>
- </select>
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Default Time</label>
- <input 
- type="time" 
- value={routeTime}
- onChange={(e) => setRouteTime(e.target.value)}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-bold" 
- />
- </div>
+   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+     {/* Left Column */}
+     <div className="space-y-4">
+       <ThemedSelect
+         label="School"
+         value={newRoute.schoolId || ''}
+         onChange={(e) => setNewRoute({...newRoute, schoolId: e.target.value})}
+       >
+         <option value="" disabled>Select School</option>
+         {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+       </ThemedSelect>
 
- {/* Days of the Week Schedule */}
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 block">Schedule by Day</label>
- <div className="space-y-2">
- {operatingDays.map(day => (
- <div key={day} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
- <span className="text-xs font-bold text-brand-black w-24 truncate">{day}</span>
- <input 
- type="time"
- value={dayTimes[day] || routeTime}
- onChange={(e) => setDayTimes({...dayTimes, [day]: e.target.value})}
- className="flex-1 p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-brand-black"
- />
- </div>
- ))}
- </div>
- </div>
- </div>
+       <ThemedInput
+         label="Route Name"
+         type="text"
+         placeholder="e.g. Route A - North"
+         value={newRoute.name || ''}
+         onChange={(e) => setNewRoute({...newRoute, name: e.target.value})}
+       />
 
- {/* Right Column */}
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vehicle Plate</label>
- <input 
- type="text" 
- placeholder="e.g. BUS-101" 
- value={newRoute.vehiclePlate || ''}
- onChange={(e) => setNewRoute({...newRoute, vehiclePlate: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-medium" 
- />
- </div>
+       <ThemedSelect
+         label="Type"
+         value={newRoute.type}
+         onChange={(e) => setNewRoute({...newRoute, type: e.target.value as any})}
+       >
+         <option value="PICKUP">Pickup</option>
+         <option value="DROPOFF">Dropoff</option>
+       </ThemedSelect>
 
- {/* Route Summary Card */}
- <div className="p-6 bg-brand-black rounded-[1.5rem] text-white relative overflow-hidden mt-4">
- <div className="absolute top-0 right-0 w-32 h-32 bg-brand-lilac/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
- <div className="relative z-10">
- <h4 className="font-bold text-lg mb-1">Route Summary</h4>
- <p className="text-gray-400 text-xs font-medium mb-6">{newRoute.name || 'Untitled Route'}</p>
- <div className="grid grid-cols-2 gap-4">
- <div>
- <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Type</p>
- <p className="text-lg font-light mt-1">{newRoute.type || 'PICKUP'}</p>
- </div>
- <div>
- <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Time</p>
- <p className="text-lg font-light mt-1">{routeTime}</p>
- </div>
- <div>
- <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Days</p>
- <p className="text-lg font-light mt-1">{operatingDays.length}</p>
- </div>
- <div>
- <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Vehicle</p>
- <p className="text-lg font-light mt-1">{newRoute.vehiclePlate || '—'}</p>
- </div>
- </div>
- </div>
- </div>
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton 
- variant="primary"
- onClick={handleCreateRoute}
- icon={Check}
- >
- Create Route
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>,
- document.body
- )}
+       <ThemedTimeInput
+         label="Default Time"
+         value={routeTime}
+         onChange={(e) => setRouteTime(e.target.value)}
+       />
+
+       {/* Days of the Week Schedule */}
+       <div>
+         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 block">Schedule by Day</label>
+         <div className="space-y-2">
+           {operatingDays.map(day => (
+             <div key={day} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+               <span className="text-xs font-bold text-brand-black w-24 truncate">{day}</span>
+               <input 
+                 type="time"
+                 value={dayTimes[day] || routeTime}
+                 onChange={(e) => setDayTimes({...dayTimes, [day]: e.target.value})}
+                 className="flex-1 p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-brand-black"
+               />
+             </div>
+           ))}
+         </div>
+       </div>
+     </div>
+
+     {/* Right Column */}
+     <div className="space-y-4">
+       <ThemedInput
+         label="Vehicle Plate"
+         type="text"
+         placeholder="e.g. BUS-101"
+         value={newRoute.vehiclePlate || ''}
+         onChange={(e) => setNewRoute({...newRoute, vehiclePlate: e.target.value})}
+       />
+
+       {/* Route Summary Card */}
+       <div className="p-6 bg-brand-black rounded-[1.5rem] text-white relative overflow-hidden mt-4">
+         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-lilac/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
+         <div className="relative z-10">
+           <h4 className="font-bold text-lg mb-1">Route Summary</h4>
+           <p className="text-gray-400 text-xs font-medium mb-6">{newRoute.name || 'Untitled Route'}</p>
+           <div className="grid grid-cols-2 gap-4">
+             <div>
+               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Type</p>
+               <p className="text-lg font-light mt-1">{newRoute.type || 'PICKUP'}</p>
+             </div>
+             <div>
+               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Time</p>
+               <p className="text-lg font-light mt-1">{routeTime}</p>
+             </div>
+             <div>
+               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Days</p>
+               <p className="text-lg font-light mt-1">{operatingDays.length}</p>
+             </div>
+             <div>
+               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Vehicle</p>
+               <p className="text-lg font-light mt-1">{newRoute.vehiclePlate || '—'}</p>
+             </div>
+           </div>
+         </div>
+       </div>
+     </div>
+   </div>
+ </ThemedModal>
 
  {/* Edit Route Modal */}
- {isEditModalOpen && editingRoute && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Edit Route</h3>
- <button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Route Name</label>
- <input 
- type="text" 
- value={editingRoute.name}
- onChange={(e) => setEditingRoute({ ...editingRoute, name: e.target.value })}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-bold" 
- />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vehicle</label>
- <input 
- type="text" 
- value={editingRoute.vehiclePlate}
- onChange={(e) => setEditingRoute({ ...editingRoute, vehiclePlate: e.target.value })}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-medium" 
- />
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton 
- variant="primary"
- onClick={handleSaveEdit}
- icon={Save}
+ <ThemedModal
+   isOpen={isEditModalOpen && editingRoute !== null}
+   onClose={() => setIsEditModalOpen(false)}
+   title="Edit Route"
+   size="lg"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleSaveEdit}
+       icon={Save}
+     >
+       Save Changes
+     </ThemedButton>
+   }
  >
- Save Changes
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>,
- document.body
- )}
+   {editingRoute && (
+     <div className="space-y-4">
+       <ThemedInput
+         label="Route Name"
+         type="text"
+         value={editingRoute.name}
+         onChange={(e) => setEditingRoute({ ...editingRoute, name: e.target.value })}
+       />
+       <ThemedInput
+         label="Vehicle"
+         type="text"
+         value={editingRoute.vehiclePlate}
+         onChange={(e) => setEditingRoute({ ...editingRoute, vehiclePlate: e.target.value })}
+       />
+     </div>
+   )}
+ </ThemedModal>
 
  {/* Add Stop Modal */}
- {isAddStopModalOpen && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsAddStopModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Add New Stop</h3>
- <button onClick={() => setIsAddStopModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Stop Address / Name</label>
- <input 
- type="text" 
- placeholder="e.g. 123 Main St"
- value={newStop}
- onChange={(e) => setNewStop(e.target.value)}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black font-bold" 
- autoFocus
- />
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton 
- variant="primary"
- onClick={handleAddStop}
- icon={Plus}
+ <ThemedModal
+   isOpen={isAddStopModalOpen}
+   onClose={() => setIsAddStopModalOpen(false)}
+   title="Add New Stop"
+   size="lg"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleAddStop}
+       icon={Plus}
+     >
+       Add Stop
+     </ThemedButton>
+   }
  >
- Add Stop
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>,
- document.body
- )}
+   <ThemedInput
+     label="Stop Address / Name"
+     type="text"
+     placeholder="e.g. 123 Main St"
+     value={newStop}
+     onChange={(e) => setNewStop(e.target.value)}
+     autoFocus
+   />
+ </ThemedModal>
 
  </div>
  );

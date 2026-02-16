@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Search, Filter, Plus, Phone, Car, X, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { ThemedModal } from '../src/components/ThemedModal';
+import { ThemedInput } from '../src/components/ThemedFormField';
+import { Search, Filter, Plus, Phone, Car, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { User as UserType } from '../types';
 
 interface DriversPageProps {
@@ -311,118 +313,97 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  )}
  
  {/* Generate QR Modal */}
- {qrModalOpen && (
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md transition-opacity" onClick={() => setQrModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2.5rem] shadow-2xl p-8 w-full max-w-md animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Driver Access Code</h3>
- <button onClick={() => setQrModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><X size={18}/></button>
- </div>
- 
- <div className="mb-6">
- <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Driver</label>
- <select 
- value={selectedDriverId}
- onChange={(e) => { setSelectedDriverId(e.target.value); setGeneratedOtp(null); }}
- className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-brand-black focus:ring-2 focus:ring-brand-black/10 focus:border-brand-black outline-none transition-all appearance-none"
+ <ThemedModal
+   isOpen={qrModalOpen}
+   onClose={() => setQrModalOpen(false)}
+   title="Driver Access Code"
+   size="md"
+   showFooter={false}
  >
- <option value="" disabled>-- Choose Driver --</option>
- {drivers.map(d => (
- <option key={d.id} value={d.id}>{d.name} ({d.id})</option>
- ))}
- </select>
- </div>
+   <div className="mb-6">
+     <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Driver</label>
+     <select 
+       value={selectedDriverId}
+       onChange={(e) => { setSelectedDriverId(e.target.value); setGeneratedOtp(null); }}
+       className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-brand-black focus:ring-2 focus:ring-brand-black/10 focus:border-brand-black outline-none transition-all appearance-none"
+     >
+       <option value="" disabled>-- Choose Driver --</option>
+       {drivers.map(d => (
+         <option key={d.id} value={d.id}>{d.name} ({d.id})</option>
+       ))}
+     </select>
+   </div>
 
- {selectedDriverId && (
- <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2">
- <div className="w-full bg-gray-50 rounded-3xl p-6 border border-gray-100 flex flex-col items-center mb-6">
- <div className="w-16 h-16 rounded-full bg-white shadow-sm mb-3 overflow-hidden">
- <img src={selectedDriver?.avatar} className="w-full h-full object-cover" />
- </div>
- <h4 className="font-bold text-lg text-brand-black">{selectedDriver?.name}</h4>
- <p className="text-xs text-gray-500 mb-6">{selectedDriver?.vehicle}</p>
- 
- <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4">
- <QrCode size={140} className="text-brand-black" />
- </div>
- 
- {generatedOtp ? (
- <div className="flex flex-col items-center">
- <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">One-Time Passcode</p>
- <div className="text-3xl font-mono font-bold text-brand-black tracking-widest">{generatedOtp}</div>
- </div>
- ) : (
- <ThemedButton variant="primary" onClick={handleGenerateCode} className="text-xs">
- Generate Code
- </ThemedButton>
- )}
- </div>
+   {selectedDriverId && (
+     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2">
+       <div className="w-full bg-gray-50 rounded-3xl p-6 border border-gray-100 flex flex-col items-center mb-6">
+         <div className="w-16 h-16 rounded-full bg-white shadow-sm mb-3 overflow-hidden">
+           <img src={selectedDriver?.avatar} className="w-full h-full object-cover" />
+         </div>
+         <h4 className="font-bold text-lg text-brand-black">{selectedDriver?.name}</h4>
+         <p className="text-xs text-gray-500 mb-6">{selectedDriver?.vehicle}</p>
+         
+         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4">
+           <QrCode size={140} className="text-brand-black" />
+         </div>
+         
+         {generatedOtp ? (
+           <div className="flex flex-col items-center">
+             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">One-Time Passcode</p>
+             <div className="text-3xl font-mono font-bold text-brand-black tracking-widest">{generatedOtp}</div>
+           </div>
+         ) : (
+           <ThemedButton variant="primary" onClick={handleGenerateCode} className="text-xs">
+             Generate Code
+           </ThemedButton>
+         )}
+       </div>
 
- <ThemedButton variant="ghost" onClick={downloadQR} icon={Download} fullWidth>
- Download Access Card
- </ThemedButton>
- </div>
- )}
- </div>
- </div>
- </div>
- )}
+       <ThemedButton variant="ghost" onClick={downloadQR} icon={Download} fullWidth>
+         Download Access Card
+       </ThemedButton>
+     </div>
+   )}
+ </ThemedModal>
 
  {/* Register/Edit Driver Modal */}
- {registerModalOpen && (
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setRegisterModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">{isEditing ? 'Edit Driver' : 'Register Driver'}</h3>
- <button onClick={() => setRegisterModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Full Name</label>
- <input 
- type="text" 
- value={driverForm.name} 
- onChange={e => setDriverForm({...driverForm, name: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" 
- />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Phone</label>
- <input 
- type="text" 
- value={driverForm.phone} 
- onChange={e => setDriverForm({...driverForm, phone: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" 
- />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vehicle</label>
- <input 
- type="text" 
- value={driverForm.vehicle} 
- onChange={e => setDriverForm({...driverForm, vehicle: e.target.value})}
- placeholder="e.g. BUS-101"
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" 
- />
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton 
- variant="primary"
- onClick={handleSaveDriver}
- icon={Check}
+ <ThemedModal
+   isOpen={registerModalOpen}
+   onClose={() => setRegisterModalOpen(false)}
+   title={isEditing ? 'Edit Driver' : 'Register Driver'}
+   size="lg"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleSaveDriver}
+       icon={Check}
+     >
+       {isEditing ? 'Save Changes' : 'Register Driver'}
+     </ThemedButton>
+   }
  >
- {isEditing ? 'Save Changes' : 'Register Driver'}
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>
- )}
+   <div className="space-y-4">
+     <ThemedInput
+       label="Full Name"
+       type="text"
+       value={driverForm.name}
+       onChange={e => setDriverForm({...driverForm, name: e.target.value})}
+     />
+     <ThemedInput
+       label="Phone"
+       type="text"
+       value={driverForm.phone}
+       onChange={e => setDriverForm({...driverForm, phone: e.target.value})}
+     />
+     <ThemedInput
+       label="Vehicle"
+       type="text"
+       value={driverForm.vehicle}
+       onChange={e => setDriverForm({...driverForm, vehicle: e.target.value})}
+       placeholder="e.g. BUS-101"
+     />
+   </div>
+ </ThemedModal>
 
  </div>
  );

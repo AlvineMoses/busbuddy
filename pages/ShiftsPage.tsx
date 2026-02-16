@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
+import { ThemedModal } from '../src/components/ThemedModal';
+import { ThemedInput, ThemedSelect, ThemedTextarea, ThemedTimeInput } from '../src/components/ThemedFormField';
 import { Calendar, Plus, Edit2, Copy, Trash2, Search, Download } from 'lucide-react';
 import { User } from '../types';
 
@@ -298,70 +300,102 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  </div>
 
  {/* Add/Edit Shift Modal */}
- {isModalOpen && (
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
- <h2 className="text-2xl font-bold text-brand-black mb-6">{editingShift ? 'Edit Shift' : 'Create New Shift'}</h2>
+ <ThemedModal
+   isOpen={isModalOpen}
+   onClose={() => setIsModalOpen(false)}
+   title={editingShift ? 'Edit Shift' : 'Create New Shift'}
+   size="lg"
+   className="max-h-[90vh] overflow-y-auto"
+   footer={
+     <div className="flex items-center gap-3 w-full">
+       <ThemedButton variant="primary" onClick={handleSave} className="flex-1">
+         {editingShift ? 'Save Changes' : 'Create Shift'}
+       </ThemedButton>
+       <ThemedButton variant="cancel" onClick={() => setIsModalOpen(false)} className="flex-1">
+         Cancel
+       </ThemedButton>
+     </div>
+   }
+ >
+   <div className="space-y-4">
+     <ThemedInput
+       label="Shift Name"
+       type="text"
+       value={shiftForm.shiftName || ''}
+       onChange={e => setShiftForm({...shiftForm, shiftName: e.target.value})}
+       placeholder="e.g. Morning Pickup"
+     />
 
- <div className="space-y-4">
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">Shift Name</label>
- <input type="text" value={shiftForm.shiftName || ''} onChange={e => setShiftForm({...shiftForm, shiftName: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-/20 focus:border-" placeholder="e.g. Morning Pickup" />
- </div>
- <div className="grid grid-cols-2 gap-4">
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">Shift Code</label>
- <input type="text" value={shiftForm.shiftCode || ''} onChange={e => setShiftForm({...shiftForm, shiftCode: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-/20 focus:border-" placeholder="e.g. AM-001" />
- </div>
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">Scheduled Time</label>
- <input type="time" value={shiftForm.scheduledTime || ''} onChange={e => setShiftForm({...shiftForm, scheduledTime: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-/20 focus:border-" />
- </div>
- </div>
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">School</label>
- <input type="text" value={shiftForm.school || ''} onChange={e => setShiftForm({...shiftForm, school: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-/20 focus:border-" placeholder="e.g. Greenwood Academy" />
- </div>
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">Assigned Route</label>
- <input type="text" value={shiftForm.assignedRoute || ''} onChange={e => setShiftForm({...shiftForm, assignedRoute: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-/20 focus:border-" placeholder="e.g. Route A - Westlands" />
- </div>
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">Days</label>
- <div className="flex flex-wrap gap-2">
- {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
- <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${(shiftForm.days || []).includes(day) ? 'text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{day}</button>
- ))}
- </div>
- </div>
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">Status</label>
- <select value={shiftForm.status || 'ACTIVE'} onChange={e => setShiftForm({...shiftForm, status: e.target.value as Shift['status']})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-/20 focus:border-">
- <option value="ACTIVE">Active</option>
- <option value="INACTIVE">Inactive</option>
- <option value="PENDING">Pending</option>
- </select>
- </div>
- <div>
- <label className="block text-sm font-bold text-gray-600 mb-1">Notes</label>
- <textarea value={shiftForm.notes || ''} onChange={e => setShiftForm({...shiftForm, notes: e.target.value})} rows={3} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-/20 focus:border-brand-black resize-none" placeholder="Optional notes..." />
- </div>
- </div>
+     <div className="grid grid-cols-2 gap-4">
+       <ThemedInput
+         label="Shift Code"
+         type="text"
+         value={shiftForm.shiftCode || ''}
+         onChange={e => setShiftForm({...shiftForm, shiftCode: e.target.value})}
+         placeholder="e.g. AM-001"
+       />
+       <ThemedTimeInput
+         label="Scheduled Time"
+         value={shiftForm.scheduledTime || ''}
+         onChange={e => setShiftForm({...shiftForm, scheduledTime: e.target.value})}
+       />
+     </div>
 
- <div className="flex items-center gap-3 mt-6">
- <ThemedButton variant="primary" onClick={handleSave} className="flex-1">
- {editingShift ? 'Save Changes' : 'Create Shift'}
- </ThemedButton>
- <ThemedButton variant="cancel" onClick={() => setIsModalOpen(false)} className="flex-1">
- Cancel
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>
- )}
+     <ThemedInput
+       label="School"
+       type="text"
+       value={shiftForm.school || ''}
+       onChange={e => setShiftForm({...shiftForm, school: e.target.value})}
+       placeholder="e.g. Greenwood Academy"
+     />
+
+     <ThemedInput
+       label="Assigned Route"
+       type="text"
+       value={shiftForm.assignedRoute || ''}
+       onChange={e => setShiftForm({...shiftForm, assignedRoute: e.target.value})}
+       placeholder="e.g. Route A - Westlands"
+     />
+
+     <div>
+       <label className="block text-sm font-bold text-gray-600 mb-1">Days</label>
+       <div className="flex flex-wrap gap-2 mt-2">
+         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+           <button
+             key={day}
+             type="button"
+             onClick={() => toggleDay(day)}
+             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+               (shiftForm.days || []).includes(day)
+                 ? 'text-white'
+                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+             }`}
+           >
+             {day}
+           </button>
+         ))}
+       </div>
+     </div>
+
+     <ThemedSelect
+       label="Status"
+       value={shiftForm.status || 'ACTIVE'}
+       onChange={e => setShiftForm({...shiftForm, status: e.target.value as Shift['status']})}
+     >
+       <option value="ACTIVE">Active</option>
+       <option value="INACTIVE">Inactive</option>
+       <option value="PENDING">Pending</option>
+     </ThemedSelect>
+
+     <ThemedTextarea
+       label="Notes"
+       value={shiftForm.notes || ''}
+       onChange={e => setShiftForm({...shiftForm, notes: e.target.value})}
+       rows={3}
+       placeholder="Optional notes..."
+     />
+   </div>
+ </ThemedModal>
  </div>
  );
 };

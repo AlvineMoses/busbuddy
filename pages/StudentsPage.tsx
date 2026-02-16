@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, X, LayoutGrid, List as ListIcon, MapPin } from 'lucide-react';
+import { ThemedModal } from '../src/components/ThemedModal';
+import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
+import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, LayoutGrid, List as ListIcon, MapPin } from 'lucide-react';
 import { User } from '../types';
 import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
 import { PlacesAutocomplete, PlaceResult } from '../src/components/PlacesAutocomplete';
@@ -441,123 +442,156 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  )}
 
  {/* Edit Modal — Two-Column Layout matching Add Student */}
- {modals.edit && selectedStudent && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('edit')} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-5xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Edit Student</h3>
- <button onClick={() => closeModal('edit')} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
- {/* Left Column */}
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School</label>
- <select value={formData.school || ''} onChange={(e) => setFormData({...formData, school: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
- {schools.map(s => <option key={s} value={s}>{s}</option>)}
- </select>
- </div>
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">First Name</label>
- <input type="text" value={(formData.name || '').split(' ')[0] || ''} onChange={(e) => { const parts = (formData.name || '').split(' '); parts[0] = e.target.value; setFormData({...formData, name: parts.join(' ')}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Name</label>
- <input type="text" value={(formData.name || '').split(' ').slice(1).join(' ') || ''} onChange={(e) => { const first = (formData.name || '').split(' ')[0] || ''; setFormData({...formData, name: `${first} ${e.target.value}`.trim()}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Grade</label>
- <select value={formData.grade || ''} onChange={(e) => setFormData({...formData, grade: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
- {grades.map(g => <option key={g} value={g}>{g}</option>)}
- </select>
- </div>
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian First Name</label>
- <input type="text" value={(formData.guardian || '').split(' ')[0] || ''} onChange={(e) => { const parts = (formData.guardian || '').split(' '); parts[0] = e.target.value; setFormData({...formData, guardian: parts.join(' ')}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Last Name</label>
- <input type="text" value={(formData.guardian || '').split(' ').slice(1).join(' ') || ''} onChange={(e) => { const first = (formData.guardian || '').split(' ')[0] || ''; setFormData({...formData, guardian: `${first} ${e.target.value}`.trim()}); }} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Phone</label>
- <div className="mt-2">
- <PhoneInput
- value={formData.guardianPhone || ''}
- onChange={(val) => setFormData({...formData, guardianPhone: val})}
- placeholder="712 345 678"
- />
- </div>
- </div>
- </div>
-
- {/* Right Column — Route & Map */}
- <div className="space-y-4">
- <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
- <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><MapPin size={14} /> Pickup & Dropoff</h4>
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup From (Home)</label>
- <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
- <PlacesAutocomplete
- value={formData.pickupAddress || ''}
- onChange={(val) => setFormData({...formData, pickupAddress: val})}
- onPlaceSelect={(place) => { setFormData({...formData, pickupAddress: place.address}); setPickupMarker({ lat: place.lat, lng: place.lng }); }}
- placeholder="Search home address..."
- />
- </APIProvider>
- </div>
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup To</label>
- <input type="text" value={formData.school || 'School'} disabled className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500" />
- </div>
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff From</label>
- <input type="text" value={formData.school || 'School'} disabled className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500" />
- </div>
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff To (Home)</label>
- <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
- <PlacesAutocomplete
- value={formData.dropoffAddress || ''}
- onChange={(val) => setFormData({...formData, dropoffAddress: val})}
- onPlaceSelect={(place) => { setFormData({...formData, dropoffAddress: place.address}); setDropoffMarker({ lat: place.lat, lng: place.lng }); }}
- placeholder="Search home address..."
- />
- </APIProvider>
- </div>
- </div>
- </div>
- {/* Large Map Preview */}
- <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
- <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
- <Map
- defaultCenter={pickupMarker || NAIROBI_CENTER}
- defaultZoom={12}
- gestureHandling="cooperative"
- disableDefaultUI={true}
- style={{ width: '100%', height: '100%' }}
+ <ThemedModal
+   isOpen={modals.edit && selectedStudent !== null}
+   onClose={() => closeModal('edit')}
+   title="Edit Student"
+   size="xl"
+   className="max-h-[90vh] overflow-y-auto"
+   footer={
+     <ThemedButton variant="primary" onClick={handleSaveEdit}>
+       Save Changes
+     </ThemedButton>
+   }
  >
- {pickupMarker && <Marker position={pickupMarker} title="Pickup" />}
- {dropoffMarker && <Marker position={dropoffMarker} title="Dropoff" />}
- </Map>
- </APIProvider>
- </div>
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton variant="primary" onClick={handleSaveEdit}>Save Changes</ThemedButton>
- </div>
- </div>
- </div>
- </div>
- , document.body)}
+   {selectedStudent && (
+     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+       {/* Left Column */}
+       <div className="space-y-4">
+         <ThemedSelect
+           label="School"
+           value={formData.school || ''}
+           onChange={(e) => setFormData({...formData, school: e.target.value})}
+         >
+           {schools.map(s => <option key={s} value={s}>{s}</option>)}
+         </ThemedSelect>
+
+         <div className="grid grid-cols-2 gap-3">
+           <ThemedInput
+             label="First Name"
+             type="text"
+             value={(formData.name || '').split(' ')[0] || ''}
+             onChange={(e) => {
+               const parts = (formData.name || '').split(' ');
+               parts[0] = e.target.value;
+               setFormData({...formData, name: parts.join(' ')});
+             }}
+           />
+           <ThemedInput
+             label="Last Name"
+             type="text"
+             value={(formData.name || '').split(' ').slice(1).join(' ') || ''}
+             onChange={(e) => {
+               const first = (formData.name || '').split(' ')[0] || '';
+               setFormData({...formData, name: `${first} ${e.target.value}`.trim()});
+             }}
+           />
+         </div>
+
+         <ThemedSelect
+           label="Grade"
+           value={formData.grade || ''}
+           onChange={(e) => setFormData({...formData, grade: e.target.value})}
+         >
+           {grades.map(g => <option key={g} value={g}>{g}</option>)}
+         </ThemedSelect>
+
+         <div className="grid grid-cols-2 gap-3">
+           <ThemedInput
+             label="Guardian First Name"
+             type="text"
+             value={(formData.guardian || '').split(' ')[0] || ''}
+             onChange={(e) => {
+               const parts = (formData.guardian || '').split(' ');
+               parts[0] = e.target.value;
+               setFormData({...formData, guardian: parts.join(' ')});
+             }}
+           />
+           <ThemedInput
+             label="Guardian Last Name"
+             type="text"
+             value={(formData.guardian || '').split(' ').slice(1).join(' ') || ''}
+             onChange={(e) => {
+               const first = (formData.guardian || '').split(' ')[0] || '';
+               setFormData({...formData, guardian: `${first} ${e.target.value}`.trim()});
+             }}
+           />
+         </div>
+
+         <div>
+           <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Phone</label>
+           <div className="mt-2">
+             <PhoneInput
+               value={formData.guardianPhone || ''}
+               onChange={(val) => setFormData({...formData, guardianPhone: val})}
+               placeholder="712 345 678"
+             />
+           </div>
+         </div>
+       </div>
+
+       {/* Right Column — Route & Map */}
+       <div className="space-y-4">
+         <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
+           <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><MapPin size={14} /> Pickup & Dropoff</h4>
+           <div className="grid grid-cols-2 gap-3">
+             <div>
+               <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup From (Home)</label>
+               <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+                 <PlacesAutocomplete
+                   value={formData.pickupAddress || ''}
+                   onChange={(val) => setFormData({...formData, pickupAddress: val})}
+                   onPlaceSelect={(place) => {
+                     setFormData({...formData, pickupAddress: place.address});
+                     setPickupMarker({ lat: place.lat, lng: place.lng });
+                   }}
+                   placeholder="Search home address..."
+                 />
+               </APIProvider>
+             </div>
+             <div>
+               <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup To</label>
+               <input type="text" value={formData.school || 'School'} disabled className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500" />
+             </div>
+             <div>
+               <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff From</label>
+               <input type="text" value={formData.school || 'School'} disabled className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500" />
+             </div>
+             <div>
+               <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff To (Home)</label>
+               <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+                 <PlacesAutocomplete
+                   value={formData.dropoffAddress || ''}
+                   onChange={(val) => setFormData({...formData, dropoffAddress: val})}
+                   onPlaceSelect={(place) => {
+                     setFormData({...formData, dropoffAddress: place.address});
+                     setDropoffMarker({ lat: place.lat, lng: place.lng });
+                   }}
+                   placeholder="Search home address..."
+                 />
+               </APIProvider>
+             </div>
+           </div>
+         </div>
+         {/* Large Map Preview */}
+         <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
+           <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+             <Map
+               defaultCenter={pickupMarker || NAIROBI_CENTER}
+               defaultZoom={12}
+               gestureHandling="cooperative"
+               disableDefaultUI={true}
+               style={{ width: '100%', height: '100%' }}
+             >
+               {pickupMarker && <Marker position={pickupMarker} title="Pickup" />}
+               {dropoffMarker && <Marker position={dropoffMarker} title="Dropoff" />}
+             </Map>
+           </APIProvider>
+         </div>
+       </div>
+     </div>
+   )}
+ </ThemedModal>
 
  {/* Transfer Modal */}
  {modals.transfer && selectedStudent && createPortal(

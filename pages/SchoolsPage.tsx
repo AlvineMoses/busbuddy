@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
-import { Plus, MoreHorizontal, Users, Bus, LayoutGrid, List as ListIcon, Edit, FileText, Archive, X, Save, Check, ArrowRight } from 'lucide-react';
+import { ThemedModal } from '../src/components/ThemedModal';
+import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
+import { Plus, MoreHorizontal, Users, Bus, LayoutGrid, List as ListIcon, Edit, FileText, Archive, Save, Check, ArrowRight } from 'lucide-react';
 import { SCHOOLS as INITIAL_SCHOOLS } from '../services/mockData';
 import { User as UserType, UserRole } from '../types';
 import { StudentsPage } from './StudentsPage';
@@ -299,143 +300,125 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  )}
 
  {/* Add School Modal */}
- {isAddModalOpen && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsAddModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Register Institution</h3>
- <button onClick={() => setIsAddModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School Name</label>
- <input 
- type="text" 
- value={newSchoolName}
- onChange={(e) => setNewSchoolName(e.target.value)}
- placeholder="e.g. Westside High School"
- className="w-full mt-2 p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-brand-black font-bold" 
- autoFocus
- />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Account Manager</label>
- <input type="text" placeholder="Assign manager..." className="w-full mt-2 p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-brand-black font-medium" />
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton 
- variant="primary"
- onClick={handleAddSchool}
- icon={Check}
+ <ThemedModal
+   isOpen={isAddModalOpen}
+   onClose={() => setIsAddModalOpen(false)}
+   title="Register Institution"
+   size="lg"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleAddSchool}
+       icon={Check}
+     >
+       Register School
+     </ThemedButton>
+   }
  >
- Register School
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>,
- document.body
- )}
+   <div className="space-y-4">
+     <ThemedInput
+       label="School Name"
+       type="text"
+       value={newSchoolName}
+       onChange={(e) => setNewSchoolName(e.target.value)}
+       placeholder="e.g. Westside High School"
+       autoFocus
+     />
+     <ThemedInput
+       label="Account Manager"
+       type="text"
+       placeholder="Assign manager..."
+     />
+   </div>
+ </ThemedModal>
 
  {/* Edit School Modal */}
- {isEditModalOpen && editingSchool && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Edit Institution</h3>
- <button onClick={() => setIsEditModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School Name</label>
- <input 
- type="text" 
- value={editingSchool.name}
- onChange={(e) => setEditingSchool({ ...editingSchool, name: e.target.value })}
- className="w-full mt-2 p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-brand-black font-bold" 
- />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Account Manager</label>
- <input type="text" defaultValue="Sarah Manager" className="w-full mt-2 p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-brand-black font-medium" />
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton 
- variant="primary"
- onClick={handleSaveEdit}
- icon={Save}
+ <ThemedModal
+   isOpen={isEditModalOpen && editingSchool !== null}
+   onClose={() => setIsEditModalOpen(false)}
+   title="Edit Institution"
+   size="lg"
+   footer={
+     <ThemedButton 
+       variant="primary"
+       onClick={handleSaveEdit}
+       icon={Save}
+     >
+       Save Changes
+     </ThemedButton>
+   }
  >
- Save Changes
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>,
- document.body
- )}
+   {editingSchool && (
+     <div className="space-y-4">
+       <ThemedInput
+         label="School Name"
+         type="text"
+         value={editingSchool.name}
+         onChange={(e) => setEditingSchool({ ...editingSchool, name: e.target.value })}
+       />
+       <ThemedInput
+         label="Account Manager"
+         type="text"
+         defaultValue="Sarah Manager"
+       />
+     </div>
+   )}
+ </ThemedModal>
 
  {/* View Details Modal */}
- {isDetailsModalOpen && selectedSchool && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => setIsDetailsModalOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2.5rem] p-10 w-full max-w-2xl shadow-2xl animate-in zoom-in-95 pointer-events-auto overflow-hidden">
- <div className="absolute top-0 right-0 p-6">
- <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors"><X size={20}/></button>
- </div>
- 
- <div className="flex flex-col items-center text-center mb-8">
- <div className="w-24 h-24 rounded-3xl bg-brand-black text-white flex items-center justify-center text-3xl font-bold mb-4 shadow-lg">
- {selectedSchool.name.substring(0, 2).toUpperCase()}
- </div>
- <h2 className="text-3xl font-bold text-brand-black">{selectedSchool.name}</h2>
- <p className="text-gray-500 font-mono mt-2">ID: {selectedSchool.id}</p>
- </div>
+ <ThemedModal
+   isOpen={isDetailsModalOpen && selectedSchool !== null}
+   onClose={() => setIsDetailsModalOpen(false)}
+   size="xl"
+   showCloseButton
+   className="p-10 overflow-hidden rounded-[2.5rem]"
+ >
+   {selectedSchool && (
+     <>
+       <div className="flex flex-col items-center text-center mb-8">
+         <div className="w-24 h-24 rounded-3xl bg-brand-black text-white flex items-center justify-center text-3xl font-bold mb-4 shadow-lg">
+           {selectedSchool.name.substring(0, 2).toUpperCase()}
+         </div>
+         <h2 className="text-3xl font-bold text-brand-black">{selectedSchool.name}</h2>
+         <p className="text-gray-500 font-mono mt-2">ID: {selectedSchool.id}</p>
+       </div>
 
- <div className="grid grid-cols-2 gap-6 mb-8">
- <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
- <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Students</p>
- <p className="text-3xl font-bold text-brand-black">1,240</p>
- </div>
- <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
- <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Active Routes</p>
- <p className="text-3xl font-bold text-brand-black">18</p>
- </div>
- </div>
+       <div className="grid grid-cols-2 gap-6 mb-8">
+         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Students</p>
+           <p className="text-3xl font-bold text-brand-black">1,240</p>
+         </div>
+         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Active Routes</p>
+           <p className="text-3xl font-bold text-brand-black">18</p>
+         </div>
+       </div>
 
- <div className="space-y-4">
- <div className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer">
- <div className="flex items-center gap-4">
- <div className="p-2 bg-brand-lilac/10 text-brand-lilac rounded-xl"><FileText size={20}/></div>
- <div>
- <p className="font-bold text-brand-black">Service Agreement</p>
- <p className="text-xs text-gray-400">Expires Dec 2024</p>
- </div>
- </div>
- <ArrowRight size={18} className="text-gray-400"/>
- </div>
- <div className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer">
- <div className="flex items-center gap-4">
- <div className="p-2 bg-brand-green/10 text-brand-green rounded-xl"><Check size={20}/></div>
- <div>
- <p className="font-bold text-brand-black">Compliance Status</p>
- <p className="text-xs text-gray-400">All checks passed</p>
- </div>
- </div>
- <ArrowRight size={18} className="text-gray-400"/>
- </div>
- </div>
- </div>
- </div>
- </div>,
- document.body
- )}
+       <div className="space-y-4">
+         <div className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer">
+           <div className="flex items-center gap-4">
+             <div className="p-2 bg-brand-lilac/10 text-brand-lilac rounded-xl"><FileText size={20}/></div>
+             <div>
+               <p className="font-bold text-brand-black">Service Agreement</p>
+               <p className="text-xs text-gray-400">Expires Dec 2024</p>
+             </div>
+           </div>
+           <ArrowRight size={18} className="text-gray-400"/>
+         </div>
+         <div className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer">
+           <div className="flex items-center gap-4">
+             <div className="p-2 bg-brand-green/10 text-brand-green rounded-xl"><Check size={20}/></div>
+             <div>
+               <p className="font-bold text-brand-black">Compliance Status</p>
+               <p className="text-xs text-gray-400">All checks passed</p>
+             </div>
+           </div>
+           <ArrowRight size={18} className="text-gray-400"/>
+         </div>
+       </div>
+     </>
+   )}
+ </ThemedModal>
 
  </div>
  );

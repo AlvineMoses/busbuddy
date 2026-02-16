@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useDispatch } from 'react-redux';
-import { ThemedButton } from '../src/components/ThemedComponents';
+import { ThemedButton, ThemedInput, ThemedLogo, ThemedLink } from '../src/components/ThemedComponents';
+import { useTheme } from '../src/hooks/useTheme';
 import { addToast } from '../src/store/slices/uiSlice';
 import { endpointConfigService, deriveEndpointsFromConfig } from '../src/services/EndpointConfigService';
 import type {
@@ -323,97 +324,73 @@ const ALL_PAGE_NAMES = Object.keys(PAGE_FILE_MAP);
 
 // ============================================
 // VISUAL WIREFRAME RENDERER
-// Renders actual UI mockups (inputs, buttons, tables, forms)
-// with the API-calling element highlighted
+// Renders actual themed UI components with 1:1 parity to real pages
+// API-calling elements are highlighted with click-to-reveal metadata
 // ============================================
 
-/** Highlighted API-call button wrapper */
-const ApiCallHighlight: React.FC<{ constant: string; children: React.ReactNode }> = ({ constant, children }) => (
-  <Tooltip text={`This element calls ${constant}`}>
-    <div className="relative group">
-      <div className="absolute -inset-1 bg-green-400/20 rounded-xl blur-sm group-hover:bg-green-400/30 transition-all" />
-      <div className="relative ring-2 ring-green-400 rounded-xl overflow-hidden">
-        {children}
-        <div className="absolute -top-0.5 -right-0.5 flex items-center gap-1 px-2 py-0.5 rounded-bl-lg rounded-tr-xl bg-green-500 text-white text-[9px] font-bold shadow-sm">
-          <Zap size={8} /> API Call
+/** Highlighted API-call element with click-to-reveal endpoint metadata */
+const ApiCallHighlight: React.FC<{
+  constant: string;
+  method: string;
+  path: string;
+  hasParam: boolean;
+  consumers: number;
+  children: React.ReactNode;
+}> = ({ constant, method, path, hasParam, consumers, children }) => {
+  const [showDetail, setShowDetail] = useState(false);
+  return (
+    <div className="relative">
+      <div
+        className="relative group cursor-pointer"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDetail(prev => !prev); }}
+      >
+        <div className="absolute -inset-1 bg-green-400/20 rounded-2xl blur-sm group-hover:bg-green-400/30 transition-all" />
+        <div className="relative ring-2 ring-green-400 rounded-2xl overflow-hidden">
+          {children}
+          <div className="absolute -top-0.5 -right-0.5 flex items-center gap-1 px-2 py-0.5 rounded-bl-lg rounded-tr-2xl bg-green-500 text-white text-[9px] font-bold shadow-sm">
+            <Zap size={8} /> API Call
+          </div>
         </div>
       </div>
-    </div>
-  </Tooltip>
-);
-
-/** A fake disabled input for wireframe display */
-const WireInput: React.FC<{ label: string; placeholder: string; type?: string }> = ({ label, placeholder, type }) => (
-  <div className="space-y-1.5">
-    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</label>
-    <div className="relative">
-      <div className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-400 font-medium select-none">
-        {type === 'password' ? '••••••••' : placeholder}
-      </div>
-      {type === 'password' && (
-        <Eye size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300" />
+      {showDetail && (
+        <div className="absolute top-full left-0 right-0 mt-2 p-4 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-brand-black">Endpoint Details</p>
+            <button onClick={(e) => { e.stopPropagation(); setShowDetail(false); }} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"><X size={12} /></button>
+          </div>
+          <div className="space-y-2.5">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">API Constant</p>
+              <code className="text-xs font-mono font-bold text-indigo-700">{constant}</code>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Method</p>
+                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${METHOD_COLORS[method.toUpperCase() as HttpMethod] || 'bg-gray-100 text-gray-700'}`}>
+                  {method.toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Parameters</p>
+                <span className="text-xs text-gray-700">{hasParam ? 'Dynamic (:id)' : 'None'}</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Consumers</p>
+                <span className="text-xs font-bold text-gray-700">{consumers} page{consumers !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Endpoint Path</p>
+              <code className="text-xs font-mono text-gray-600">{path}</code>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
-  </div>
-);
-
-/** A fake button for wireframe display */
-const WireButton: React.FC<{ label: string; variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; fullWidth?: boolean }> = ({ label, variant = 'primary', fullWidth }) => {
-  const styles = {
-    primary: 'bg-brand-black text-white',
-    secondary: 'bg-white border border-gray-200 text-gray-700',
-    danger: 'bg-red-500 text-white',
-    ghost: 'text-gray-500 hover:bg-gray-50',
-  };
-  return (
-    <div className={`px-5 py-3 rounded-xl text-sm font-bold text-center select-none ${styles[variant]} ${fullWidth ? 'w-full' : ''}`}>
-      {label}
     </div>
   );
 };
 
-/** A fake select dropdown for wireframe display */
-const WireSelect: React.FC<{ label: string; placeholder: string }> = ({ label, placeholder }) => (
-  <div className="space-y-1.5">
-    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</label>
-    <div className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-400 font-medium flex items-center justify-between select-none">
-      {placeholder}
-      <ChevronDown size={14} className="text-gray-300" />
-    </div>
-  </div>
-);
-
-/** Fake table rows for wireframe display */
-const WireTable: React.FC<{ columns: string[]; rows?: number; actionLabel?: string }> = ({ columns, rows = 3, actionLabel }) => (
-  <div className="border border-gray-200 rounded-xl overflow-hidden">
-    {/* Header */}
-    <div className="grid bg-gray-50 border-b border-gray-200" style={{ gridTemplateColumns: `repeat(${columns.length}${actionLabel ? ' + 1' : ''}, minmax(0, 1fr))` }}>
-      {columns.map(col => (
-        <div key={col} className="px-4 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{col}</div>
-      ))}
-      {actionLabel && <div className="px-4 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-right">Actions</div>}
-    </div>
-    {/* Rows */}
-    {Array.from({ length: rows }).map((_, i) => (
-      <div key={i} className="grid border-b border-gray-100 last:border-0" style={{ gridTemplateColumns: `repeat(${columns.length}${actionLabel ? ' + 1' : ''}, minmax(0, 1fr))` }}>
-        {columns.map(col => (
-          <div key={col} className="px-4 py-3">
-            <div className="h-3 bg-gray-100 rounded-full w-3/4" />
-          </div>
-        ))}
-        {actionLabel && (
-          <div className="px-4 py-2.5 flex items-center justify-end gap-1">
-            <div className="p-1.5 rounded-lg bg-gray-50"><Eye size={12} className="text-gray-400" /></div>
-            <div className="p-1.5 rounded-lg bg-gray-50"><Edit3 size={12} className="text-gray-400" /></div>
-            <div className="p-1.5 rounded-lg bg-gray-50"><Trash2 size={12} className="text-red-300" /></div>
-          </div>
-        )}
-      </div>
-    ))}
-  </div>
-);
-
-/** The auto-fetch indicator for data-loading endpoints */
+/** Auto-fetch indicator for data-loading endpoints */
 const WireAutoFetch: React.FC<{ constant: string }> = ({ constant }) => (
   <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
     <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
@@ -429,38 +406,127 @@ const WireAutoFetch: React.FC<{ constant: string }> = ({ constant }) => (
   </div>
 );
 
-/** Renders a visual wireframe mockup based on endpoint type */
-const renderVisualWireframe = (sourceConstant: string, _pageName: string, featureDesc: string, methodStr: string): React.ReactNode => {
+/** Visual wireframe using actual themed components for 1:1 page parity */
+const VisualWireframe: React.FC<{
+  sourceConstant: string;
+  pageName: string;
+  featureDesc: string;
+  methodStr: string;
+  endpointPath: string;
+  hasParam: boolean;
+  consumers: number;
+}> = ({ sourceConstant, pageName, featureDesc, methodStr, endpointPath, hasParam, consumers }) => {
+  const { colors } = useTheme();
   const key = sourceConstant.split('.').pop()?.toUpperCase() || '';
+  const meta = { constant: sourceConstant, method: methodStr, path: endpointPath, hasParam, consumers };
 
   // ---- AUTH: Login / Verify / Forgot / Reset ----
   if (key.includes('LOGIN') || key.includes('VERIFY') || key.includes('RESEND') || key.includes('FORGOT') || key.includes('RESET')) {
     const isLogin = key.includes('LOGIN');
     const isForgot = key.includes('FORGOT') || key.includes('RESET');
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-auto space-y-4">
-        <div className="text-center space-y-1">
-          <div className="w-10 h-10 rounded-xl bg-brand-black/5 flex items-center justify-center mx-auto mb-2"><Globe size={18} className="text-brand-black" /></div>
-          <p className="text-sm font-bold text-brand-black">{isForgot ? 'Reset Password' : isLogin ? 'Sign In' : 'Verify Account'}</p>
-          <p className="text-[10px] text-gray-400">{isForgot ? 'Enter your email to reset password' : isLogin ? 'Enter your credentials' : 'Enter verification code'}</p>
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md mx-auto">
+        {/* Logo + Heading — matches LoginPage.tsx renderLogin() */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-surface mb-6 shadow-sm">
+            <ThemedLogo size={32} />
+          </div>
+          <h2 className="text-3xl font-bold text-brand-black mb-2">
+            {isForgot ? 'Forgot Password?' : isLogin ? 'Login to your account' : 'Verify Account'}
+          </h2>
+          <p className="text-gray-500 text-sm">
+            {isForgot ? "Enter your email and we'll send you a recovery code." : isLogin ? 'Unlock Your Progress - Securely Access Your Dashboard!' : 'Enter the verification code sent to your email'}
+          </p>
         </div>
-        {isForgot ? (
-          <WireInput label="Email Address" placeholder="name@school.com" />
-        ) : isLogin ? (
-          <>
-            <WireInput label="Email Address" placeholder="name@school.com" />
-            <WireInput label="Password" placeholder="" type="password" />
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-xs text-gray-400"><div className="w-4 h-4 rounded border border-gray-300" /> Remember me</label>
-              <span className="text-xs text-blue-500 font-medium">Forgot password?</span>
+
+        <div className="space-y-6">
+          {isForgot ? (
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Email Address <span className="text-red-500">*</span></label>
+              <ThemedInput type="email" placeholder="name@school.com" readOnly tabIndex={-1} />
             </div>
-          </>
-        ) : (
-          <WireInput label="Verification Code" placeholder="Enter 6-digit code" />
+          ) : isLogin ? (
+            <>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Email Address <span className="text-red-500">*</span></label>
+                <ThemedInput type="email" placeholder="name@school.com" readOnly tabIndex={-1} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Password <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <ThemedInput type="password" placeholder="••••••••" readOnly tabIndex={-1} className="pr-12" />
+                  <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" tabIndex={-1}>
+                    <Eye size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-default">
+                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300" style={{ accentColor: colors.primary }} readOnly tabIndex={-1} />
+                  <span className="text-sm font-medium text-gray-500">Remember for 30 days</span>
+                </label>
+                <ThemedLink className="text-sm">Forgot password</ThemedLink>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Verification Code <span className="text-red-500">*</span></label>
+              <ThemedInput type="text" placeholder="Enter 6-digit code" readOnly tabIndex={-1} />
+            </div>
+          )}
+
+          {/* Submit button — highlighted as API call */}
+          <ApiCallHighlight {...meta}>
+            <button
+              type="button"
+              className="w-full py-4 text-white rounded-full font-bold text-sm flex items-center justify-center"
+              style={{ backgroundColor: colors.primary }}
+              tabIndex={-1}
+            >
+              {featureDesc || (isForgot ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Verify')}
+            </button>
+          </ApiCallHighlight>
+
+          {/* Google Sign-in (for login only) */}
+          {isLogin && (
+            <button type="button" className="w-full py-4 bg-white border border-gray-200 text-brand-black rounded-full font-bold text-sm flex items-center justify-center gap-3" tabIndex={-1}>
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Sign in with Google
+            </button>
+          )}
+        </div>
+
+        {/* Demo section (for login only) */}
+        {isLogin && (
+          <div className="pt-6 mt-6 border-t border-gray-100">
+            <p className="text-center text-sm font-medium text-gray-500 mb-6">
+              Don't have an account? <ThemedLink className="text-sm">Sign up</ThemedLink>
+            </p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-4">Or Quick Access (Demo)</p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { name: 'Amina', role: 'Super', color: 'bg-brand-black' },
+                { name: 'Kevin', role: 'Admin', color: 'bg-brand-green' },
+                { name: 'Principal', role: 'School', color: 'bg-brand-amber' },
+              ].map(u => (
+                <div key={u.name} className="flex flex-col items-center justify-center gap-2 p-4 rounded-3xl bg-gray-50 border border-transparent">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm ${u.color}`}>
+                    <Globe size={16} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-brand-black">{u.name}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase">{u.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
-        <ApiCallHighlight constant={sourceConstant}>
-          <WireButton label={featureDesc || (isForgot ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Verify')} fullWidth />
-        </ApiCallHighlight>
       </div>
     );
   }
@@ -469,10 +535,9 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
   if (key.includes('LOGOUT')) {
     return (
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden max-w-md mx-auto">
-        {/* Mini navbar */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-brand-black/10" />
+            <ThemedLogo size={24} />
             <div className="h-3 w-20 bg-gray-200 rounded-full" />
           </div>
           <div className="flex items-center gap-3">
@@ -480,12 +545,11 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">AO</div>
           </div>
         </div>
-        {/* Dropdown */}
         <div className="p-4">
           <div className="border border-gray-200 rounded-xl p-1 space-y-0.5 max-w-45 ml-auto">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-xs text-gray-600"><Settings2 size={12} /> Settings</div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600"><Settings2 size={12} /> Settings</div>
             <div className="border-t border-gray-100 my-1" />
-            <ApiCallHighlight constant={sourceConstant}>
+            <ApiCallHighlight {...meta}>
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-xs text-red-600 font-bold"><ExternalLink size={12} /> {featureDesc || 'Sign Out'}</div>
             </ApiCallHighlight>
           </div>
@@ -513,23 +577,68 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
     );
   }
 
-  // ---- LIST / GET ALL / BASE (collection endpoints) ----
+  // ---- LIST / GET ALL / BASE — matches DriversPage table layout ----
   if (key.includes('LIST') || key.includes('ALL') || key.includes('LIVE') || key.includes('BASE') || (key.includes('GET') && !key.includes('UPDATE'))) {
     const entity = key.replace('LIST_', '').replace('GET_', '').replace('_ALL', '').replace('ALL_', '').toLowerCase();
-    const cols = ['Name', 'Status', 'Updated', 'Details'];
+    const entityTitle = entity.charAt(0).toUpperCase() + entity.slice(1);
+    const columns = ['Name', 'Status', 'Updated', 'Details'];
     return (
       <div className="space-y-3">
         <WireAutoFetch constant={sourceConstant} />
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
-          {/* Toolbar */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 max-w-xs relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
-              <div className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-gray-400">Search {entity}s…</div>
+        <div className="bg-white border border-gray-200 rounded-[2.5rem] overflow-hidden">
+          {/* Toolbar — matches DriversPage list controls */}
+          <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div className="relative w-full md:w-96 group">
+              <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><Search size={20} /></div>
+              <input
+                type="text"
+                placeholder={`Search ${entity}s...`}
+                readOnly
+                tabIndex={-1}
+                className="w-full pl-14 pr-6 py-4 bg-white border border-gray-200 rounded-full text-sm font-bold placeholder:text-gray-400 shadow-sm"
+              />
             </div>
-            <WireButton label={`+ Add ${entity.charAt(0).toUpperCase() + entity.slice(1)}`} variant="primary" />
+            <div className="flex items-center gap-3">
+              <ThemedButton variant="ghost" tabIndex={-1}>Filter Status</ThemedButton>
+              <ThemedButton variant="primary" tabIndex={-1}>+ {entityTitle}</ThemedButton>
+            </div>
           </div>
-          <WireTable columns={cols} rows={3} actionLabel="Actions" />
+          {/* Table — matches DriversPage flat table */}
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
+              <tr>
+                {columns.map(col => (
+                  <th key={col} className="px-8 py-6">{col}</th>
+                ))}
+                <th className="px-8 py-6 text-right pr-10">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <tr key={i} className="group">
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gray-100" />
+                      <div className="space-y-1">
+                        <div className="h-3 w-24 bg-gray-200 rounded-full" />
+                        <div className="h-2 w-16 bg-gray-100 rounded-full" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-8 py-5"><div className="h-3 w-16 bg-gray-100 rounded-full" /></td>
+                  <td className="px-8 py-5"><div className="h-3 w-20 bg-gray-100 rounded-full" /></td>
+                  <td className="px-8 py-5"><div className="h-3 w-14 bg-gray-100 rounded-full" /></td>
+                  <td className="px-8 py-5 text-right pr-10">
+                    <div className="flex items-center justify-end gap-1">
+                      <div className="p-1.5 rounded-lg bg-gray-50"><Eye size={12} className="text-gray-400" /></div>
+                      <div className="p-1.5 rounded-lg bg-gray-50"><Edit3 size={12} className="text-gray-400" /></div>
+                      <div className="p-1.5 rounded-lg bg-gray-50"><Trash2 size={12} className="text-red-300" /></div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
@@ -538,28 +647,45 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
   // ---- CREATE / UPLOAD / BULK ----
   if (key.includes('CREATE') || key.includes('UPLOAD') || key.includes('BULK')) {
     const entity = key.replace('CREATE_', '').replace('UPLOAD_', '').replace('BULK_', '').toLowerCase();
+    const entityTitle = entity.charAt(0).toUpperCase() + entity.slice(1);
     const isUpload = key.includes('UPLOAD');
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-auto space-y-4">
-        <p className="text-sm font-bold text-brand-black">{isUpload ? 'Upload File' : `Create New ${entity.charAt(0).toUpperCase() + entity.slice(1)}`}</p>
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md mx-auto space-y-6">
+        <div className="text-center">
+          <h3 className="text-xl font-bold text-brand-black">{isUpload ? 'Upload File' : `Register ${entityTitle}`}</h3>
+          <p className="text-sm text-gray-500 mt-1">{isUpload ? 'Import data from file' : `Add a new ${entity} to the system`}</p>
+        </div>
         {isUpload ? (
-          <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center space-y-2">
-            <Upload size={24} className="mx-auto text-gray-300" />
-            <p className="text-xs text-gray-400">Drag & drop or click to browse</p>
-            <p className="text-[10px] text-gray-300">.csv, .xlsx accepted</p>
+          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center space-y-2">
+            <Upload size={28} className="mx-auto text-gray-300" />
+            <p className="text-sm text-gray-500 font-medium">Drag & drop or click to browse</p>
+            <p className="text-xs text-gray-400">.csv, .xlsx accepted</p>
           </div>
         ) : (
           <>
-            <WireInput label="Name" placeholder={`Enter ${entity} name`} />
-            <WireInput label="Email" placeholder={`${entity}@school.com`} />
-            <WireSelect label="Role / Type" placeholder="Select option…" />
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Name <span className="text-red-500">*</span></label>
+              <ThemedInput placeholder={`Enter ${entity} name`} readOnly tabIndex={-1} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Email</label>
+              <ThemedInput type="email" placeholder={`${entity}@school.com`} readOnly tabIndex={-1} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Role / Type</label>
+              <div className="w-full px-6 py-4 bg-white border border-gray-200 rounded-full text-gray-300 font-medium flex items-center justify-between">
+                Select option… <ChevronDown size={14} className="text-gray-300" />
+              </div>
+            </div>
           </>
         )}
-        <div className="flex items-center gap-2 pt-2">
-          <WireButton label="Cancel" variant="secondary" />
+        <div className="flex items-center gap-3 pt-2">
+          <ThemedButton variant="cancel" tabIndex={-1}>Cancel</ThemedButton>
           <div className="flex-1">
-            <ApiCallHighlight constant={sourceConstant}>
-              <WireButton label={featureDesc || (isUpload ? 'Upload' : 'Create')} fullWidth />
+            <ApiCallHighlight {...meta}>
+              <ThemedButton variant="primary" fullWidth tabIndex={-1}>
+                {featureDesc || (isUpload ? 'Upload' : `Register ${entityTitle}`)}
+              </ThemedButton>
             </ApiCallHighlight>
           </div>
         </div>
@@ -567,20 +693,34 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
     );
   }
 
-  // ---- UPDATE / STATUS / READ / BY_ID / STATS (single record detail) ----
+  // ---- UPDATE / STATUS / READ / BY_ID / STATS ----
   if (key.includes('UPDATE') || key.includes('STATUS') || key.includes('READ') || key.includes('BY_ID') || key.includes('STATS')) {
     const entity = key.replace('UPDATE_', '').replace('_STATUS', '').replace('READ_', '').toLowerCase();
+    const entityTitle = entity.charAt(0).toUpperCase() + entity.slice(1);
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm mx-auto space-y-4">
-        <p className="text-sm font-bold text-brand-black">Edit {entity.charAt(0).toUpperCase() + entity.slice(1)}</p>
-        <WireInput label="Name" placeholder="John Doe" />
-        <WireInput label="Email" placeholder="john@school.com" />
-        <WireSelect label="Status" placeholder="Active" />
-        <div className="flex items-center gap-2 pt-2">
-          <WireButton label="Cancel" variant="secondary" />
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md mx-auto space-y-6">
+        <h3 className="text-xl font-bold text-brand-black">Edit {entityTitle}</h3>
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Name</label>
+          <ThemedInput placeholder="John Doe" readOnly tabIndex={-1} />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Email</label>
+          <ThemedInput type="email" placeholder="john@school.com" readOnly tabIndex={-1} />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Status</label>
+          <div className="w-full px-6 py-4 bg-white border border-gray-200 rounded-full text-gray-300 font-medium flex items-center justify-between">
+            Active <ChevronDown size={14} className="text-gray-300" />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 pt-2">
+          <ThemedButton variant="cancel" tabIndex={-1}>Cancel</ThemedButton>
           <div className="flex-1">
-            <ApiCallHighlight constant={sourceConstant}>
-              <WireButton label={featureDesc || 'Save Changes'} fullWidth />
+            <ApiCallHighlight {...meta}>
+              <ThemedButton variant="primary" fullWidth tabIndex={-1}>
+                {featureDesc || 'Save Changes'}
+              </ThemedButton>
             </ApiCallHighlight>
           </div>
         </div>
@@ -591,19 +731,49 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
   // ---- DELETE / DISABLE ----
   if (key.includes('DELETE') || key.includes('DISABLE')) {
     return (
-      <div className="space-y-3">
-        <div className="bg-white border border-gray-200 rounded-2xl p-4">
-          <WireTable columns={['Name', 'Status', 'Created']} rows={2} actionLabel="Actions" />
+      <div className="space-y-4">
+        <div className="bg-white border border-gray-200 rounded-[2.5rem] overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
+              <tr>
+                {['Name', 'Status', 'Created'].map(col => (
+                  <th key={col} className="px-8 py-5">{col}</th>
+                ))}
+                <th className="px-8 py-5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <tr key={i}>
+                  <td className="px-8 py-4"><div className="h-3 w-24 bg-gray-200 rounded-full" /></td>
+                  <td className="px-8 py-4"><div className="h-3 w-16 bg-gray-100 rounded-full" /></td>
+                  <td className="px-8 py-4"><div className="h-3 w-20 bg-gray-100 rounded-full" /></td>
+                  <td className="px-8 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <div className="p-1.5 rounded-lg bg-gray-50"><Eye size={12} className="text-gray-400" /></div>
+                      <div className="p-1.5 rounded-lg bg-gray-50"><Trash2 size={12} className="text-red-300" /></div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         {/* Confirm dialog */}
-        <div className="bg-white border-2 border-red-200 rounded-2xl p-6 max-w-xs mx-auto text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto"><AlertTriangle size={20} className="text-red-500" /></div>
-          <p className="text-sm font-bold text-gray-800">Confirm Deletion</p>
-          <p className="text-xs text-gray-500">This action cannot be undone.</p>
-          <div className="flex items-center gap-2 justify-center pt-1">
-            <WireButton label="Cancel" variant="secondary" />
-            <ApiCallHighlight constant={sourceConstant}>
-              <WireButton label={featureDesc || 'Delete'} variant="danger" />
+        <div className="bg-white border-2 border-red-200 rounded-2xl p-8 max-w-xs mx-auto text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+            <AlertTriangle size={22} className="text-red-500" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-800">Confirm Deletion</p>
+            <p className="text-sm text-gray-500 mt-1">This action cannot be undone.</p>
+          </div>
+          <div className="flex items-center gap-3 justify-center pt-1">
+            <ThemedButton variant="cancel" tabIndex={-1}>Cancel</ThemedButton>
+            <ApiCallHighlight {...meta}>
+              <ThemedButton variant="primary" tabIndex={-1} style={{ backgroundColor: '#ef4444' }}>
+                {featureDesc || 'Delete'}
+              </ThemedButton>
             </ApiCallHighlight>
           </div>
         </div>
@@ -614,18 +784,32 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
   // ---- GENERATE / ANALYTICS / EXPORT ----
   if (key.includes('GENERATE') || key.includes('ANALYTICS') || key.includes('EXPORT')) {
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 max-w-sm mx-auto space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><Download size={16} className="text-purple-600" /></div>
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center">
+            <Download size={18} className="text-purple-600" />
+          </div>
           <div>
-            <p className="text-sm font-bold text-brand-black">{featureDesc || 'Generate Report'}</p>
-            <p className="text-[10px] text-gray-400">Export or generate analytics data</p>
+            <h3 className="text-lg font-bold text-brand-black">{featureDesc || 'Generate Report'}</h3>
+            <p className="text-sm text-gray-500">Export or generate analytics data</p>
           </div>
         </div>
-        <WireSelect label="Date Range" placeholder="Last 30 days" />
-        <WireSelect label="Format" placeholder="PDF" />
-        <ApiCallHighlight constant={sourceConstant}>
-          <WireButton label={featureDesc || 'Generate'} fullWidth />
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Date Range</label>
+          <div className="w-full px-6 py-4 bg-white border border-gray-200 rounded-full text-gray-300 font-medium flex items-center justify-between">
+            Last 30 days <ChevronDown size={14} className="text-gray-300" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-brand-black uppercase tracking-wide">Format</label>
+          <div className="w-full px-6 py-4 bg-white border border-gray-200 rounded-full text-gray-300 font-medium flex items-center justify-between">
+            PDF <ChevronDown size={14} className="text-gray-300" />
+          </div>
+        </div>
+        <ApiCallHighlight {...meta}>
+          <ThemedButton variant="primary" fullWidth tabIndex={-1}>
+            {featureDesc || 'Generate'}
+          </ThemedButton>
         </ApiCallHighlight>
       </div>
     );
@@ -633,16 +817,16 @@ const renderVisualWireframe = (sourceConstant: string, _pageName: string, featur
 
   // ---- FALLBACK: Generic handler ----
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 max-w-sm mx-auto space-y-4">
-      <p className="text-sm font-bold text-brand-black">{featureDesc || _pageName}</p>
-      <div className="p-4 bg-gray-50 rounded-xl text-center">
-        <Code size={20} className="mx-auto text-gray-300 mb-2" />
-        <p className="text-xs text-gray-400">Custom handler invokes this endpoint</p>
+    <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md mx-auto space-y-6">
+      <h3 className="text-lg font-bold text-brand-black">{featureDesc || pageName}</h3>
+      <div className="p-6 bg-gray-50 rounded-2xl text-center">
+        <Code size={24} className="mx-auto text-gray-300 mb-2" />
+        <p className="text-sm text-gray-500">Custom handler invokes this endpoint</p>
       </div>
-      <ApiCallHighlight constant={sourceConstant}>
-        <div className="flex items-center justify-center gap-2 px-5 py-3 bg-brand-black text-white rounded-xl text-sm font-bold">
+      <ApiCallHighlight {...meta}>
+        <ThemedButton variant="primary" fullWidth tabIndex={-1}>
           <Zap size={14} /> {methodStr.toUpperCase()} → {sourceConstant.split('.').pop()}
-        </div>
+        </ThemedButton>
       </ApiCallHighlight>
     </div>
   );
@@ -761,7 +945,17 @@ console.log(response.data);`;
   };
 
   // Build the visual wireframe for the active page tab
-  const activeWireframe = activePageTab ? renderVisualWireframe(mapping.sourceConstant, activePageTab, featureDesc, method) : null;
+  const activeWireframe = activePageTab ? (
+    <VisualWireframe
+      sourceConstant={mapping.sourceConstant}
+      pageName={activePageTab}
+      featureDesc={featureDesc}
+      methodStr={method}
+      endpointPath={mapping.endpointPath}
+      hasParam={hasParam}
+      consumers={selectedPages.length}
+    />
+  ) : null;
 
   return createPortal(
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
@@ -805,18 +999,6 @@ console.log(response.data);`;
         <div className="flex-1 overflow-auto">
           {viewMode === 'visual' ? (
             <div className="space-y-5">
-              {/* ------ Endpoint Info Banner ------ */}
-              <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">API Constant</p>
-                  <code className="text-sm font-mono font-bold text-indigo-700 break-all">{mapping.sourceConstant}</code>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${METHOD_COLORS[method.toUpperCase() as HttpMethod] || 'bg-gray-100 text-gray-700'}`}>{method.toUpperCase()}</span>
-                  {hasParam && <span className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-700">:id</span>}
-                </div>
-              </div>
-
               {/* ------ Multi-select Page Dropdown ------ */}
               <div ref={dropdownRef} className="relative">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pages / Components using this endpoint</p>
@@ -969,23 +1151,6 @@ console.log(response.data);`;
                 </div>
               )}
 
-              {/* ------ Endpoint Metadata Row ------ */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">HTTP Method</p>
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${METHOD_COLORS[method.toUpperCase() as HttpMethod] || 'bg-gray-100 text-gray-700'}`}>
-                    {method.toUpperCase()}
-                  </span>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Parameters</p>
-                  <span className="text-sm text-gray-700">{hasParam ? 'Dynamic (:id)' : 'None'}</span>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Consumers</p>
-                  <span className="text-sm font-bold text-gray-700">{selectedPages.length} page{selectedPages.length !== 1 ? 's' : ''}</span>
-                </div>
-              </div>
             </div>
           ) : (
             /* ---- Show Code ---- */
