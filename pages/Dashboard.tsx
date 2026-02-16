@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
+import { useRouteData, useDriverData } from '../src/hooks/useAppData';
+import { useSelector } from 'react-redux';
 import { 
  Bus, 
  Clock, 
@@ -11,12 +13,10 @@ import {
  Activity,
  FileText
 } from 'lucide-react';
-import { TransportRoute, User as UserType, UserRole } from '../types';
+import { TransportRoute, User as UserType, UserRole, Driver } from '../types';
 import { LiveRouteMap } from '../src/components/GoogleMaps';
 
 interface DashboardProps {
- routes: TransportRoute[];
- user: UserType;
  onNavigate: (page: string) => void;
 }
 
@@ -60,7 +60,11 @@ const WidgetCard = ({ label, value, subtext, icon: Icon, themeColor }: any) => {
  );
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ routes, user, onNavigate }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+ // SMART DATA-FLOW: Use centralized hooks
+ const { routes } = useRouteData();
+ const { drivers } = useDriverData();
+ const user = useSelector((state: any) => state.app?.user);
  const { colors } = useTheme();
  const [feedTab, setFeedTab] = useState<'drivers' | 'fleet'>('fleet');
  const [driverSubTab, setDriverSubTab] = useState<'all' | 'online' | 'on-trip'>('all');
@@ -105,16 +109,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ routes, user, onNavigate }
 
  const metrics = getMetrics();
  
- // Mock Drivers
- const MOCK_LIVE_DRIVERS = [
- { id: 'D1', name: 'James Wilson', status: 'ON_TRIP', vehicle: 'BUS-101', avatar: 'https://picsum.photos/150' },
- { id: 'D2', name: 'Robert Chen', status: 'ONLINE', vehicle: 'BUS-102', avatar: 'https://picsum.photos/151' },
- { id: 'D3', name: 'Sarah Miller', status: 'OFFLINE', vehicle: '-', avatar: 'https://picsum.photos/152' },
- { id: 'D4', name: 'David Kim', status: 'ONLINE', vehicle: 'BUS-206', avatar: 'https://picsum.photos/153' },
- { id: 'D5', name: 'Lisa Ray', status: 'ON_TRIP', vehicle: 'BUS-207', avatar: 'https://picsum.photos/154' },
- ];
-
- const filteredDrivers = MOCK_LIVE_DRIVERS.filter(d => {
+ // Filter drivers by status for live feed
+ const filteredDrivers = (drivers as Driver[]).filter((d: Driver) => {
  if (driverSubTab === 'all') return true;
  if (driverSubTab === 'online') return d.status === 'ONLINE';
  if (driverSubTab === 'on-trip') return d.status === 'ON_TRIP';

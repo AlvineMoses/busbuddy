@@ -85,8 +85,8 @@ function AppContent() {
     >
       <ToastContainer />
       <Routes>
-        <Route path="/dashboard" element={<Dashboard routes={filteredRoutes} user={currentUser} onNavigate={(page: string) => navigate(`/${page}`)} />} />
-        <Route path="/routes" element={<RoutesPage routes={filteredRoutes} schools={SCHOOLS} currentSchoolId={currentSchoolId || undefined} trips={filteredTrips} />} />
+        <Route path="/dashboard" element={<Dashboard onNavigate={(page: string) => navigate(`/${page}`)} />} />
+        <Route path="/routes" element={<RoutesPage />} />
         <Route path="/operations" element={<OperationsPage currentUser={currentUser} />} />
         <Route path="/schools" element={<SchoolsPage currentUser={currentUser} />} />
         <Route path="/notifications" element={<NotificationsPage />} />

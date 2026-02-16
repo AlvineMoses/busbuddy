@@ -5,7 +5,7 @@ import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
 import { ThemedDataTable, TableColumn, ActionMenuItem } from '../src/components/ThemedDataTable';
 import { Plus, MoreHorizontal, Users, Bus, LayoutGrid, List as ListIcon, Edit, FileText, Archive, Save, Check, ArrowRight } from 'lucide-react';
-import { SCHOOLS as INITIAL_SCHOOLS } from '../services/mockData';
+import { useSchoolData } from '../src/hooks/useAppData';
 import { User as UserType, UserRole } from '../types';
 import { StudentsPage } from './StudentsPage';
 
@@ -14,7 +14,8 @@ interface SchoolsPageProps {
 }
 
 export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
- const [schools, setSchools] = useState(INITIAL_SCHOOLS);
+ // SMART DATA-FLOW: Use centralized hooks
+ const { schools, createSchool, updateSchool, deleteSchool, isLoading, error } = useSchoolData();
  const { colors } = useTheme();
  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
  const [openActionId, setOpenActionId] = useState<string | null>(null);
@@ -39,20 +40,24 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  setOpenActionId(openActionId === id ? null : id);
  };
 
- const handleAddSchool = () => {
+ const handleAddSchool = async () => {
  if (!newSchoolName.trim()) return;
- const newSchool = {
- id: `S${schools.length + 1}`,
- name: newSchoolName,
- };
- setSchools([...schools, newSchool]);
+ try {
+ await createSchool({ name: newSchoolName });
  setNewSchoolName('');
  setIsAddModalOpen(false);
+ } catch (err: any) {
+ alert('Failed to add school: ' + (err?.message || 'Unknown error'));
+ }
  };
 
- const handleArchive = (id: string) => {
+ const handleArchive = async (id: string) => {
  if (window.confirm('Are you sure you want to archive this school?')) {
- setSchools(schools.filter(s => s.id !== id));
+ try {
+ await deleteSchool(id);
+ } catch (err: any) {
+ alert('Failed to archive school: ' + (err?.message || 'Unknown error'));
+ }
  }
  };
 
@@ -62,11 +67,15 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  setOpenActionId(null);
  };
 
- const handleSaveEdit = () => {
+ const handleSaveEdit = async () => {
  if (editingSchool) {
- setSchools(schools.map(s => s.id === editingSchool.id ? { ...s, name: editingSchool.name } : s));
+ try {
+ await updateSchool(editingSchool.id, { name: editingSchool.name });
  setIsEditModalOpen(false);
  setEditingSchool(null);
+ } catch (err: any) {
+ alert('Failed to update school: ' + (err?.message || 'Unknown error'));
+ }
  }
  };
 

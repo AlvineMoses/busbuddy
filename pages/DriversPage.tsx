@@ -6,22 +6,18 @@ import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
 import { ThemedDataTable, TableColumn, ActionMenuItem } from '../src/components/ThemedDataTable';
 import { Search, Filter, Plus, Phone, Car, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon, Users } from 'lucide-react';
 import { User as UserType, UserRole } from '../types';
-import { MOCK_ROUTES, SCHOOLS } from '../services/mockData';
+import { useDriverData } from '../src/hooks/useAppData';
+import { useRouteData } from '../src/hooks/useAppData';
 
 interface DriversPageProps {
  currentUser: UserType;
  showHeader?: boolean;
 }
 
-const INITIAL_DRIVERS = [
- { id: 'D1', name: 'James Wilson', vehicle: 'Toyota Coaster (BUS-101)', phone: '+1 234 567 890', email: 'james.w@transport.com', license: 'EXP-2025', status: 'ON_TRIP', avatar: 'https://picsum.photos/150', corporate: 'TechCorp Inc.' },
- { id: 'D2', name: 'Robert Chen', vehicle: 'Mercedes Sprinter (BUS-102)', phone: '+1 234 567 891', email: 'robert.c@transport.com', license: 'EXP-2024', status: 'AVAILABLE', avatar: 'https://picsum.photos/151', corporate: 'City Schools' },
- { id: 'D3', name: 'Sarah Miller', vehicle: 'Ford Transit (BUS-205)', phone: '+1 234 567 892', email: 'sarah.m@transport.com', license: 'EXP-2026', status: 'OFF_DUTY', avatar: 'https://picsum.photos/152', corporate: 'Global Logistics' },
- { id: 'D4', name: 'David Kim', vehicle: 'Unassigned', phone: '+1 234 567 893', email: 'david.k@transport.com', license: 'PENDING', status: 'PENDING', avatar: 'https://picsum.photos/153', corporate: 'Unassigned' },
-];
-
 export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeader = true }) => {
- const [drivers, setDrivers] = useState(INITIAL_DRIVERS);
+ // SMART DATA-FLOW: Use centralized hooks instead of local state
+ const { drivers, createDriver, updateDriver, deleteDriver, generateOtp, getQrCode, isLoading, error } = useDriverData();
+ const { routes, schools } = useRouteData();
  const { colors } = useTheme();
  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
  const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +44,6 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
    days: [] as string[],
    time: '07:00'
  });
- const [mockRoutes] = useState(MOCK_ROUTES);
 
  const filteredDrivers = drivers.filter(d => 
  d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -60,29 +55,37 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  setOpenActionId(openActionId === id ? null : id);
  };
 
- const handleGenerateCode = () => {
+ const handleGenerateCode = async () => {
  if (!selectedDriverId) return;
+ try {
+ const result = await generateOtp(selectedDriverId);
+ setGeneratedOtp(result.otp);
+ } catch (err) {
+ // Fallback to local generation if service fails
  const code = Math.floor(100000 + Math.random() * 900000).toString();
  setGeneratedOtp(`${code.slice(0,3)}-${code.slice(3)}`);
+ }
  };
 
  const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
- const handleSaveDriver = () => {
+ const handleSaveDriver = async () => {
+ try {
  if (isEditing) {
- setDrivers(drivers.map(d => d.id === driverForm.id ? { ...d, ...driverForm } : d));
+ await updateDriver(driverForm.id, driverForm);
  } else {
- const newDriver = {
+ await createDriver({
  ...driverForm,
- id: `D${drivers.length + 5}`,
  license: 'PENDING',
  status: 'AVAILABLE',
- avatar: `https://picsum.photos/15${drivers.length + 5}`,
+ avatar: `https://picsum.photos/15${Math.floor(Math.random() * 1000)}`,
  vehicle: driverForm.vehicle || 'Unassigned'
- };
- setDrivers([...drivers, newDriver]);
+ });
  }
  setRegisterModalOpen(false);
+ } catch (err: any) {
+ alert('Failed to save driver: ' + (err?.message || 'Unknown error'));
+ }
  };
 
  const openRegister = () => {
@@ -474,7 +477,7 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
          onChange={e => setDriverAssignmentForm({...driverAssignmentForm, schoolId: e.target.value})}
        >
          <option value="">Choose a school...</option>
-         {SCHOOLS.map(school => (
+         {schools.map(school => (
            <option key={school.id} value={school.id}>
              {school.name}
            </option>
@@ -488,7 +491,7 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
        onChange={e => setDriverAssignmentForm({...driverAssignmentForm, routeId: e.target.value})}
      >
        <option value="">Choose a route...</option>
-       {mockRoutes
+       {routes
          .filter(route => !driverAssignmentForm.schoolId || route.schoolId === driverAssignmentForm.schoolId)
          .map(route => (
            <option key={route.id} value={route.id}>

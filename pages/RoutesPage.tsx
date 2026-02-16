@@ -32,20 +32,22 @@ import {
 import { ThemedDataTable } from '../src/components/ThemedDataTable';
 import { TripsPage } from './TripsPage';
 import { APIProvider, Map as GoogleMap, Marker } from '@vis.gl/react-google-maps';
-import { MOCK_DRIVERS } from '../services/mockData';
-
-interface RoutesPageProps {
- routes: TransportRoute[];
- schools: School[];
- currentSchoolId: string | undefined;
- trips: Trip[];
-}
+import { useRouteData } from '../src/hooks/useAppData';
+import { useTripData } from '../src/hooks/useAppData';
+import { useDriverData } from '../src/hooks/useAppData';
+import { useSchoolData } from '../src/hooks/useAppData';
+import { useStudentData } from '../src/hooks/useAppData';
 
 const GOOGLE_MAPS_API_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY || '';
 const DEFAULT_CENTER = { lat: -1.286389, lng: 36.817223 }; // Default to Nairobi
 
-export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, schools, currentSchoolId, trips }) => {
- const [routes, setRoutes] = useState<TransportRoute[]>(initialRoutes);
+export const RoutesPage: React.FC = () => {
+ // SMART DATA-FLOW: Use centralized hooks - auto-filtered by selected school
+ const { routes, schools, createRoute, updateRoute, deleteRoute, exportRoutes, isLoading, error } = useRouteData();
+ const { trips } = useTripData();
+ const { drivers } = useDriverData();
+ const { selectedSchool } = useSchoolData();
+ const { students, updateStudent } = useStudentData();
  const { colors } = useTheme();
  const operatingDays: string[] = useSelector((state: any) => state.settings?.operatingDays) || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   
@@ -87,80 +89,11 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  const [editRouteTime, setEditRouteTime] = useState('07:00');
  const [editDayTimes, setEditDayTimes] = useState<Record<string, string>>({});
 
- // Student management state
- const [mockStudents, setMockStudents] = useState<Student[]>([
-   {
-     id: 'STU1',
-     name: 'Emma Johnson',
-     school: 'S1',
-     grade: 'Grade 5',
-     guardian: 'Sarah Johnson',
-     status: 'WAITING',
-     pickupLocation: { lat: -1.2921, lng: 36.8219, address: 'Karen, Nairobi' },
-     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
-     assignedRoutes: []
-   },
-   {
-     id: 'STU2',
-     name: 'Liam Smith',
-     school: 'S1',
-     grade: 'Grade 6',
-     guardian: 'Michael Smith',
-     status: 'WAITING',
-     pickupLocation: { lat: -1.2850, lng: 36.8250, address: 'Parklands, Nairobi' },
-     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
-     assignedRoutes: []
-   },
-   {
-     id: 'STU3',
-     name: 'Sophia Williams',
-     school: 'S1',
-     grade: 'Grade 4',
-     guardian: 'Jennifer Williams',
-     status: 'WAITING',
-     pickupLocation: { lat: -1.2800, lng: 36.8150, address: 'Kilimani, Nairobi' },
-     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
-     assignedRoutes: []
-   },
-   {
-     id: 'STU4',
-     name: 'Noah Brown',
-     school: 'S1',
-     grade: 'Grade 5',
-     guardian: 'David Brown',
-     status: 'WAITING',
-     pickupLocation: { lat: -1.2920, lng: 36.8100, address: 'Lavington, Nairobi' },
-     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
-     assignedRoutes: []
-   },
-   {
-     id: 'STU5',
-     name: 'Olivia Davis',
-     school: 'S1',
-     grade: 'Grade 6',
-     guardian: 'Emily Davis',
-     status: 'WAITING',
-     pickupLocation: { lat: -1.2750, lng: 36.8200, address: 'Hurlingham, Nairobi' },
-     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
-     assignedRoutes: []
-   },
-   {
-     id: 'STU6',
-     name: 'Ava Martinez',
-     school: 'S1',
-     grade: 'Grade 4',
-     guardian: 'Carlos Martinez',
-     status: 'WAITING',
-     pickupLocation: { lat: -1.2880, lng: 36.8300, address: 'Eastleigh, Nairobi' },
-     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
-     assignedRoutes: []
-   }
- ]);
+ // Student search state (data comes from useStudentData hook)
  const [studentSearchTerm, setStudentSearchTerm] = useState('');
  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
  // Driver assignment state
- const [mockDrivers] = useState<Driver[]>(MOCK_DRIVERS as Driver[]);
  const [driverForm, setDriverForm] = useState({
    driverId: '',
    vehicle: '',
@@ -178,15 +111,10 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
    setDayTimes(initial);
  }, [routeTime, operatingDays]);
 
- // Sync props to state if props change (optional, but good for keeping in sync with global mock data if it were dynamic)
- useEffect(() => {
- setRoutes(initialRoutes);
- }, [initialRoutes]);
-
+ // SMART DATA-FLOW: Routes are already filtered by selected school in hook
  const filteredRoutes = routes.filter(r => {
  const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
- const matchesSchool = currentSchoolId ? r.schoolId === currentSchoolId : true;
- return matchesSearch && matchesSchool;
+ return matchesSearch;
  });
 
  // Initialize selectedStopRouteId when filteredRoutes change
@@ -200,7 +128,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  useEffect(() => {
    if (selectedStopRouteId) {
      // Get students assigned to this route
-     const assignedStudents = mockStudents.filter(s => s.assignedRoutes?.includes(selectedStopRouteId));
+     const assignedStudents = students.filter((s: Student) => s.assignedRoutes?.includes(selectedStopRouteId));
      
      // Generate stops from student pickup/dropoff locations
      const stops = assignedStudents.map((student, index) => {
@@ -217,7 +145,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
      
      setRouteStops(stops);
    }
- }, [selectedStopRouteId, mockStudents, stopDirection]);
+ }, [selectedStopRouteId, students, stopDirection]);
 
  const handleExport = () => {
  const headers = ["Route ID", "Route Name", "School", "Type", "Vehicle", "Status"];
@@ -248,35 +176,47 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  setOpenActionId(openActionId === id ? null : id);
  };
 
- const handleCreateRoute = () => {
+ const handleCreateRoute = async () => {
  if (!newRoute.name || !newRoute.schoolId) return;
  
- const createdRoute: TransportRoute = {
- id: `R${routes.length + 5}`,
+ try {
+ await createRoute({
  name: newRoute.name,
  schoolId: newRoute.schoolId,
  type: newRoute.type || 'PICKUP',
  status: 'ACTIVE',
  health: RouteHealth.NORMAL,
- driverId: 'D1', // Default
+ driverId: 'D1',
  vehiclePlate: newRoute.vehiclePlate || 'BUS-NEW'
- };
- 
- setRoutes([...routes, createdRoute]);
+ });
  setIsCreateModalOpen(false);
- setNewRoute({ type: 'PICKUP', health: RouteHealth.NORMAL, status: 'ACTIVE' }); // Reset
- };
-
- const handleDelete = (id: string) => {
- if (window.confirm("Are you sure you want to delete this route?")) {
- setRoutes(routes.filter(r => r.id !== id));
+ setNewRoute({ type: 'PICKUP', health: RouteHealth.NORMAL, status: 'ACTIVE' });
+ } catch (err: any) {
+ alert('Failed to create route: ' + (err?.message || 'Unknown error'));
  }
  };
 
- const toggleStatus = (id: string) => {
- setRoutes(routes.map(r => 
- r.id === id ? { ...r, status: r.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : r
- ));
+ const handleDelete = async (id: string) => {
+ if (window.confirm("Are you sure you want to delete this route?")) {
+ try {
+ await deleteRoute(id);
+ } catch (err: any) {
+ alert('Failed to delete route: ' + (err?.message || 'Unknown error'));
+ }
+ }
+ };
+
+ const toggleStatus = async (id: string) => {
+ try {
+ const route = routes.find(r => r.id === id);
+ if (route) {
+ await updateRoute(id, {
+ status: route.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+ });
+ }
+ } catch (err: any) {
+ alert('Failed to update route status: ' + (err?.message || 'Unknown error'));
+ }
  };
 
  const openEditModal = (route: TransportRoute) => {
@@ -289,29 +229,34 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  setOpenActionId(null);
  };
 
- const handleSaveEdit = () => {
+ const handleSaveEdit = async () => {
  if (editingRoute) {
- setRoutes(routes.map(r => r.id === editingRoute.id ? editingRoute : r));
+ try {
+ await updateRoute(editingRoute.id, editingRoute);
  setIsEditModalOpen(false);
  setEditingRoute(null);
+ } catch (err: any) {
+ alert('Failed to save changes: ' + (err?.message || 'Unknown error'));
+ }
  }
  };
 
  // Toggle student assignment to selected route
- const toggleStudentAssignment = (studentId: string) => {
-   setMockStudents(mockStudents.map(s => {
-     if (s.id === studentId) {
-       const currentRoutes = s.assignedRoutes || [];
+ const toggleStudentAssignment = async (studentId: string) => {
+   try {
+     const student = students.find((s: Student) => s.id === studentId);
+     if (student) {
+       const currentRoutes = student.assignedRoutes || [];
        const isAssigned = currentRoutes.includes(selectedStopRouteId);
-       return {
-         ...s,
+       await updateStudent(studentId, {
          assignedRoutes: isAssigned
-           ? currentRoutes.filter(id => id !== selectedStopRouteId)
+           ? currentRoutes.filter((id: string) => id !== selectedStopRouteId)
            : [...currentRoutes, selectedStopRouteId]
-       };
+       });
      }
-     return s;
-   }));
+   } catch (err: any) {
+     alert('Failed to update student assignment: ' + (err?.message || 'Unknown error'));
+   }
  };
 
  // Handle driver assignment to route
@@ -352,7 +297,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  };
 
  const handleDriverSelect = (driverId: string) => {
-   const driver = mockDrivers.find(d => d.id === driverId);
+   const driver = drivers.find((d: Driver) => d.id === driverId);
    if (driver) {
      setDriverForm({
        ...driverForm,
@@ -873,12 +818,11 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
              {/* Student Dropdown */}
              {showStudentDropdown && (
                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto z-50">
-                 {mockStudents
-                   .filter(student => 
-                     (currentSchoolId ? student.school === currentSchoolId : true) &&
+                 {students
+                   .filter((student: Student) => 
                      student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
                    )
-                   .map(student => {
+                   .map((student: Student) => {
                      const isAssigned = student.assignedRoutes?.includes(selectedStopRouteId);
                      return (
                        <button
@@ -896,7 +840,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
                        </button>
                      );
                    })}
-                 {mockStudents.filter(s => (currentSchoolId ? s.school === currentSchoolId : true) && s.name.toLowerCase().includes(studentSearchTerm.toLowerCase())).length === 0 && (
+                 {students.filter((s: Student) => s.name.toLowerCase().includes(studentSearchTerm.toLowerCase())).length === 0 && (
                    <div className="px-4 py-8 text-center text-gray-400 text-sm">
                      No students found
                    </div>
@@ -1329,7 +1273,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
          onChange={(e) => handleDriverSelect(e.target.value)}
        >
          <option value="">Select a driver...</option>
-         {mockDrivers.map(driver => (
+         {drivers.map((driver: Driver) => (
            <option key={driver.id} value={driver.id}>
              {driver.name} ({driver.status})
            </option>
@@ -1341,16 +1285,16 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
      {driverForm.driverId && (
        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
          <img 
-           src={mockDrivers.find(d => d.id === driverForm.driverId)?.avatar}
+           src={drivers.find((d: Driver) => d.id === driverForm.driverId)?.avatar}
            alt="Driver"
            className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
          />
          <div>
            <p className="font-bold text-sm text-brand-black">
-             {mockDrivers.find(d => d.id === driverForm.driverId)?.name}
+             {drivers.find((d: Driver) => d.id === driverForm.driverId)?.name}
            </p>
            <p className="text-xs text-gray-400">
-             License: {mockDrivers.find(d => d.id === driverForm.driverId)?.license}
+             License: {drivers.find((d: Driver) => d.id === driverForm.driverId)?.license}
            </p>
          </div>
        </div>
