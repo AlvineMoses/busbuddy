@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
+import { ThemedModal } from '../src/components/ThemedModal';
+import { ThemedDataTable } from '../src/components/ThemedDataTable';
 import { Trip } from '../types';
 import { Users, ChevronRight, X, AlertTriangle, Calendar, MapPin, Filter, MoreHorizontal, Eye, Phone, Flag, LayoutGrid, List as ListIcon, Play, Bus } from 'lucide-react';
 
@@ -201,22 +203,13 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  ) : (
  /* List View */
  <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
- <table className="w-full text-left">
- <thead className="bg-gray-50/30 text-gray-400 font-bold text-xs uppercase tracking-widest">
- <tr>
- <th className="px-8 py-6 pl-10">Status</th>
- <th className="px-8 py-6">Trip ID</th>
- <th className="px-8 py-6">Driver</th>
- <th className="px-8 py-6">Date & Time</th>
- <th className="px-8 py-6">Riders</th>
- <th className="px-8 py-6 text-right pr-10"></th>
- </tr>
- </thead>
- <tbody className="divide-y divide-gray-50">
- {filteredTrips.map((trip) => (
- <tr key={trip.id} className="hover:bg-gray-50/80 transition-colors group cursor-pointer" onClick={() => setSelectedTrip(trip)}>
- <td className="px-8 py-6 pl-10">
- {trip.status === 'STARTED' ? (
+<ThemedDataTable<Trip>
+ columns={[
+ {
+ header: 'Status',
+ key: 'status',
+ render: (trip) => (
+ trip.status === 'STARTED' ? (
  <span className="inline-flex items-center gap-2 px-4 py-1.5 style={{ backgroundColor: `${colors.statusActive}1A`, color: colors.statusActive }}  rounded-full text-xs font-bold tracking-wide border style={{ borderColor: `${colors.statusActive}33` }}">
  <span className="w-1.5 h-1.5 rounded-full style={{ backgroundColor: colors.statusActive }} animate-pulse"></span>
  LIVE
@@ -225,53 +218,53 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  <span className="inline-flex items-center px-4 py-1.5 bg-gray-100 text-gray-500 rounded-full text-xs font-bold tracking-wide border border-gray-200">
  ENDED
  </span>
- )}
- </td>
- <td className="px-8 py-6 font-mono text-gray-500 text-sm font-medium">
- {trip.id}
- </td>
- <td className="px-8 py-6">
+ )
+ ),
+ },
+ {
+ header: 'Trip ID',
+ key: 'tripId',
+ cellClassName: 'font-mono text-gray-500 text-sm font-medium',
+ render: (trip) => trip.id,
+ },
+ {
+ header: 'Driver',
+ key: 'driver',
+ render: (trip) => (
  <div className="font-bold text-brand-black">{trip.driverName}</div>
- </td>
- <td className="px-8 py-6">
+ ),
+ },
+ {
+ header: 'Date & Time',
+ key: 'dateTime',
+ render: (trip) => (
  <div className="flex flex-col">
  <span className="text-sm font-bold text-brand-black">{trip.startTime}</span>
  <span className="text-xs text-gray-400 font-medium">{trip.date}</span>
  </div>
- </td>
- <td className="px-8 py-6">
+ ),
+ },
+ {
+ header: 'Riders',
+ key: 'riders',
+ render: (trip) => (
  <div className="flex items-center text-gray-600 gap-2">
  <Users size={16} className="text-gray-400" />
  <span className="font-bold">{trip.riderCount}</span>
  </div>
- </td>
- <td className="px-8 py-6 text-right pr-10 relative">
- <button 
- onClick={(e) => toggleAction(trip.id, e)}
- className="w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:bg-brand-black hover:text-white transition-all z-10 relative"
- >
- <MoreHorizontal size={20} />
- </button>
-
- {openActionId === trip.id && (
- <div className="absolute right-10 top-12 mt-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
- <button onClick={(e) => { e.stopPropagation(); handleAction('view', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
- <Eye size={14} /> View Details
- </button>
- <button onClick={(e) => { e.stopPropagation(); handleAction('contact', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
- <Phone size={14} /> Contact Driver
- </button>
- <div className="h-px bg-gray-50 my-1"></div>
- <button onClick={(e) => { e.stopPropagation(); handleAction('flag', trip); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-brand-orange hover:bg-orange-50 rounded-xl flex items-center gap-2 transition-colors">
- <Flag size={14} /> Flag Incident
- </button>
- </div>
- )}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
+ ),
+ },
+ ]}
+ data={filteredTrips}
+ rowKey={(trip) => trip.id}
+ actions={[
+ { label: 'View Details', icon: <Eye size={14} />, onClick: (trip) => handleAction('view', trip) },
+ { label: 'Contact Driver', icon: <Phone size={14} />, onClick: (trip) => handleAction('contact', trip) },
+ { label: 'Flag Incident', icon: <Flag size={14} />, onClick: (trip) => handleAction('flag', trip), divider: true, className: 'text-brand-orange hover:bg-orange-50' },
+ ]}
+ actionsHeader=""
+ onRowClick={(trip) => setSelectedTrip(trip)}
+/>
  </div>
  )}
 
@@ -360,11 +353,15 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  )}
 
  {/* Playback Simulation Modal */}
- {isPlaybackOpen && (
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/60 backdrop-blur-md" onClick={() => setIsPlaybackOpen(false)} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2.5rem] w-full max-w-3xl shadow-2xl animate-in zoom-in-95 pointer-events-auto overflow-hidden flex flex-col h-[500px]">
+ <ThemedModal
+ isOpen={isPlaybackOpen}
+ onClose={() => setIsPlaybackOpen(false)}
+ title=""
+ size="xl"
+ showCloseButton={false}
+ className="!p-0 overflow-hidden"
+ >
+ <div className="flex flex-col h-[500px]">
  <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
  <div>
  <h3 className="text-xl font-bold text-brand-black flex items-center gap-2"><Play size={18}/> Route Playback</h3>
@@ -374,14 +371,10 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  </div>
  
  <div className="flex-1 bg-gray-100 relative">
- {/* Mock Map Background */}
  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
- 
- {/* Animated Bus */}
  <div className="absolute top-1/2 left-1/4 w-12 h-12 bg-brand-black rounded-full flex items-center justify-center text-white shadow-xl animate-bounce">
  <Bus size={20} />
  </div>
- 
  <div className="absolute bottom-8 left-8 right-8 bg-white p-4 rounded-2xl shadow-float flex items-center gap-4">
  <button className="w-10 h-10 rounded-full bg-brand-lilac text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform">
  <Play size={16} fill="white" />
@@ -393,9 +386,7 @@ export const TripsPage: React.FC<TripsPageProps> = ({ trips, showHeader = true }
  </div>
  </div>
  </div>
- </div>
- </div>
- )}
+ </ThemedModal>
 
  </div>
  );

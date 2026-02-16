@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { ThemedButton } from '../src/components/ThemedComponents';
+import { ThemedModal } from '../src/components/ThemedModal';
+import { ThemedDataTable } from '../src/components/ThemedDataTable';
 import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical, Globe, ChevronDown, Trash2 } from 'lucide-react';
 import { EndpointsSettingsTab } from './EndpointsSettingsTab';
 import useAppStore from '../src/store/AppStore';
@@ -897,45 +898,59 @@ export const SettingsPage: React.FC = () => {
                      </div>
                      
                      <div className="overflow-hidden rounded-4xl border border-gray-100 shadow-sm bg-white">
-                        <table className="w-full text-left">
-                           <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
-                              <tr>
-                                 <th className="px-8 py-4 w-1/2">Permission Node</th>
-                                 <th className="px-8 py-4 text-center w-1/4">Admin</th>
-                                 <th className="px-8 py-4 text-center w-1/4">School Admin</th>
-                              </tr>
-                           </thead>
-                           <tbody className="divide-y divide-gray-50">
-                              {group.permissions.map((perm: any) => (
-                                 <tr key={perm.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-8 py-5">
-                                       <p className="font-bold text-brand-black text-sm">{perm.name}</p>
-                                       <p className="text-xs font-medium text-gray-400 mt-1">{perm.description}</p>
-                                    </td>
-                                    <td className="px-8 py-5 text-center">
-                                       <button 
-                                         onClick={() => handlePermissionToggle(groupIdx, perm.id, 'admin')}
-                                         className={`w-12 h-7 rounded-full relative transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-black/20 ${perm.admin ? 'bg-brand-black' : 'bg-gray-200'}`}
-                                       >
-                                          <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm flex items-center justify-center ${perm.admin ? 'translate-x-5' : 'translate-x-0'}`}>
-                                            {perm.admin && <Check size={10} className="text-brand-black" />}
-                                          </span>
-                                       </button>
-                                    </td>
-                                    <td className="px-8 py-5 text-center">
-                                       <button 
-                                         onClick={() => handlePermissionToggle(groupIdx, perm.id, 'schoolAdmin')}
-                                         className={`w-12 h-7 rounded-full relative transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-lilac/20 ${perm.schoolAdmin ? 'bg-brand-lilac' : 'bg-gray-200'}`}
-                                       >
-                                          <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm flex items-center justify-center ${perm.schoolAdmin ? 'translate-x-5' : 'translate-x-0'}`}>
-                                             {perm.schoolAdmin && <Check size={10} className="text-brand-lilac" />}
-                                          </span>
-                                       </button>
-                                    </td>
-                                 </tr>
-                              ))}
-                           </tbody>
-                        </table>
+                        <ThemedDataTable<any>
+                          variant="compact"
+                          columns={[
+                            {
+                              header: 'Permission Node',
+                              key: 'name',
+                              headerClassName: 'w-1/2 px-8',
+                              cellClassName: 'px-8 py-5',
+                              render: (perm: any) => (
+                                <>
+                                  <p className="font-bold text-brand-black text-sm">{perm.name}</p>
+                                  <p className="text-xs font-medium text-gray-400 mt-1">{perm.description}</p>
+                                </>
+                              ),
+                            },
+                            {
+                              header: 'Admin',
+                              key: 'admin',
+                              headerAlign: 'center',
+                              headerClassName: 'w-1/4 px-8',
+                              cellClassName: 'px-8 py-5 text-center',
+                              render: (perm: any) => (
+                                <button 
+                                  onClick={() => handlePermissionToggle(groupIdx, perm.id, 'admin')}
+                                  className={`w-12 h-7 rounded-full relative transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-black/20 ${perm.admin ? 'bg-brand-black' : 'bg-gray-200'}`}
+                                >
+                                  <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm flex items-center justify-center ${perm.admin ? 'translate-x-5' : 'translate-x-0'}`}>
+                                    {perm.admin && <Check size={10} className="text-brand-black" />}
+                                  </span>
+                                </button>
+                              ),
+                            },
+                            {
+                              header: 'School Admin',
+                              key: 'schoolAdmin',
+                              headerAlign: 'center',
+                              headerClassName: 'w-1/4 px-8',
+                              cellClassName: 'px-8 py-5 text-center',
+                              render: (perm: any) => (
+                                <button 
+                                  onClick={() => handlePermissionToggle(groupIdx, perm.id, 'schoolAdmin')}
+                                  className={`w-12 h-7 rounded-full relative transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-lilac/20 ${perm.schoolAdmin ? 'bg-brand-lilac' : 'bg-gray-200'}`}
+                                >
+                                  <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform duration-300 shadow-sm flex items-center justify-center ${perm.schoolAdmin ? 'translate-x-5' : 'translate-x-0'}`}>
+                                    {perm.schoolAdmin && <Check size={10} className="text-brand-lilac" />}
+                                  </span>
+                                </button>
+                              ),
+                            },
+                          ]}
+                          data={group.permissions}
+                          rowKey={(perm: any) => perm.id}
+                        />
                      </div>
                   </div>
                 ))}
@@ -1179,61 +1194,55 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* Create Role Modal */}
-      {showCreateRole && createPortal(
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={() => setShowCreateRole(false)}>
-          <div className="bg-white rounded-4xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="font-bold text-brand-black text-lg">Create New Role</h4>
-              <button onClick={() => setShowCreateRole(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Role Name</label>
-                <input 
-                  type="text" 
-                  value={newRoleName} 
-                  onChange={(e) => setNewRoleName(e.target.value)}
-                  placeholder="e.g. Fleet Manager"
-                  className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Role Type</label>
-                <div className="flex gap-2">
-                  {(['admin', 'school_admin', 'custom'] as const).map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setNewRoleType(type)}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-                        newRoleType === type 
-                          ? 'bg-brand-black text-white border-brand-black' 
-                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {type === 'admin' ? 'Admin' : type === 'school_admin' ? 'School Admin' : 'Custom'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Description</label>
-                <textarea 
-                  rows={3} 
-                  value={newRoleDesc} 
-                  onChange={(e) => setNewRoleDesc(e.target.value)}
-                  placeholder="Brief description of this role's responsibilities"
-                  className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-medium resize-none focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-              <ThemedButton variant="cancel" onClick={() => setShowCreateRole(false)}>Cancel</ThemedButton>
-              <ThemedButton variant="primary" onClick={handleSaveNewRole}>Create Role</ThemedButton>
+      <ThemedModal
+        isOpen={showCreateRole}
+        onClose={() => setShowCreateRole(false)}
+        title="Create New Role"
+        size="md"
+        onConfirm={handleSaveNewRole}
+        confirmLabel="Create Role"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Role Name</label>
+            <input 
+              type="text" 
+              value={newRoleName} 
+              onChange={(e) => setNewRoleName(e.target.value)}
+              placeholder="e.g. Fleet Manager"
+              className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Role Type</label>
+            <div className="flex gap-2">
+              {(['admin', 'school_admin', 'custom'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => setNewRoleType(type)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                    newRoleType === type 
+                      ? 'bg-brand-black text-white border-brand-black' 
+                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {type === 'admin' ? 'Admin' : type === 'school_admin' ? 'School Admin' : 'Custom'}
+                </button>
+              ))}
             </div>
           </div>
-        </div>,
-        document.body
-      )}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Description</label>
+            <textarea 
+              rows={3} 
+              value={newRoleDesc} 
+              onChange={(e) => setNewRoleDesc(e.target.value)}
+              placeholder="Brief description of this role's responsibilities"
+              className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-medium resize-none focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac transition-all" 
+            />
+          </div>
+        </div>
+      </ThemedModal>
     </div>
   );
 };

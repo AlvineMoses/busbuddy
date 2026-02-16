@@ -3,6 +3,7 @@ import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput } from '../src/components/ThemedFormField';
+import { ThemedDataTable, TableColumn, ActionMenuItem } from '../src/components/ThemedDataTable';
 import { Search, Filter, Plus, Phone, Car, QrCode, Download, Edit, Check, MoreHorizontal, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -230,20 +231,12 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  </div>
 
  {/* Flat Table */}
- <table className="w-full text-left">
- <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
- <tr>
- <th className="px-8 py-6 pl-10">Driver Profile</th>
- <th className="px-8 py-6">Vehicle</th>
- <th className="px-8 py-6">Documents</th>
- <th className="px-8 py-6">Status</th>
- <th className="px-8 py-6 text-right pr-10">Action</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-gray-50">
- {filteredDrivers.map(driver => (
- <tr key={driver.id} className="hover:bg-gray-50/80 transition-colors group cursor-pointer">
- <td className="px-8 py-5 pl-10">
+ <ThemedDataTable<typeof filteredDrivers[number]>
+ columns={[
+ {
+ header: 'Driver Profile',
+ key: 'profile',
+ render: (driver) => (
  <div className="flex items-center gap-4">
  <img src={driver.avatar} className="w-12 h-12 rounded-2xl object-cover shadow-sm border border-gray-100" />
  <div>
@@ -253,8 +246,12 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  </div>
  </div>
  </div>
- </td>
- <td className="px-8 py-5">
+ ),
+ },
+ {
+ header: 'Vehicle',
+ key: 'vehicle',
+ render: (driver) => (
  <div className="flex items-center gap-3">
  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400"><Car size={16}/></div>
  <div>
@@ -262,53 +259,48 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{driver.vehicle.match(/\(([^)]+)\)/)?.[1] || 'Unassigned'}</p>
  </div>
  </div>
- </td>
- <td className="px-8 py-5">
+ ),
+ },
+ {
+ header: 'Documents',
+ key: 'documents',
+ render: (driver) => (
  <span className="px-3 py-1.5 rounded-xl bg-gray-50 text-xs font-bold text-gray-500 border border-gray-100">{driver.license}</span>
- </td>
- <td className="px-8 py-5">
+ ),
+ },
+ {
+ header: 'Status',
+ key: 'status',
+ render: (driver) => (
  <div className="flex items-center gap-2">
  <div className={`w-2 h-2 rounded-full ${driver.status === 'ON_TRIP' ? 'bg-brand-amber animate-pulse' : driver.status === 'AVAILABLE' ? 'bg-brand-green' : 'bg-gray-300'}`}></div>
  <span className={`text-xs font-bold uppercase tracking-wider ${driver.status === 'ON_TRIP' ? 'text-brand-amber' : driver.status === 'AVAILABLE' ? 'text-brand-green' : 'text-gray-400'}`}>
  {driver.status.replace('_', ' ')}
  </span>
  </div>
- </td>
- <td className="px-8 py-5 text-right pr-10 relative">
- <button 
- onClick={(e) => toggleAction(driver.id, e)}
- className="w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:bg-brand-black hover:text-white transition-all z-10 relative"
- >
- <MoreHorizontal size={20} />
- </button>
-
- {openActionId === driver.id && (
- <div className="absolute right-10 top-12 mt-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
- <button 
- onClick={(e) => { 
- e.stopPropagation(); 
- setSelectedDriverId(driver.id); 
- setQrModalOpen(true); 
+ ),
+ },
+ ]}
+ data={filteredDrivers}
+ rowKey={(driver) => driver.id}
+ actions={[
+ {
+ label: 'Generate QR',
+ icon: <QrCode size={14} />,
+ onClick: (driver) => {
+ setSelectedDriverId(driver.id);
+ setQrModalOpen(true);
  handleGenerateCode();
- setOpenActionId(null);
- }}
- className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors"
- >
- <QrCode size={14} /> Generate QR
- </button>
- <button 
- onClick={(e) => { e.stopPropagation(); openEdit(driver); }}
- className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors"
- >
- <Edit size={14} /> Edit Profile
- </button>
- </div>
- )}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
+ },
+ },
+ {
+ label: 'Edit Profile',
+ icon: <Edit size={14} />,
+ onClick: (driver) => openEdit(driver),
+ },
+ ]}
+ rowClassName={() => 'cursor-pointer'}
+ />
  </div>
  )}
  
@@ -318,7 +310,6 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
    onClose={() => setQrModalOpen(false)}
    title="Driver Access Code"
    size="md"
-   showFooter={false}
  >
    <div className="mb-6">
      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Driver</label>

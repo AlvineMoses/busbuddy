@@ -3,6 +3,7 @@ import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
+import { ThemedDataTable, TableColumn, ActionMenuItem } from '../src/components/ThemedDataTable';
 import { Plus, MoreHorizontal, Users, Bus, LayoutGrid, List as ListIcon, Edit, FileText, Archive, Save, Check, ArrowRight } from 'lucide-react';
 import { SCHOOLS as INITIAL_SCHOOLS } from '../services/mockData';
 import { User as UserType, UserRole } from '../types';
@@ -228,72 +229,60 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  ) : (
  /* List View */
  <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 min-h-[500px]">
- <table className="w-full text-left">
- <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
- <tr>
- <th className="px-8 py-6 pl-10">School Name</th>
- <th className="px-8 py-6">Students</th>
- <th className="px-8 py-6">Active Routes</th>
- <th className="px-8 py-6">Account Manager</th>
- <th className="px-8 py-6 text-right pr-10">Action</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-gray-50">
- {schools.map(school => (
- <tr key={school.id} className="hover:bg-gray-50/80 transition-colors group">
- <td className="px-8 py-6 pl-10">
- <div className="flex items-center gap-4">
- <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-black font-bold text-xs border border-gray-100">
- {school.name.substring(0, 2).toUpperCase()}
- </div>
- <div>
- <div className="font-bold text-brand-black text-base">{school.name}</div>
- <div className="text-xs font-medium text-gray-400 mt-1">ID: {school.id}</div>
- </div>
- </div>
- </td>
- <td className="px-8 py-6">
- <div className="flex items-center gap-2 font-medium text-gray-600">
- <Users size={16} className="text-gray-400" /> 1,240
- </div>
- </td>
- <td className="px-8 py-6">
- <div className="flex items-center gap-2 font-medium text-gray-600">
- <Bus size={16} className="text-gray-400" /> 18
- </div>
- </td>
- <td className="px-8 py-6">
- <div className="flex items-center gap-2">
- <div className="w-6 h-6 rounded-full bg-brand-lilac/20 flex items-center justify-center text-xs font-bold text-brand-lilac">SM</div>
- <span className="text-sm font-medium text-gray-600">Sarah Manager</span>
- </div>
- </td>
- <td className="px-8 py-6 text-right pr-10 relative">
- <button 
- onClick={(e) => toggleAction(school.id, e)}
- className="w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:bg-brand-black hover:text-white transition-all z-10 relative"
- >
- <MoreHorizontal size={20} />
- </button>
- {openActionId === school.id && (
- <div className="absolute right-10 top-12 mt-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
- <button onClick={() => openEditModal(school)} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
- <Edit size={14} /> Edit Details
- </button>
- <button onClick={() => openDetailsModal(school)} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
- <FileText size={14} /> Contracts
- </button>
- <div className="h-px bg-gray-50 my-1"></div>
- <button onClick={() => handleArchive(school.id)} className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl flex items-center gap-2 transition-colors">
- <Archive size={14} /> Archive
- </button>
- </div>
- )}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
+ <ThemedDataTable
+   columns={[
+     {
+       header: 'School Name',
+       key: 'name',
+       render: (school) => (
+         <div className="flex items-center gap-4">
+           <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-black font-bold text-xs border border-gray-100">
+             {school.name.substring(0, 2).toUpperCase()}
+           </div>
+           <div>
+             <div className="font-bold text-brand-black text-base">{school.name}</div>
+             <div className="text-xs font-medium text-gray-400 mt-1">ID: {school.id}</div>
+           </div>
+         </div>
+       ),
+     },
+     {
+       header: 'Students',
+       key: 'students',
+       render: () => (
+         <div className="flex items-center gap-2 font-medium text-gray-600">
+           <Users size={16} className="text-gray-400" /> 1,240
+         </div>
+       ),
+     },
+     {
+       header: 'Active Routes',
+       key: 'routes',
+       render: () => (
+         <div className="flex items-center gap-2 font-medium text-gray-600">
+           <Bus size={16} className="text-gray-400" /> 18
+         </div>
+       ),
+     },
+     {
+       header: 'Account Manager',
+       key: 'manager',
+       render: () => (
+         <div className="flex items-center gap-2">
+           <div className="w-6 h-6 rounded-full bg-brand-lilac/20 flex items-center justify-center text-xs font-bold text-brand-lilac">SM</div>
+           <span className="text-sm font-medium text-gray-600">Sarah Manager</span>
+         </div>
+       ),
+     },
+   ]}
+   data={schools}
+   rowKey={(school) => school.id}
+   actions={[
+     { label: 'Edit Details', icon: <Edit size={14} />, onClick: (school) => openEditModal(school) },
+     { label: 'Contracts', icon: <FileText size={14} />, onClick: (school) => openDetailsModal(school) },
+     { label: 'Archive', icon: <Archive size={14} />, onClick: (school) => handleArchive(school.id), divider: true, className: 'text-red-500 hover:bg-red-50' },
+   ]}
+ />
  </div>
  )}
  </>

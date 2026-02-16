@@ -4,7 +4,7 @@ import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect, ThemedTimeInput } from '../src/components/ThemedFormField';
-import { TransportRoute, RouteHealth, School, Trip } from '../types';
+import { TransportRoute, RouteHealth, School, Trip, Student, Location } from '../types';
 import { 
  Search, 
  Plus, 
@@ -23,8 +23,13 @@ import {
  PlayCircle,
  Check,
  LayoutGrid,
- Save
+ Save,
+ ArrowRight,
+ X,
+ User,
+ ChevronDown
 } from 'lucide-react';
+import { ThemedDataTable } from '../src/components/ThemedDataTable';
 import { TripsPage } from './TripsPage';
 import { APIProvider, Map as GoogleMap, Marker } from '@vis.gl/react-google-maps';
 
@@ -71,6 +76,87 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  const [editingRoute, setEditingRoute] = useState<TransportRoute | null>(null);
  const [newStop, setNewStop] = useState('');
 
+ // Stops tab state
+ const [selectedStopRouteId, setSelectedStopRouteId] = useState<string>('');
+ const [stopDirection, setStopDirection] = useState<'PICKUP' | 'DROPOFF'>('PICKUP');
+ const [routeStops, setRouteStops] = useState<Array<{ name: string; address: string; time: string; lat: number; lng: number; studentId?: string }>>([]);
+ const [editingStopIndex, setEditingStopIndex] = useState<number | null>(null);
+ const [editStopForm, setEditStopForm] = useState({ name: '', address: '', time: '' });
+ const [editRouteTime, setEditRouteTime] = useState('07:00');
+ const [editDayTimes, setEditDayTimes] = useState<Record<string, string>>({});
+
+ // Student management state
+ const [mockStudents, setMockStudents] = useState<Student[]>([
+   {
+     id: 'STU1',
+     name: 'Emma Johnson',
+     school: 'S1',
+     grade: 'Grade 5',
+     guardian: 'Sarah Johnson',
+     status: 'WAITING',
+     pickupLocation: { lat: -1.2921, lng: 36.8219, address: 'Karen, Nairobi' },
+     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
+     assignedRoutes: []
+   },
+   {
+     id: 'STU2',
+     name: 'Liam Smith',
+     school: 'S1',
+     grade: 'Grade 6',
+     guardian: 'Michael Smith',
+     status: 'WAITING',
+     pickupLocation: { lat: -1.2850, lng: 36.8250, address: 'Parklands, Nairobi' },
+     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
+     assignedRoutes: []
+   },
+   {
+     id: 'STU3',
+     name: 'Sophia Williams',
+     school: 'S1',
+     grade: 'Grade 4',
+     guardian: 'Jennifer Williams',
+     status: 'WAITING',
+     pickupLocation: { lat: -1.2800, lng: 36.8150, address: 'Kilimani, Nairobi' },
+     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
+     assignedRoutes: []
+   },
+   {
+     id: 'STU4',
+     name: 'Noah Brown',
+     school: 'S1',
+     grade: 'Grade 5',
+     guardian: 'David Brown',
+     status: 'WAITING',
+     pickupLocation: { lat: -1.2920, lng: 36.8100, address: 'Lavington, Nairobi' },
+     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
+     assignedRoutes: []
+   },
+   {
+     id: 'STU5',
+     name: 'Olivia Davis',
+     school: 'S1',
+     grade: 'Grade 6',
+     guardian: 'Emily Davis',
+     status: 'WAITING',
+     pickupLocation: { lat: -1.2750, lng: 36.8200, address: 'Hurlingham, Nairobi' },
+     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
+     assignedRoutes: []
+   },
+   {
+     id: 'STU6',
+     name: 'Ava Martinez',
+     school: 'S1',
+     grade: 'Grade 4',
+     guardian: 'Carlos Martinez',
+     status: 'WAITING',
+     pickupLocation: { lat: -1.2880, lng: 36.8300, address: 'Eastleigh, Nairobi' },
+     dropoffLocation: { lat: -1.2864, lng: 36.8172, address: 'Westlands Primary School' },
+     assignedRoutes: []
+   }
+ ]);
+ const [studentSearchTerm, setStudentSearchTerm] = useState('');
+ const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+
  // Initialize day times when operating days or time changes
  useEffect(() => {
    const initial: Record<string, string> = {};
@@ -88,6 +174,36 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  const matchesSchool = currentSchoolId ? r.schoolId === currentSchoolId : true;
  return matchesSearch && matchesSchool;
  });
+
+ // Initialize selectedStopRouteId when filteredRoutes change
+ useEffect(() => {
+   if (filteredRoutes.length > 0 && !filteredRoutes.find(r => r.id === selectedStopRouteId)) {
+     setSelectedStopRouteId(filteredRoutes[0].id);
+   }
+ }, [filteredRoutes, selectedStopRouteId]);
+
+ // Load stops for selected route from student assignments
+ useEffect(() => {
+   if (selectedStopRouteId) {
+     // Get students assigned to this route
+     const assignedStudents = mockStudents.filter(s => s.assignedRoutes?.includes(selectedStopRouteId));
+     
+     // Generate stops from student pickup/dropoff locations
+     const stops = assignedStudents.map((student, index) => {
+       const location = stopDirection === 'PICKUP' ? student.pickupLocation : student.dropoffLocation;
+       return {
+         studentId: student.id,
+         name: student.name,
+         address: location?.address || 'Unknown location',
+         time: `07:${(index * 5).toString().padStart(2, '0')} AM`, // Mock time increments
+         lat: location?.lat || -1.2864,
+         lng: location?.lng || 36.8172
+       };
+     });
+     
+     setRouteStops(stops);
+   }
+ }, [selectedStopRouteId, mockStudents, stopDirection]);
 
  const handleExport = () => {
  const headers = ["Route ID", "Route Name", "School", "Type", "Vehicle", "Status"];
@@ -151,6 +267,10 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
 
  const openEditModal = (route: TransportRoute) => {
  setEditingRoute(route);
+ setEditRouteTime('07:00');
+ const initial: Record<string, string> = {};
+ operatingDays.forEach(day => { initial[day] = '07:00'; });
+ setEditDayTimes(initial);
  setIsEditModalOpen(true);
  setOpenActionId(null);
  };
@@ -163,12 +283,53 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  }
  };
 
+ // Toggle student assignment to selected route
+ const toggleStudentAssignment = (studentId: string) => {
+   setMockStudents(mockStudents.map(s => {
+     if (s.id === studentId) {
+       const currentRoutes = s.assignedRoutes || [];
+       const isAssigned = currentRoutes.includes(selectedStopRouteId);
+       return {
+         ...s,
+         assignedRoutes: isAssigned
+           ? currentRoutes.filter(id => id !== selectedStopRouteId)
+           : [...currentRoutes, selectedStopRouteId]
+       };
+     }
+     return s;
+   }));
+ };
+
  const handleAddStop = () => {
  if (newStop.trim()) {
- alert(`Stop "${newStop}" added to route.`);
- setNewStop('');
- setIsAddStopModalOpen(false);
+   const newStopData = {
+     name: newStop,
+     address: 'New address',
+     time: '07:00 AM',
+     lat: DEFAULT_CENTER.lat + (Math.random() - 0.5) * 0.01,
+     lng: DEFAULT_CENTER.lng + (Math.random() - 0.5) * 0.01,
+   };
+   setRouteStops([...routeStops, newStopData]);
+   setNewStop('');
+   setIsAddStopModalOpen(false);
  }
+ };
+
+ const handleRemoveStop = (index: number) => {
+   setRouteStops(routeStops.filter((_, i) => i !== index));
+ };
+
+ const handleEditStop = (index: number) => {
+   const stop = routeStops[index];
+   setEditStopForm({ name: stop.name, address: stop.address, time: stop.time });
+   setEditingStopIndex(index);
+ };
+
+ const handleSaveStopEdit = () => {
+   if (editingStopIndex !== null) {
+     setRouteStops(routeStops.map((s, i) => i === editingStopIndex ? { ...s, ...editStopForm } : s));
+     setEditingStopIndex(null);
+   }
  };
 
  // Mock stop positions for the map (in production, these would come from real data)
@@ -345,7 +506,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  ))}
  </div>
  ) : (
- <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
+ <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden min-h-125">
  
  {/* Controls - White Inputs */}
  <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row gap-4 justify-between">
@@ -367,234 +528,444 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
  </div>
 
  {/* Table */}
- <div className="overflow-x-auto">
- <table className="w-full text-left">
- <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
- <tr>
- <th className="px-8 py-6 pl-10">Route Name</th>
- <th className="px-8 py-6">School</th>
- <th className="px-8 py-6">Type</th>
- <th className="px-8 py-6">Assigned To</th>
- <th className="px-8 py-6">Status</th>
- <th className="px-8 py-6 text-right pr-10">Action</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-gray-50">
- {filteredRoutes.map((route) => (
- <tr key={route.id} className="hover:bg-gray-50/80 transition-colors group">
- <td className="px-8 py-6 pl-10">
- <div className="font-bold text-brand-black text-base">{route.name}</div>
- <div className="text-xs font-bold text-brand-lilac mt-1">{route.id}</div>
- </td>
- <td className="px-8 py-6 text-sm font-medium text-gray-600">
- {schools.find(s => s.id === route.schoolId)?.name}
- </td>
- <td className="px-8 py-6">
- <span 
-                className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold tracking-wide border"
+ <ThemedDataTable
+  columns={[
+    {
+      header: 'Route Name',
+      key: 'name',
+      render: (route) => (
+        <>
+          <div className="font-bold text-brand-black text-base">{route.name}</div>
+          <div className="text-xs font-bold text-brand-lilac mt-1">{route.id}</div>
+        </>
+      ),
+    },
+    {
+      header: 'School',
+      key: 'school',
+      cellClassName: 'text-sm font-medium text-gray-600',
+      render: (route) => schools.find(s => s.id === route.schoolId)?.name,
+    },
+    {
+      header: 'Type',
+      key: 'type',
+      render: (route) => (
+        <span
+          className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold tracking-wide border"
+          style={{
+            backgroundColor: `${getTypeColor(route.type)}1A`,
+            color: getTypeColor(route.type),
+            borderColor: `${getTypeColor(route.type)}33`
+          }}
+        >
+          {route.type === 'PICKUP' ? 'PICKUP' : 'DROPOFF'}
+        </span>
+      ),
+    },
+    {
+      header: 'Assigned To',
+      key: 'assignedTo',
+      cellClassName: 'text-sm font-mono font-medium text-gray-500',
+      render: (route) => route.vehiclePlate,
+    },
+    {
+      header: 'Status',
+      key: 'status',
+      render: (route) => (
+        <div className="flex items-center gap-3">
+          {route.status === 'INACTIVE' ? (
+            <span className="text-xs font-bold text-gray-400 uppercase">Suspended</span>
+          ) : (
+            <>
+              <div
+                className="w-2.5 h-2.5 rounded-full"
                 style={{
-                  backgroundColor: `${getTypeColor(route.type)}1A`,
-                  color: getTypeColor(route.type),
-                  borderColor: `${getTypeColor(route.type)}33`
+                  backgroundColor: getHealthColor(route.health),
+                  boxShadow: `0 0 8px ${getHealthColor(route.health)}`
                 }}
-              >
- {route.type === 'PICKUP' ? 'PICKUP' : 'DROPOFF'}
- </span>
- </td>
- <td className="px-8 py-6 text-sm font-mono font-medium text-gray-500">
- {route.vehiclePlate}
- </td>
- <td className="px-8 py-6">
- <div className="flex items-center gap-3">
- {route.status === 'INACTIVE' ? (
- <span className="text-xs font-bold text-gray-400 uppercase">Suspended</span>
- ) : (
- <>
- <div 
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{
-                    backgroundColor: getHealthColor(route.health),
-                    boxShadow: `0 0 8px ${getHealthColor(route.health)}`
-                  }}
-                ></div>
- <span className="text-sm font-bold text-brand-black capitalize">{route.health.toLowerCase()}</span>
- </>
- )}
- </div>
- </td>
- <td className="px-8 py-6 text-right pr-10 relative">
- <button 
- onClick={(e) => toggleAction(route.id, e)}
- className="w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:bg-brand-black hover:text-white transition-all duration-300 z-10 relative"
- >
- <MoreHorizontal size={20} />
- </button>
- 
- {openActionId === route.id && (
- <div className="absolute right-10 top-12 mt-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
- <button className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
- <Eye size={14} /> View Details
- </button>
- <button onClick={() => openEditModal(route)} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors">
- <Edit2 size={14} /> Edit Route
- </button>
- <button 
- onClick={() => toggleStatus(route.id)}
- className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors"
- >
- {route.status === 'ACTIVE' ? <PauseCircle size={14} /> : <PlayCircle size={14}/>} 
- {route.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
- </button>
- <div className="h-px bg-gray-50 my-1"></div>
- <button onClick={() => handleDelete(route.id)} className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl flex items-center gap-2 transition-colors">
- <Trash2 size={14} /> Delete
- </button>
- </div>
- )}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
+              ></div>
+              <span className="text-sm font-bold text-brand-black capitalize">{route.health.toLowerCase()}</span>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ]}
+  data={filteredRoutes}
+  rowKey={(route) => route.id}
+  actions={[
+    {
+      label: 'View Details',
+      icon: <Eye size={14} />,
+      onClick: () => {},
+    },
+    {
+      label: 'Edit Route',
+      icon: <Edit2 size={14} />,
+      onClick: (route) => openEditModal(route),
+    },
+    {
+      label: 'Suspend',
+      icon: <PauseCircle size={14} />,
+      onClick: (route) => toggleStatus(route.id),
+      hidden: (route) => route.status !== 'ACTIVE',
+    },
+    {
+      label: 'Activate',
+      icon: <PlayCircle size={14} />,
+      onClick: (route) => toggleStatus(route.id),
+      hidden: (route) => route.status === 'ACTIVE',
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 size={14} />,
+      onClick: (route) => handleDelete(route.id),
+      divider: true,
+      className: 'text-red-500 hover:bg-red-50',
+    },
+  ]}
+ />
  </div>
  )}
  </>
  ) : (
  /* Stops Layout */
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[700px]">
- {/* ... existing stops content ... */}
- <div className="lg:col-span-1 space-y-6 flex flex-col h-full">
- <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex-1 flex flex-col">
- <h3 className="font-bold text-lg text-brand-black mb-6">Route Details</h3>
- <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Select Route</label>
- 
- {/* White Dropdown */}
- <div className="relative">
- <select className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-brand-lilac/10 focus:border-brand-lilac mb-8 appearance-none text-brand-black shadow-sm transition-all cursor-pointer">
- {filteredRoutes.map(r => <option key={r.id}>{r.name}</option>)}
- </select>
- <div className="pointer-events-none absolute top-[22px] right-4 text-gray-400"><MoreHorizontal size={14}/></div>
- </div>
- 
- <div className="p-8 bg-brand-black rounded-[2rem] text-white relative overflow-hidden shadow-2xl mb-6">
- <div className="absolute top-0 right-0 w-40 h-40 bg-brand-lilac/30 rounded-full blur-3xl -mr-12 -mt-12"></div>
- <div className="relative z-10">
- <h4 className="font-bold text-xl">Morning Pickup</h4>
- <p className="text-gray-400 text-sm mt-1 font-medium">Ref: R1-North</p>
- 
- <div className="mt-10 grid grid-cols-2 gap-6">
- <div>
- <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Stops</p>
- <p className="text-3xl font-light mt-1">12</p>
- </div>
- <div>
- <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Est. Time</p>
- <p className="text-3xl font-light mt-1">45<span className="text-sm text-gray-500 ml-1">min</span></p>
- </div>
- </div>
- </div>
- </div>
-
- {/* Action Buttons */}
- <div className="grid grid-cols-2 gap-4 mt-auto">
- <ThemedButton 
- variant="ghost" 
- onClick={() => openEditModal(filteredRoutes[0])}
- icon={Edit2}
- className="py-4"
- >
- Edit Route
- </ThemedButton>
- <ThemedButton 
- variant="secondary" 
- onClick={() => setIsAddStopModalOpen(true)}
- icon={MapPin}
- className="py-4"
- >
- Add Stops
- </ThemedButton>
- </div>
- </div>
- </div>
-
- <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
- <div className="p-8 border-b border-gray-50 flex justify-between items-center shrink-0">
- <h3 className="font-bold text-lg text-brand-black">Stop Sequence</h3>
- <div className="flex bg-gray-50 rounded-full p-1">
- <button 
- onClick={() => setStopViewMode('list')}
- className={`p-3 rounded-full transition-all ${stopViewMode === 'list' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-400 hover:text-brand-black'}`}
- >
- <List size={18}/>
- </button>
- <button 
- onClick={() => setStopViewMode('map')}
- className={`p-3 rounded-full transition-all ${stopViewMode === 'map' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-400 hover:text-brand-black'}`}
- >
- <Map size={18}/>
- </button>
- </div>
- </div>
- 
- <div className="flex-1 overflow-y-auto p-6 relative">
- {stopViewMode === 'list' ? (
- <div className="space-y-3">
- {[1,2,3,4,5,6].map((num) => (
- <div key={num} className="flex items-center p-5 rounded-[1.8rem] bg-white border border-gray-100 hover:border-brand-lilac/30 hover:shadow-lg hover:shadow-brand-lilac/5 transition-all group">
- <div className="w-10 h-10 rounded-full bg-brand-lilac/10 text-brand-lilac flex items-center justify-center font-bold text-sm mr-5">
- {num}
- </div>
- <div className="flex-1">
- <p className="font-bold text-brand-black text-sm">Stop Location {String.fromCharCode(64 + num)}</p>
- <p className="text-xs text-gray-400 mt-1 font-medium">123 Example Street, District {num}</p>
- </div>
- <div className="text-sm font-mono font-bold text-gray-500 mr-6">
- 07:0{num} AM
- </div>
- <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
- <ThemedButton variant="icon" style={{ backgroundColor: colors.primary, color: 'white' }}><Edit2 size={16}/></ThemedButton>
- </div>
- </div>
- ))}
- </div>
- ) : (
- <div className="w-full h-full rounded-[2rem] overflow-hidden">
-   {!GOOGLE_MAPS_API_KEY ? (
-     <div className="w-full h-full bg-gray-50 rounded-[2rem] flex items-center justify-center relative overflow-hidden">
-       <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-       <div className="flex flex-col items-center gap-3 text-gray-400 z-10">
-         <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-2">
-           <RouteIcon size={32} className="text-gray-300"/>
+ <div className="space-y-6">
+   {/* Horizontal Timeline - Only show when stops exist */}
+   {routeStops.length > 0 && (
+     <div className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-gray-100">
+       <div className="flex items-center justify-between mb-3">
+         <h3 className="font-bold text-sm text-brand-black">Route Timeline</h3>
+         <div className="flex items-center gap-2 text-xs text-gray-400">
+           <span className="font-bold" style={{ color: stopDirection === 'PICKUP' ? colors.statusScheduled : colors.statusCompleted }}>
+             {stopDirection === 'PICKUP' ? 'Home → School' : 'School → Home'}
+           </span>
          </div>
-         <p className="font-bold text-sm">Map Unavailable</p>
-         <p className="text-xs">Google Maps API key not configured</p>
+       </div>
+       <div className="flex items-center overflow-x-auto pb-2 gap-0">
+         {routeStops.map((stop, idx) => {
+             const isFirst = idx === 0;
+             const isLast = idx === routeStops.length - 1;
+             const label = isFirst
+               ? (stopDirection === 'PICKUP' ? 'Home' : 'School')
+               : isLast
+               ? (stopDirection === 'PICKUP' ? 'School' : 'Home')
+               : null;
+             return (
+               <React.Fragment key={idx}>
+                 <div className="flex flex-col items-center shrink-0 min-w-20">
+                   <button
+                     onClick={() => handleEditStop(idx)}
+                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm hover:scale-110 transition-transform cursor-pointer"
+                     style={{ backgroundColor: (isFirst || isLast) ? colors.primary : '#94a3b8' }}
+                     title={`Click to edit ${stop.name}`}
+                   >
+                     {idx + 1}
+                   </button>
+                   <p className="text-[10px] font-bold text-brand-black mt-1.5 text-center max-w-18 truncate">{stop.name}</p>
+                   <p className="text-[10px] text-gray-400">{stop.time}</p>
+                   {label && <span className="text-[9px] font-bold mt-0.5 px-2 py-0.5 rounded-full" style={{ backgroundColor: `${colors.primary}1A`, color: colors.primary }}>{label}</span>}
+                 </div>
+                 {!isLast && (
+                   <div className="flex-1 min-w-6 h-0.5 bg-gray-200 mx-1 relative -top-4">
+                     <ArrowRight size={10} className="absolute -right-1 -top-1 text-gray-300" />
+                   </div>
+                 )}
+               </React.Fragment>
+             );
+           })}
+           {/* Add Stop Button */}
+           <button
+             onClick={() => setShowStudentDropdown(true)}
+             className="shrink-0 ml-2 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm hover:scale-110 transition-all"
+             style={{ backgroundColor: colors.primary }}
+             title="Add another stop"
+           >
+             <Plus size={16} />
+           </button>
        </div>
      </div>
-   ) : (
-     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-       <GoogleMap
-         defaultCenter={DEFAULT_CENTER}
-         defaultZoom={13}
-         mapId="busbudd-stops-map"
-         disableDefaultUI={true}
-         gestureHandling="greedy"
-         style={{ width: '100%', height: '100%', borderRadius: '2rem' }}
-       >
-         {getMockStopPositions().map((stop, index) => (
-           <Marker
-             key={index}
-             position={{ lat: stop.lat, lng: stop.lng }}
-             title={`${index + 1}. ${stop.name}`}
-           />
-         ))}
-       </GoogleMap>
-     </APIProvider>
    )}
- </div>
- )}
- </div>
- </div>
+
+   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-150">
+     {/* Left Panel - Route Details */}
+     <div className="lg:col-span-1 space-y-6 flex flex-col h-full">
+       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex-1 flex flex-col">
+         <h3 className="font-bold text-lg text-brand-black mb-4">Route Details</h3>
+
+         {/* Direction Toggle */}
+         <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Direction</label>
+         <div className="flex p-1 bg-gray-50 rounded-2xl border border-gray-100 mb-6">
+           <button
+             onClick={() => setStopDirection('PICKUP')}
+             className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
+               stopDirection === 'PICKUP'
+                 ? 'bg-white text-brand-black shadow-sm'
+                 : 'text-gray-400 hover:text-gray-600'
+             }`}
+           >
+             Pickup
+           </button>
+           <button
+             onClick={() => setStopDirection('DROPOFF')}
+             className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
+               stopDirection === 'DROPOFF'
+                 ? 'bg-white text-brand-black shadow-sm'
+                 : 'text-gray-400 hover:text-gray-600'
+             }`}
+           >
+             Dropoff
+           </button>
+         </div>
+
+         {(() => {
+           const selectedRoute = filteredRoutes.find(r => r.id === selectedStopRouteId) || filteredRoutes[0];
+           if (!selectedRoute) return null;
+           return (
+             <div className="p-8 bg-brand-black rounded-4xl text-white relative overflow-hidden shadow-2xl mb-6">
+               <div className="absolute top-0 right-0 w-40 h-40 bg-brand-lilac/30 rounded-full blur-3xl -mr-12 -mt-12"></div>
+               <div className="relative z-10">
+                 <h4 className="font-bold text-xl">{selectedRoute.name}</h4>
+                 <p className="text-gray-400 text-sm mt-1 font-medium">
+                   {stopDirection === 'PICKUP' ? 'Pickup' : 'Dropoff'} · Ref: {selectedRoute.id}
+                 </p>
+                 <div className="mt-8 grid grid-cols-2 gap-6">
+                   <div>
+                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Stops</p>
+                     <p className="text-3xl font-light mt-1">{routeStops.length}</p>
+                   </div>
+                   <div>
+                     <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Est. Time</p>
+                     <p className="text-3xl font-light mt-1">{routeStops.length * 5}<span className="text-sm text-gray-500 ml-1">min</span></p>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           );
+         })()}
+
+         {/* Action Buttons */}
+         <div className="grid grid-cols-2 gap-4 mt-auto">
+           <ThemedButton
+             variant="ghost"
+             onClick={() => {
+               const selected = filteredRoutes.find(r => r.id === selectedStopRouteId);
+               if (selected) openEditModal(selected);
+             }}
+             icon={Edit2}
+             className="py-4"
+           >
+             Edit Route
+           </ThemedButton>
+           <ThemedButton
+             variant="secondary"
+             onClick={() => setIsAddStopModalOpen(true)}
+             icon={User}
+             className="py-4"
+           >
+             Add Driver
+           </ThemedButton>
+         </div>
+       </div>
+     </div>
+
+     {/* Right Panel - Stop Sequence */}
+     <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
+       <div className="p-8 border-b border-gray-50 grid grid-cols-3 gap-4 items-center shrink-0">
+         {/* Left Column: Route Selector */}
+         <div className="relative">
+           <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Route</label>
+           <div className="relative">
+             <select
+               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-brand-lilac/20 focus:border-brand-lilac appearance-none text-brand-black transition-all cursor-pointer"
+               value={selectedStopRouteId}
+               onChange={(e) => setSelectedStopRouteId(e.target.value)}
+             >
+               {filteredRoutes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+             </select>
+             <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 right-3 text-gray-400">
+               <ChevronDown size={14}/>
+             </div>
+           </div>
+         </div>
+
+         {/* Middle Column: Student Assignment Dropdown */}
+         <div className="relative">
+           <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Students</label>
+           <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={14} />
+             <input
+               type="text"
+               placeholder="Search students..."
+               value={studentSearchTerm}
+               onChange={(e) => setStudentSearchTerm(e.target.value)}
+               onFocus={() => setShowStudentDropdown(true)}
+               onBlur={() => setTimeout(() => setShowStudentDropdown(false), 200)}
+               className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-brand-lilac/20 focus:border-brand-lilac text-brand-black transition-all"
+             />
+             <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 right-3 text-gray-400">
+               <ChevronDown size={14}/>
+             </div>
+             
+             {/* Student Dropdown */}
+             {showStudentDropdown && (
+               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto z-50">
+                 {mockStudents
+                   .filter(student => 
+                     (currentSchoolId ? student.school === currentSchoolId : true) &&
+                     student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
+                   )
+                   .map(student => {
+                     const isAssigned = student.assignedRoutes?.includes(selectedStopRouteId);
+                     return (
+                       <button
+                         key={student.id}
+                         onClick={() => toggleStudentAssignment(student.id)}
+                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                       >
+                         <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isAssigned ? 'bg-green-100 text-green-600' : 'bg-red-50 text-red-400'}`}>
+                           {isAssigned ? <Check size={12} /> : <X size={12} />}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <p className="text-sm font-bold text-brand-black truncate">{student.name}</p>
+                           <p className="text-xs text-gray-400 truncate">{student.grade}</p>
+                         </div>
+                       </button>
+                     );
+                   })}
+                 {mockStudents.filter(s => (currentSchoolId ? s.school === currentSchoolId : true) && s.name.toLowerCase().includes(studentSearchTerm.toLowerCase())).length === 0 && (
+                   <div className="px-4 py-8 text-center text-gray-400 text-sm">
+                     No students found
+                   </div>
+                 )}
+               </div>
+             )}
+           </div>
+         </div>
+
+         {/* Right Column: View Toggle */}
+         <div className="flex justify-end">
+           <div className="flex bg-gray-50 rounded-full p-1">
+             <button
+               onClick={() => setStopViewMode('list')}
+               className={`p-3 rounded-full transition-all ${stopViewMode === 'list' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-400 hover:text-brand-black'}`}
+             >
+               <List size={18}/>
+             </button>
+             <button
+               onClick={() => setStopViewMode('map')}
+               className={`p-3 rounded-full transition-all ${stopViewMode === 'map' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-400 hover:text-brand-black'}`}
+             >
+               <Map size={18}/>
+             </button>
+           </div>
+         </div>
+       </div>
+       
+
+       <div className="flex-1 overflow-y-auto p-6 relative">
+         {stopViewMode === 'list' ? (
+           <div className="space-y-3">
+             {routeStops.length === 0 && (
+               <div className="text-center py-16 text-gray-400">
+                 <User size={40} className="mx-auto mb-3 opacity-30" />
+                 <p className="font-bold text-sm">No students assigned to this route</p>
+                 <p className="text-xs mt-1">Use the student dropdown above to assign students to this route.</p>
+               </div>
+             )}
+             {routeStops.map((stop, idx) => (
+               <div key={idx} className="flex items-center p-5 rounded-[1.8rem] bg-white border border-gray-100 hover:border-brand-lilac/30 hover:shadow-lg hover:shadow-brand-lilac/5 transition-all group">
+                 <div className="w-10 h-10 rounded-full bg-brand-lilac/10 text-brand-lilac flex items-center justify-center font-bold text-sm mr-5 shrink-0">
+                   {idx + 1}
+                 </div>
+                 {editingStopIndex === idx ? (
+                   <div className="flex-1 flex items-center gap-3">
+                     <input
+                       type="text"
+                       value={editStopForm.name}
+                       onChange={e => setEditStopForm({ ...editStopForm, name: e.target.value })}
+                       className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-brand-lilac/20 focus:border-brand-lilac outline-none"
+                       placeholder="Stop name"
+                     />
+                     <input
+                       type="text"
+                       value={editStopForm.time}
+                       onChange={e => setEditStopForm({ ...editStopForm, time: e.target.value })}
+                       className="w-24 px-3 py-2 border border-gray-200 rounded-xl text-sm font-mono font-bold focus:ring-2 focus:ring-brand-lilac/20 focus:border-brand-lilac outline-none"
+                       placeholder="Time"
+                     />
+                     <ThemedButton variant="primary" onClick={handleSaveStopEdit} icon={Check} className="py-2! px-3!">Save</ThemedButton>
+                     <ThemedButton variant="cancel" onClick={() => setEditingStopIndex(null)} className="py-2! px-3!">Cancel</ThemedButton>
+                   </div>
+                 ) : (
+                   <>
+                     <div className="flex-1 min-w-0">
+                       <p className="font-bold text-brand-black text-sm">{stop.name}</p>
+                       <p className="text-xs text-gray-400 mt-1 font-medium truncate">{stop.address}</p>
+                     </div>
+                     <div className="text-sm font-mono font-bold text-gray-500 mr-6 shrink-0">
+                       {stop.time}
+                     </div>
+                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 shrink-0">
+                       <button
+                         onClick={() => handleEditStop(idx)}
+                         className="p-2 rounded-xl transition-colors"
+                         style={{ backgroundColor: `${colors.primary}1A`, color: colors.primary }}
+                         title="Edit stop"
+                       >
+                         <Edit2 size={14}/>
+                       </button>
+                       <button
+                         onClick={() => handleRemoveStop(idx)}
+                         className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                         title="Remove stop"
+                       >
+                         <Trash2 size={14}/>
+                       </button>
+                     </div>
+                   </>
+                 )}
+               </div>
+             ))}
+           </div>
+         ) : (
+           <div className="w-full h-full rounded-4xl overflow-hidden">
+             {!GOOGLE_MAPS_API_KEY ? (
+               <div className="w-full h-full bg-gray-50 rounded-4xl flex items-center justify-center relative overflow-hidden">
+                 <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                 <div className="flex flex-col items-center gap-3 text-gray-400 z-10">
+                   <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-2">
+                     <RouteIcon size={32} className="text-gray-300"/>
+                   </div>
+                   <p className="font-bold text-sm">Map Unavailable</p>
+                   <p className="text-xs">Google Maps API key not configured</p>
+                 </div>
+               </div>
+             ) : (
+               <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+                 <GoogleMap
+                   defaultCenter={routeStops.length > 0 ? { lat: routeStops[0].lat, lng: routeStops[0].lng } : DEFAULT_CENTER}
+                   defaultZoom={13}
+                   mapId="busbudd-stops-map"
+                   disableDefaultUI={true}
+                   gestureHandling="greedy"
+                   style={{ width: '100%', height: '100%', borderRadius: '2rem' }}
+                 >
+                   {routeStops.map((stop, index) => (
+                     <Marker
+                       key={index}
+                       position={{ lat: stop.lat, lng: stop.lng }}
+                       title={`${index + 1}. ${stop.name}`}
+                     />
+                   ))}
+                 </GoogleMap>
+               </APIProvider>
+             )}
+           </div>
+         )}
+       </div>
+     </div>
+   </div>
  </div>
  )}
 
@@ -603,7 +974,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
    isOpen={isCreateModalOpen}
    onClose={() => setIsCreateModalOpen(false)}
    title="Create New Route"
-   size="xl"
+   size="2xl"
    className="max-h-[90vh] overflow-y-auto"
    footer={
      <ThemedButton 
@@ -653,7 +1024,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
        {/* Days of the Week Schedule */}
        <div>
          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 block">Schedule by Day</label>
-         <div className="space-y-2">
+         <div className="grid grid-cols-2 gap-2">
            {operatingDays.map(day => (
              <div key={day} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
                <span className="text-xs font-bold text-brand-black w-24 truncate">{day}</span>
@@ -680,7 +1051,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
        />
 
        {/* Route Summary Card */}
-       <div className="p-6 bg-brand-black rounded-[1.5rem] text-white relative overflow-hidden mt-4">
+       <div className="p-6 bg-brand-black rounded-3xl text-white relative overflow-hidden mt-4">
          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-lilac/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
          <div className="relative z-10">
            <h4 className="font-bold text-lg mb-1">Route Summary</h4>
@@ -714,7 +1085,8 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
    isOpen={isEditModalOpen && editingRoute !== null}
    onClose={() => setIsEditModalOpen(false)}
    title="Edit Route"
-   size="lg"
+   size="2xl"
+   className="max-h-[90vh] overflow-y-auto"
    footer={
      <ThemedButton 
        variant="primary"
@@ -726,19 +1098,111 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ routes: initialRoutes, s
    }
  >
    {editingRoute && (
-     <div className="space-y-4">
-       <ThemedInput
-         label="Route Name"
-         type="text"
-         value={editingRoute.name}
-         onChange={(e) => setEditingRoute({ ...editingRoute, name: e.target.value })}
-       />
-       <ThemedInput
-         label="Vehicle"
-         type="text"
-         value={editingRoute.vehiclePlate}
-         onChange={(e) => setEditingRoute({ ...editingRoute, vehiclePlate: e.target.value })}
-       />
+     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+       {/* Left Column */}
+       <div className="space-y-4">
+         <ThemedSelect
+           label="School"
+           value={editingRoute.schoolId}
+           onChange={(e) => setEditingRoute({ ...editingRoute, schoolId: e.target.value })}
+         >
+           <option value="" disabled>Select School</option>
+           {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+         </ThemedSelect>
+
+         <ThemedInput
+           label="Route Name"
+           type="text"
+           placeholder="e.g. Route A - North"
+           value={editingRoute.name}
+           onChange={(e) => setEditingRoute({ ...editingRoute, name: e.target.value })}
+         />
+
+         <ThemedSelect
+           label="Type"
+           value={editingRoute.type}
+           onChange={(e) => setEditingRoute({ ...editingRoute, type: e.target.value as any })}
+         >
+           <option value="PICKUP">Pickup</option>
+           <option value="DROPOFF">Dropoff</option>
+         </ThemedSelect>
+
+         <ThemedTimeInput
+           label="Default Time"
+           value={editRouteTime}
+           onChange={(e) => {
+             setEditRouteTime(e.target.value);
+             const updated: Record<string, string> = {};
+             operatingDays.forEach(day => { updated[day] = e.target.value; });
+             setEditDayTimes(updated);
+           }}
+         />
+
+         {/* Days of the Week Schedule */}
+         <div>
+           <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 block">Schedule by Day</label>
+           <div className="grid grid-cols-2 gap-2">
+             {operatingDays.map(day => (
+               <div key={day} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                 <span className="text-xs font-bold text-brand-black w-24 truncate">{day}</span>
+                 <input 
+                   type="time"
+                   value={editDayTimes[day] || editRouteTime}
+                   onChange={(e) => setEditDayTimes({...editDayTimes, [day]: e.target.value})}
+                   className="flex-1 p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-brand-black"
+                 />
+               </div>
+             ))}
+           </div>
+         </div>
+       </div>
+
+       {/* Right Column */}
+       <div className="space-y-4">
+         <ThemedInput
+           label="Vehicle Plate"
+           type="text"
+           placeholder="e.g. BUS-101"
+           value={editingRoute.vehiclePlate}
+           onChange={(e) => setEditingRoute({ ...editingRoute, vehiclePlate: e.target.value })}
+         />
+
+         <ThemedSelect
+           label="Status"
+           value={editingRoute.status}
+           onChange={(e) => setEditingRoute({ ...editingRoute, status: e.target.value as any })}
+         >
+           <option value="ACTIVE">Active</option>
+           <option value="INACTIVE">Inactive</option>
+         </ThemedSelect>
+
+         {/* Route Summary Card */}
+         <div className="p-6 bg-brand-black rounded-3xl text-white relative overflow-hidden mt-4">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-brand-lilac/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
+           <div className="relative z-10">
+             <h4 className="font-bold text-lg mb-1">Route Summary</h4>
+             <p className="text-gray-400 text-xs font-medium mb-6">{editingRoute.name || 'Untitled Route'}</p>
+             <div className="grid grid-cols-2 gap-4">
+               <div>
+                 <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Type</p>
+                 <p className="text-lg font-light mt-1">{editingRoute.type || 'PICKUP'}</p>
+               </div>
+               <div>
+                 <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Time</p>
+                 <p className="text-lg font-light mt-1">{editRouteTime}</p>
+               </div>
+               <div>
+                 <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">School</p>
+                 <p className="text-lg font-light mt-1 truncate">{schools.find(s => s.id === editingRoute.schoolId)?.name || '—'}</p>
+               </div>
+               <div>
+                 <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Vehicle</p>
+                 <p className="text-lg font-light mt-1">{editingRoute.vehiclePlate || '—'}</p>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
      </div>
    )}
  </ThemedModal>

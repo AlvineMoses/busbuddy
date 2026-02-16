@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { ThemedButton, ThemedInput, ThemedLogo, ThemedLink } from '../src/components/ThemedComponents';
+import { ThemedDataTable } from '../src/components/ThemedDataTable';
+import { ThemedModal } from '../src/components/ThemedModal';
 import { useTheme } from '../src/hooks/useTheme';
 import { addToast } from '../src/store/slices/uiSlice';
 import { endpointConfigService, deriveEndpointsFromConfig } from '../src/services/EndpointConfigService';
@@ -80,18 +82,15 @@ const ConfirmDialog: React.FC<{
   onConfirm: () => void;
   onCancel: () => void;
 }> = ({ open, title, message, confirmLabel = 'Confirm', confirmVariant = 'danger', onConfirm, onCancel }) => {
-  if (!open) return null;
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
-      <div className="bg-white rounded-4xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`p-2.5 rounded-xl ${confirmVariant === 'danger' ? 'bg-red-50' : 'bg-blue-50'}`}>
-            <AlertTriangle size={20} className={confirmVariant === 'danger' ? 'text-red-500' : 'text-blue-500'} />
-          </div>
-          <h4 className="font-bold text-brand-black text-lg">{title}</h4>
-        </div>
-        <p className="text-sm text-gray-600 mb-6 leading-relaxed">{message}</p>
-        <div className="flex justify-end gap-3">
+  return (
+    <ThemedModal
+      isOpen={open}
+      onClose={onCancel}
+      title=""
+      size="md"
+      showCloseButton={false}
+      footer={
+        <div className="flex justify-end gap-3 w-full">
           <ThemedButton variant="cancel" onClick={onCancel}>Cancel</ThemedButton>
           <button
             onClick={onConfirm}
@@ -104,9 +103,16 @@ const ConfirmDialog: React.FC<{
             {confirmLabel}
           </button>
         </div>
+      }
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`p-2.5 rounded-xl ${confirmVariant === 'danger' ? 'bg-red-50' : 'bg-blue-50'}`}>
+          <AlertTriangle size={20} className={confirmVariant === 'danger' ? 'text-red-500' : 'text-blue-500'} />
+        </div>
+        <h4 className="font-bold text-brand-black text-lg">{title}</h4>
       </div>
-    </div>,
-    document.body
+      <p className="text-sm text-gray-600 leading-relaxed">{message}</p>
+    </ThemedModal>
   );
 };
 
@@ -119,94 +125,97 @@ const ImportPreviewDialog: React.FC<{
   onConfirm: () => void;
   onCancel: () => void;
 }> = ({ open, preview, onConfirm, onCancel }) => {
-  if (!open) return null;
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
-      <div className="bg-white rounded-4xl p-8 max-w-2xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-50">
-              <FileJson size={20} className="text-blue-500" />
-            </div>
-            <div>
-              <h4 className="font-bold text-brand-black text-lg">Import Preview</h4>
-              <p className="text-xs text-gray-500 capitalize">
-                Format: <span className="font-bold">{preview.format}</span>
-              </p>
-            </div>
-          </div>
-          <button onClick={onCancel} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
-        </div>
-
-        {!preview.valid && (
-          <div className="p-4 bg-red-50 rounded-2xl border border-red-100 mb-4 flex items-center gap-3">
-            <XCircle size={16} className="text-red-500 shrink-0" />
-            <span className="text-sm text-red-700">{preview.error || 'Invalid import file.'}</span>
-          </div>
-        )}
-
-        {preview.preview.environments.length > 0 && (
-          <div className="mb-6">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-              Environments ({preview.preview.environments.length})
-            </p>
-            <div className="space-y-2">
-              {preview.preview.environments.map((e, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <Globe size={14} className="text-gray-400" />
-                  <span className="text-sm font-bold text-brand-black">{e.name}</span>
-                  <code className="text-xs text-gray-500 font-mono">{e.baseUrl}</code>
-                  <span className="ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{e.environment}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {preview.preview.endpoints.length > 0 && (
-          <div className="mb-6">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-              Endpoints ({preview.preview.endpoints.length})
-            </p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {preview.preview.endpoints.map((ep, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${METHOD_COLORS[ep.method as HttpMethod] || 'bg-gray-100 text-gray-600'}`}>
-                    {ep.method}
-                  </span>
-                  <code className="text-sm font-mono text-brand-black">{ep.path}</code>
-                  <span className="ml-auto text-xs text-gray-400 truncate max-w-37.5">{ep.description}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {preview.preview.duplicates.length > 0 && (
-          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle size={14} className="text-amber-500" />
-              <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">{preview.preview.duplicates.length} Duplicate(s) Detected</span>
-            </div>
-            <div className="space-y-1">
-              {preview.preview.duplicates.map((d, i) => (
-                <p key={i} className="text-xs text-amber-600 font-mono">{d.method} {d.path}</p>
-              ))}
-            </div>
-            <p className="text-xs text-amber-600 mt-2">Duplicates will be imported as additional entries.</p>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+  return (
+    <ThemedModal
+      isOpen={open}
+      onClose={onCancel}
+      size="xl"
+      className="max-h-[80vh] overflow-y-auto"
+      showCloseButton={false}
+      footer={
+        <div className="flex justify-end gap-3 w-full pt-4 border-t border-gray-100">
           <ThemedButton variant="cancel" onClick={onCancel}>Cancel</ThemedButton>
           <ThemedButton variant="primary" onClick={onConfirm} disabled={!preview.valid} icon={Upload}>
             Import {preview.preview.endpoints.length} Endpoint{preview.preview.endpoints.length !== 1 ? 's' : ''}
             {preview.preview.environments.length > 0 ? ` + ${preview.preview.environments.length} Env` : ''}
           </ThemedButton>
         </div>
+      }
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-blue-50">
+            <FileJson size={20} className="text-blue-500" />
+          </div>
+          <div>
+            <h4 className="font-bold text-brand-black text-lg">Import Preview</h4>
+            <p className="text-xs text-gray-500 capitalize">
+              Format: <span className="font-bold">{preview.format}</span>
+            </p>
+          </div>
+        </div>
+        <button onClick={onCancel} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
       </div>
-    </div>,
-    document.body
+
+      {!preview.valid && (
+        <div className="p-4 bg-red-50 rounded-2xl border border-red-100 mb-4 flex items-center gap-3">
+          <XCircle size={16} className="text-red-500 shrink-0" />
+          <span className="text-sm text-red-700">{preview.error || 'Invalid import file.'}</span>
+        </div>
+      )}
+
+      {preview.preview.environments.length > 0 && (
+        <div className="mb-6">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+            Environments ({preview.preview.environments.length})
+          </p>
+          <div className="space-y-2">
+            {preview.preview.environments.map((e, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                <Globe size={14} className="text-gray-400" />
+                <span className="text-sm font-bold text-brand-black">{e.name}</span>
+                <code className="text-xs text-gray-500 font-mono">{e.baseUrl}</code>
+                <span className="ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{e.environment}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {preview.preview.endpoints.length > 0 && (
+        <div className="mb-6">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+            Endpoints ({preview.preview.endpoints.length})
+          </p>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {preview.preview.endpoints.map((ep, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${METHOD_COLORS[ep.method as HttpMethod] || 'bg-gray-100 text-gray-600'}`}>
+                  {ep.method}
+                </span>
+                <code className="text-sm font-mono text-brand-black">{ep.path}</code>
+                <span className="ml-auto text-xs text-gray-400 truncate max-w-37.5">{ep.description}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {preview.preview.duplicates.length > 0 && (
+        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle size={14} className="text-amber-500" />
+            <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">{preview.preview.duplicates.length} Duplicate(s) Detected</span>
+          </div>
+          <div className="space-y-1">
+            {preview.preview.duplicates.map((d, i) => (
+              <p key={i} className="text-xs text-amber-600 font-mono">{d.method} {d.path}</p>
+            ))}
+          </div>
+          <p className="text-xs text-amber-600 mt-2">Duplicates will be imported as additional entries.</p>
+        </div>
+      )}
+    </ThemedModal>
   );
 };
 
@@ -220,39 +229,42 @@ const DiffPreview: React.FC<{
   onConfirm: () => void;
   onCancel: () => void;
 }> = ({ open, diff, envName, onConfirm, onCancel }) => {
-  if (!open || !diff) return null;
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onCancel}>
-      <div className="bg-white rounded-4xl p-8 max-w-lg w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 rounded-xl bg-green-50"><Zap size={20} className="text-green-500" /></div>
-          <div>
-            <h4 className="font-bold text-brand-black text-lg">Apply Environment</h4>
-            <p className="text-xs text-gray-500">Switching API client to <span className="font-bold">{envName}</span></p>
-          </div>
-        </div>
-
-        <div className="space-y-3 mb-6">
-          <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-            <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Current</p>
-            <code className="text-sm font-mono text-red-700">{diff.current.baseURL}{diff.current.apiPrefix}</code>
-          </div>
-          <div className="flex justify-center"><ChevronDown size={18} className="text-gray-300" /></div>
-          <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-            <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest mb-1">Proposed</p>
-            <code className="text-sm font-mono text-green-700">{diff.proposed.baseURL}{diff.proposed.apiPrefix}</code>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3">
+  if (!diff) return null;
+  return (
+    <ThemedModal
+      isOpen={open}
+      onClose={onCancel}
+      size="lg"
+      showCloseButton={false}
+      footer={
+        <div className="flex justify-end gap-3 w-full">
           <ThemedButton variant="cancel" onClick={onCancel}>Cancel</ThemedButton>
           <button onClick={onConfirm} className="px-6 py-3 rounded-full text-sm font-bold bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-200 transition-all">
             Apply Changes
           </button>
         </div>
+      }
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2.5 rounded-xl bg-green-50"><Zap size={20} className="text-green-500" /></div>
+        <div>
+          <h4 className="font-bold text-brand-black text-lg">Apply Environment</h4>
+          <p className="text-xs text-gray-500">Switching API client to <span className="font-bold">{envName}</span></p>
+        </div>
       </div>
-    </div>,
-    document.body
+
+      <div className="space-y-3">
+        <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+          <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Current</p>
+          <code className="text-sm font-mono text-red-700">{diff.current.baseURL}{diff.current.apiPrefix}</code>
+        </div>
+        <div className="flex justify-center"><ChevronDown size={18} className="text-gray-300" /></div>
+        <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+          <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest mb-1">Proposed</p>
+          <code className="text-sm font-mono text-green-700">{diff.proposed.baseURL}{diff.proposed.apiPrefix}</code>
+        </div>
+      </div>
+    </ThemedModal>
   );
 };
 
@@ -261,7 +273,6 @@ const DiffPreview: React.FC<{
 // ============================================
 const CodeSnippetViewer: React.FC<{ open: boolean; code: string; onClose: () => void }> = ({ open, code, onClose }) => {
   const [copied, setCopied] = useState(false);
-  if (!open) return null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -269,33 +280,36 @@ const CodeSnippetViewer: React.FC<{ open: boolean; code: string; onClose: () => 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white rounded-4xl p-8 max-w-3xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-purple-50"><Code size={20} className="text-purple-500" /></div>
-            <h4 className="font-bold text-brand-black text-lg">Generated apiEndpoints.ts</h4>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopy}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                copied ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-              }`}
-            >
-              {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
-          </div>
+  return (
+    <ThemedModal
+      isOpen={open}
+      onClose={onClose}
+      size="2xl"
+      showCloseButton={false}
+      className="max-h-[80vh] flex flex-col"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-purple-50"><Code size={20} className="text-purple-500" /></div>
+          <h4 className="font-bold text-brand-black text-lg">Generated apiEndpoints.ts</h4>
         </div>
-        <pre className="flex-1 overflow-auto bg-gray-900 text-green-400 p-6 rounded-2xl text-sm font-mono leading-relaxed">
-          {code}
-        </pre>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              copied ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+            }`}
+          >
+            {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
+        </div>
       </div>
-    </div>,
-    document.body
+      <pre className="flex-1 overflow-auto bg-gray-900 text-green-400 p-6 rounded-2xl text-sm font-mono leading-relaxed">
+        {code}
+      </pre>
+    </ThemedModal>
   );
 };
 
@@ -338,8 +352,18 @@ const ApiCallHighlight: React.FC<{
   children: React.ReactNode;
 }> = ({ constant, method, path, hasParam, consumers, children }) => {
   const [showDetail, setShowDetail] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [portalPos, setPortalPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    if (showDetail && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      setPortalPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+    }
+  }, [showDetail]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapperRef}>
       <div
         className="relative group cursor-pointer"
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDetail(prev => !prev); }}
@@ -352,8 +376,12 @@ const ApiCallHighlight: React.FC<{
           </div>
         </div>
       </div>
-      {showDetail && (
-        <div className="absolute top-full left-0 right-0 mt-2 p-4 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3">
+      {showDetail && createPortal(
+        <div
+          className="fixed p-4 bg-white border border-gray-200 rounded-2xl shadow-xl z-9999 animate-in fade-in zoom-in-95 duration-150 space-y-3"
+          style={{ top: portalPos.top, left: portalPos.left, width: Math.max(portalPos.width, 320) }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-brand-black">Endpoint Details</p>
             <button onClick={(e) => { e.stopPropagation(); setShowDetail(false); }} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"><X size={12} /></button>
@@ -384,7 +412,8 @@ const ApiCallHighlight: React.FC<{
               <code className="text-xs font-mono text-gray-600">{path}</code>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -957,9 +986,19 @@ console.log(response.data);`;
     />
   ) : null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white rounded-4xl p-8 max-w-4xl w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+  return (
+    <ThemedModal
+      isOpen={open}
+      onClose={onClose}
+      size="2xl"
+      showCloseButton={false}
+      className="max-h-[85vh] flex flex-col"
+      footer={
+        <div className="flex justify-end gap-3 w-full mt-2 pt-4 border-t border-gray-100">
+          <ThemedButton variant="cancel" onClick={onClose}>Close</ThemedButton>
+        </div>
+      }
+    >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
@@ -975,76 +1014,80 @@ console.log(response.data);`;
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors"><X size={18} /></button>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl mb-5 w-fit">
-          <button
-            onClick={() => setViewMode('visual')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              viewMode === 'visual' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Eye size={14} /> Visual
-          </button>
-          <button
-            onClick={() => setViewMode('code')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              viewMode === 'code' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Code size={14} /> Show Code
-          </button>
+        {/* View Mode Toggle + Page Dropdown Row */}
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+            <button
+              onClick={() => setViewMode('visual')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'visual' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Eye size={14} /> Visual
+            </button>
+            <button
+              onClick={() => setViewMode('code')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'code' ? 'bg-white text-brand-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Code size={14} /> Show Code
+            </button>
+          </div>
+
+          {/* Multi-select Page Dropdown - inline with toggle */}
+          {viewMode === 'visual' && (
+            <div ref={dropdownRef} className="relative flex-1 max-w-sm">
+              <button
+                onClick={() => setShowPageDropdown(prev => !prev)}
+                className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-brand-black hover:border-gray-300 transition-colors"
+              >
+                <span className="flex items-center gap-2 flex-wrap min-w-0">
+                  {selectedPages.length === 0 ? (
+                    <span className="text-gray-400 font-medium text-xs">Select pages…</span>
+                  ) : (
+                    selectedPages.map(p => (
+                      <span key={p} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-lg text-[11px] font-bold">
+                        <FileCode2 size={10} /> {p}
+                      </span>
+                    ))
+                  )}
+                </span>
+                {showPageDropdown ? <ChevronUp size={14} className="text-gray-400 shrink-0" /> : <ChevronDown size={14} className="text-gray-400 shrink-0" />}
+              </button>
+              {showPageDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+                  {ALL_PAGE_NAMES.map(page => {
+                    const isSelected = selectedPages.includes(page);
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => togglePage(page)}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
+                          isSelected ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                        }`}>
+                          {isSelected && <CheckCircle size={10} className="text-white" />}
+                        </div>
+                        <FileCode2 size={14} className={isSelected ? 'text-blue-500' : 'text-gray-400'} />
+                        <span>{page}</span>
+                        <span className="ml-auto text-[10px] font-mono text-gray-400">{PAGE_FILE_MAP[page]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-auto">
           {viewMode === 'visual' ? (
             <div className="space-y-5">
-              {/* ------ Multi-select Page Dropdown ------ */}
-              <div ref={dropdownRef} className="relative">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pages / Components using this endpoint</p>
-                <button
-                  onClick={() => setShowPageDropdown(prev => !prev)}
-                  className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-brand-black hover:border-gray-300 transition-colors"
-                >
-                  <span className="flex items-center gap-2 flex-wrap min-w-0">
-                    {selectedPages.length === 0 ? (
-                      <span className="text-gray-400 font-medium">Select pages…</span>
-                    ) : (
-                      selectedPages.map(p => (
-                        <span key={p} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold">
-                          <FileCode2 size={12} /> {p}
-                        </span>
-                      ))
-                    )}
-                  </span>
-                  {showPageDropdown ? <ChevronUp size={16} className="text-gray-400 shrink-0" /> : <ChevronDown size={16} className="text-gray-400 shrink-0" />}
-                </button>
-                {showPageDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
-                    {ALL_PAGE_NAMES.map(page => {
-                      const isSelected = selectedPages.includes(page);
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => togglePage(page)}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
-                            isSelected ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-600 hover:bg-gray-50 font-medium'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
-                          }`}>
-                            {isSelected && <CheckCircle size={10} className="text-white" />}
-                          </div>
-                          <FileCode2 size={14} className={isSelected ? 'text-blue-500' : 'text-gray-400'} />
-                          <span>{page}</span>
-                          <span className="ml-auto text-[10px] font-mono text-gray-400">{PAGE_FILE_MAP[page]}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
 
               {/* ------ Page Subtabs ------ */}
               {selectedPages.length > 0 && (
@@ -1170,14 +1213,7 @@ console.log(response.data);`;
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-          <ThemedButton variant="cancel" onClick={onClose}>Close</ThemedButton>
-        </div>
-      </div>
-    </div>,
-    document.body
+    </ThemedModal>
   );
 };
 
@@ -1644,21 +1680,28 @@ export const EndpointsSettingsTab: React.FC = () => {
       </div>
 
       {/* Subtab Pills */}
-      <div className="flex p-1 bg-gray-50 rounded-2xl w-fit border border-gray-100">
-        {subtabs.map(st => (
-          <button
-            key={st.key}
-            onClick={() => setActiveSubtab(st.key)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-              activeSubtab === st.key
-                ? 'bg-white text-brand-black shadow-sm'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <st.icon size={16} />
-            {st.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex p-1 bg-gray-50 rounded-2xl w-fit border border-gray-100">
+          {subtabs.map(st => (
+            <button
+              key={st.key}
+              onClick={() => setActiveSubtab(st.key)}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                activeSubtab === st.key
+                  ? 'bg-white text-brand-black shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <st.icon size={16} />
+              {st.label}
+            </button>
+          ))}
+        </div>
+        {activeSubtab === 'environment' && !showEnvForm && (
+          <ThemedButton variant="primary" onClick={() => setShowEnvForm(true)} icon={Plus}>
+            Add Environment
+          </ThemedButton>
+        )}
       </div>
 
       {/* ============================================ */}
@@ -1725,7 +1768,7 @@ export const EndpointsSettingsTab: React.FC = () => {
           )}
 
           {/* Add / Edit Environment Form */}
-          {showEnvForm ? (
+          {showEnvForm && (
             <div className="p-8 bg-gray-50 rounded-4xl border border-gray-200 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-brand-black text-lg">{editingEnvId ? 'Edit Environment' : 'New Environment'}</h4>
@@ -1849,10 +1892,6 @@ export const EndpointsSettingsTab: React.FC = () => {
                 </ThemedButton>
               </div>
             </div>
-          ) : (
-            <ThemedButton variant="ghost" onClick={() => setShowEnvForm(true)} icon={Plus} fullWidth className="py-4 border-2 border-dashed border-gray-300">
-              Add Environment
-            </ThemedButton>
           )}
         </div>
       )}
@@ -1880,97 +1919,109 @@ export const EndpointsSettingsTab: React.FC = () => {
           {/* Endpoints Table */}
           {endpoints.length > 0 && (
             <div className="overflow-hidden rounded-4xl border border-gray-100 shadow-sm bg-white">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
-                    <tr>
-                      <th className="px-6 py-4">Endpoint</th>
-                      <th className="px-6 py-4">Method</th>
-                      <th className="px-6 py-4">Description</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {endpoints.map(ep => {
+              <ThemedDataTable<EndpointDefinition>
+                variant="compact"
+                data={endpoints}
+                rowKey={(ep) => ep.id}
+                rowClassName={(ep) => ep.status === 'DISABLED' ? 'opacity-50' : ''}
+                columns={[
+                  {
+                    key: 'endpoint',
+                    header: 'Endpoint',
+                    render: (ep) => {
                       const env = environments.find(e => e.id === ep.environmentId);
-                      const statusStyle = STATUS_COLORS[ep.status];
                       const isSystem = ep.id.startsWith('sys_');
                       return (
-                        <tr key={ep.id} className={`hover:bg-gray-50/50 transition-colors ${ep.status === 'DISABLED' ? 'opacity-50' : ''}`}>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {isSystem && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg shrink-0">System</span>}
-                              {env && <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-lg shrink-0">{env.name}</span>}
-                              <code className="text-sm font-mono font-bold text-brand-black truncate">{ep.path}</code>
+                        <>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isSystem && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg shrink-0">System</span>}
+                            {env && <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-lg shrink-0">{env.name}</span>}
+                            <code className="text-sm font-mono font-bold text-brand-black truncate">{ep.path}</code>
+                          </div>
+                          {ep.lastTested && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Clock size={10} className="text-gray-300" />
+                              <span className="text-[10px] text-gray-400">Tested {new Date(ep.lastTested).toLocaleDateString()}</span>
+                              {ep.lastTestResult === 'success' && <CheckCircle size={10} className="text-green-500" />}
+                              {ep.lastTestResult === 'failure' && <XCircle size={10} className="text-red-500" />}
                             </div>
-                            {ep.lastTested && (
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <Clock size={10} className="text-gray-300" />
-                                <span className="text-[10px] text-gray-400">Tested {new Date(ep.lastTested).toLocaleDateString()}</span>
-                                {ep.lastTestResult === 'success' && <CheckCircle size={10} className="text-green-500" />}
-                                {ep.lastTestResult === 'failure' && <XCircle size={10} className="text-red-500" />}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${METHOD_COLORS[ep.method]}`}>{ep.method}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-600">{ep.description || '—'}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            {isSystem ? (
-                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${statusStyle.bg} ${statusStyle.text}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                                {ep.status}
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => handleToggleStatus(ep)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 ${statusStyle.bg} ${statusStyle.text} ${
-                                  ep.status === 'ACTIVE' ? 'hover:ring-green-200' : 'hover:ring-gray-200'
-                                }`}
-                                title={`Click to ${ep.status === 'ACTIVE' ? 'disable' : 'enable'}`}
-                              >
-                                {ep.status === 'ACTIVE' ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
-                                {ep.status}
-                              </button>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center justify-end gap-2">
-                              <Tooltip text="Test endpoint">
-                                <button
-                                  onClick={() => handleTestEndpoint(ep)}
-                                  disabled={testingId === ep.id}
-                                  className="p-2 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50"
-                                >
-                                  {testingId === ep.id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                                </button>
-                              </Tooltip>
-                              {!isSystem && (
-                                <>
-                                  <Tooltip text="Edit">
-                                    <button onClick={() => handleEditEndpoint(ep)} className="p-2 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
-                                      <Edit3 size={14} />
-                                    </button>
-                                  </Tooltip>
-                                  <Tooltip text="Delete">
-                                    <button onClick={() => handleDeleteEndpoint(ep.id)} className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </Tooltip>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
+                          )}
+                        </>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    },
+                  },
+                  {
+                    key: 'method',
+                    header: 'Method',
+                    render: (ep) => (
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${METHOD_COLORS[ep.method]}`}>{ep.method}</span>
+                    ),
+                  },
+                  {
+                    key: 'description',
+                    header: 'Description',
+                    render: (ep) => (
+                      <span className="text-sm text-gray-600">{ep.description || '—'}</span>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    render: (ep) => {
+                      const statusStyle = STATUS_COLORS[ep.status];
+                      const isSystem = ep.id.startsWith('sys_');
+                      return isSystem ? (
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${statusStyle.bg} ${statusStyle.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
+                          {ep.status}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleStatus(ep)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 ${statusStyle.bg} ${statusStyle.text} ${
+                            ep.status === 'ACTIVE' ? 'hover:ring-green-200' : 'hover:ring-gray-200'
+                          }`}
+                          title={`Click to ${ep.status === 'ACTIVE' ? 'disable' : 'enable'}`}
+                        >
+                          {ep.status === 'ACTIVE' ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
+                          {ep.status}
+                        </button>
+                      );
+                    },
+                  },
+                ]}
+                renderActions={(ep) => {
+                  const isSystem = ep.id.startsWith('sys_');
+                  return (
+                    <div className="flex items-center justify-end gap-2">
+                      <Tooltip text="Test endpoint">
+                        <button
+                          onClick={() => handleTestEndpoint(ep)}
+                          disabled={testingId === ep.id}
+                          className="p-2 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50"
+                        >
+                          {testingId === ep.id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                        </button>
+                      </Tooltip>
+                      {!isSystem && (
+                        <>
+                          <Tooltip text="Edit">
+                            <button onClick={() => handleEditEndpoint(ep)} className="p-2 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
+                              <Edit3 size={14} />
+                            </button>
+                          </Tooltip>
+                          <Tooltip text="Delete">
+                            <button onClick={() => handleDeleteEndpoint(ep.id)} className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          </Tooltip>
+                        </>
+                      )}
+                    </div>
+                  );
+                }}
+                actionsHeader="Actions"
+              />
             </div>
           )}
 
@@ -1982,10 +2033,15 @@ export const EndpointsSettingsTab: React.FC = () => {
             </div>
           )}
 
-          {/* Test Result Panel */}
-          {testResult && (
-            <div className={`p-6 rounded-4xl border ${testResult.status >= 200 && testResult.status < 400 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-              <div className="flex items-center justify-between mb-4">
+          {/* Test Result Modal */}
+          <ThemedModal
+            isOpen={!!testResult}
+            onClose={() => setTestResult(null)}
+            title={testResult ? `Test Result — ${testResult.status >= 200 && testResult.status < 400 ? 'Success' : 'Error'}` : 'Test Result'}
+            size="lg"
+          >
+            {testResult && (
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   {testResult.status >= 200 && testResult.status < 400
                     ? <CheckCircle size={20} className="text-green-600" />
@@ -1994,24 +2050,40 @@ export const EndpointsSettingsTab: React.FC = () => {
                   <span className="font-bold text-brand-black">
                     Status: {testResult.status || 'Network Error'}
                   </span>
-                  <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">{testResult.duration}ms</span>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{testResult.duration}ms</span>
                 </div>
-                <button onClick={() => setTestResult(null)} className="p-1.5 rounded-lg hover:bg-white/50 text-gray-400 transition-colors"><X size={16} /></button>
+                <pre className="text-xs font-mono bg-gray-50 p-4 rounded-xl overflow-auto max-h-64 text-gray-700 border border-gray-100">
+                  {typeof testResult.data === 'string' ? testResult.data : JSON.stringify(testResult.data, null, 2)}
+                </pre>
               </div>
-              <pre className="text-xs font-mono bg-white/80 p-4 rounded-xl overflow-auto max-h-48 text-gray-700">
-                {typeof testResult.data === 'string' ? testResult.data : JSON.stringify(testResult.data, null, 2)}
-              </pre>
-            </div>
-          )}
+            )}
+          </ThemedModal>
 
-          {/* Add / Edit Endpoint Form */}
-          {showEndpointForm && (
-            <div className="p-8 bg-gray-50 rounded-4xl border border-gray-200 space-y-6">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-brand-black text-lg">{editingEndpointId ? 'Edit Endpoint' : 'New Endpoint'}</h4>
-                <button onClick={resetEndpointForm} className="p-2 rounded-xl hover:bg-gray-200 text-gray-400 transition-colors"><X size={18} /></button>
+          {/* Add / Edit Endpoint Modal */}
+          <ThemedModal
+            isOpen={showEndpointForm}
+            onClose={resetEndpointForm}
+            title={editingEndpointId ? 'Edit Endpoint' : 'New Endpoint'}
+            size="2xl"
+            className="max-h-[90vh] overflow-y-auto"
+            footer={
+              <div className="flex gap-3">
+                <ThemedButton variant="cancel" onClick={resetEndpointForm}>Cancel</ThemedButton>
+                <ThemedButton
+                  variant="ghost"
+                  onClick={handleFormTest}
+                  icon={formTesting ? Loader2 : Play}
+                  disabled={formTesting || !endpointForm.path.trim()}
+                >
+                  {formTesting ? 'Testing...' : 'Test'}
+                </ThemedButton>
+                <ThemedButton variant="primary" onClick={handleSaveEndpoint} icon={Save}>
+                  {editingEndpointId ? 'Update Endpoint' : 'Save Endpoint'}
+                </ThemedButton>
               </div>
-
+            }
+          >
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Method */}
                 <div className="space-y-2">
@@ -2068,7 +2140,7 @@ export const EndpointsSettingsTab: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   {endpointForm.environmentId && environments.find(e => e.id === endpointForm.environmentId) && (
-                    <span className="text-xs font-mono text-gray-400 bg-white px-3 py-3.5 rounded-2xl border border-gray-200 shrink-0">
+                    <span className="text-xs font-mono text-gray-400 bg-gray-50 px-3 py-3.5 rounded-2xl border border-gray-200 shrink-0">
                       {buildFullUrl(environments.find(e => e.id === endpointForm.environmentId)!)}
                     </span>
                   )}
@@ -2192,23 +2264,8 @@ export const EndpointsSettingsTab: React.FC = () => {
                   </pre>
                 </div>
               )}
-
-              <div className="flex justify-end gap-3">
-                <ThemedButton variant="cancel" onClick={resetEndpointForm}>Cancel</ThemedButton>
-                <ThemedButton
-                  variant="ghost"
-                  onClick={handleFormTest}
-                  icon={formTesting ? Loader2 : Play}
-                  disabled={formTesting || !endpointForm.path.trim()}
-                >
-                  {formTesting ? 'Testing...' : 'Test'}
-                </ThemedButton>
-                <ThemedButton variant="primary" onClick={handleSaveEndpoint} icon={Save}>
-                  {editingEndpointId ? 'Update Endpoint' : 'Save Endpoint'}
-                </ThemedButton>
-              </div>
             </div>
-          )}
+          </ThemedModal>
         </div>
       )}
 
@@ -2242,88 +2299,97 @@ export const EndpointsSettingsTab: React.FC = () => {
 
           {filteredMappings.length > 0 && (
             <div className="overflow-hidden rounded-4xl border border-gray-100 shadow-sm bg-white">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
-                    <tr>
-                      <th className="px-6 py-4">Endpoint</th>
-                      <th className="px-6 py-4">Description</th>
-                      <th className="px-6 py-4">Functionality</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {filteredMappings.map(m => {
+              <ThemedDataTable<EndpointMapping>
+                variant="compact"
+                data={filteredMappings}
+                rowKey={(m) => m.id}
+                columns={[
+                  {
+                    key: 'endpoint',
+                    header: 'Endpoint',
+                    render: (m) => {
                       const parts = m.sourceConstant.split('.');
-                      const key = parts[parts.length - 1].replace('(:id)', '');
-                      const method = endpointConfigService.inferMethod(key);
+                      const k = parts[parts.length - 1].replace('(:id)', '');
+                      const method = endpointConfigService.inferMethod(k);
                       return (
-                        <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${METHOD_COLORS[method]}`}>{method}</span>
-                              <code className="text-sm font-mono font-bold text-brand-black">{m.endpointPath}</code>
-                            </div>
-                            <p className="text-[10px] text-gray-400 font-mono mt-1">{m.sourceConstant}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-600">{m.description}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-medium text-brand-black">{m.functionality}</span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Tooltip text="View usage details">
-                                <button
-                                  onClick={() => setUsageDialog({ open: true, mapping: m })}
-                                  className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                                >
-                                  <Eye size={14} />
-                                </button>
-                              </Tooltip>
-                              <Tooltip text="Copy constant reference">
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(m.sourceConstant);
-                                    dispatch(addToast({ message: `Copied: ${m.sourceConstant}`, type: 'success', duration: 2000 }));
-                                  }}
-                                  className="p-2 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
-                                >
-                                  <ExternalLink size={14} />
-                                </button>
-                              </Tooltip>
-                              <Tooltip text="Create endpoint from mapping">
-                                <button
-                                  onClick={() => {
-                                    setEndpointForm({
-                                      method,
-                                      environmentId: '',
-                                      path: m.endpointPath,
-                                      description: m.description,
-                                      status: 'ACTIVE',
-                                      parameters: '',
-                                      authType: 'none',
-                                      authValue: '',
-                                      body: '',
-                                      script: '',
-                                    });
-                                    setShowEndpointForm(true);
-                                    setActiveSubtab('endpoints');
-                                  }}
-                                  className="p-2 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
-                                >
-                                  <Plus size={14} />
-                                </button>
-                              </Tooltip>
-                            </div>
-                          </td>
-                        </tr>
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${METHOD_COLORS[method]}`}>{method}</span>
+                            <code className="text-sm font-mono font-bold text-brand-black">{m.endpointPath}</code>
+                          </div>
+                          <p className="text-[10px] text-gray-400 font-mono mt-1">{m.sourceConstant}</p>
+                        </>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    },
+                  },
+                  {
+                    key: 'description',
+                    header: 'Description',
+                    render: (m) => (
+                      <span className="text-sm text-gray-600">{m.description}</span>
+                    ),
+                  },
+                  {
+                    key: 'functionality',
+                    header: 'Functionality',
+                    render: (m) => (
+                      <span className="text-sm font-medium text-brand-black">{m.functionality}</span>
+                    ),
+                  },
+                ]}
+                renderActions={(m) => {
+                  const parts = m.sourceConstant.split('.');
+                  const k = parts[parts.length - 1].replace('(:id)', '');
+                  const method = endpointConfigService.inferMethod(k);
+                  return (
+                    <div className="flex items-center justify-end gap-2">
+                      <Tooltip text="View usage details">
+                        <button
+                          onClick={() => setUsageDialog({ open: true, mapping: m })}
+                          className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip text="Copy constant reference">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(m.sourceConstant);
+                            dispatch(addToast({ message: `Copied: ${m.sourceConstant}`, type: 'success', duration: 2000 }));
+                          }}
+                          className="p-2 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
+                        >
+                          <ExternalLink size={14} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip text="Create endpoint from mapping">
+                        <button
+                          onClick={() => {
+                            setEndpointForm({
+                              method,
+                              environmentId: '',
+                              path: m.endpointPath,
+                              description: m.description,
+                              status: 'ACTIVE',
+                              parameters: '',
+                              authType: 'none',
+                              authValue: '',
+                              body: '',
+                              script: '',
+                            });
+                            setShowEndpointForm(true);
+                            setActiveSubtab('endpoints');
+                          }}
+                          className="p-2 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  );
+                }}
+                actionsHeader="Actions"
+              />
             </div>
           )}
 

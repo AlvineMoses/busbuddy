@@ -3,6 +3,7 @@ import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect, ThemedTextarea, ThemedTimeInput } from '../src/components/ThemedFormField';
+import { ThemedDataTable, TableColumn } from '../src/components/ThemedDataTable';
 import { Calendar, Plus, Edit2, Copy, Trash2, Search, Download } from 'lucide-react';
 import { User } from '../types';
 
@@ -75,6 +76,48 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  shiftName: '', shiftCode: '', school: '', drivers: [], days: [],
  scheduledTime: '', assignedRoute: '', status: 'ACTIVE', notes: ''
  });
+
+ const shiftColumns: TableColumn<Shift>[] = [
+   { key: 'id', header: 'Shift ID', render: (shift) => (
+     <span className="font-mono text-sm text-gray-600">{shift.id}</span>
+   )},
+   { key: 'name', header: 'Shift Name', render: (shift) => (
+     <div>
+       <p className="font-bold text-brand-black">{shift.shiftName}</p>
+       <p className="text-xs text-gray-400 font-mono">{shift.shiftCode}</p>
+     </div>
+   )},
+   { key: 'drivers', header: 'Drivers', render: (shift) => (
+     <div className="flex flex-col gap-1">
+       {shift.drivers.map((driver, idx) => (
+         <span key={idx} className="text-sm text-gray-600">{driver}</span>
+       ))}
+     </div>
+   )},
+   { key: 'days', header: 'Days', render: (shift) => (
+     <div className="flex flex-wrap gap-1">
+       {shift.days.map((day, idx) => (
+         <span key={idx} className="px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600">
+           {day}
+         </span>
+       ))}
+     </div>
+   )},
+   { key: 'scheduled', header: 'Scheduled', render: (shift) => (
+     <span className="text-sm text-gray-600">{shift.scheduledTime}</span>
+   )},
+   { key: 'actual', header: 'Actual', render: (shift) => (
+     <span className="text-sm text-gray-600">{shift.actualTime || '-'}</span>
+   )},
+   { key: 'route', header: 'Route', render: (shift) => (
+     <span className="text-sm text-gray-600">{shift.assignedRoute}</span>
+   )},
+   { key: 'status', header: 'Status', render: (shift) => (
+     <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusBadge(shift.status)}`}>
+       {shift.status}
+     </span>
+   )},
+ ];
 
  const filteredShifts = shifts.filter(shift => {
  const matchesSearch = shift.shiftName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -213,91 +256,29 @@ export const ShiftsPage: React.FC<ShiftsPageProps> = ({ currentUser, showHeader 
  </div>
 
  {/* Shifts Table */}
- <div className="bg-white rounded-[2.5rem] shadow-soft-xl border border-gray-100 overflow-hidden">
- <div className="overflow-x-auto">
- <table className="w-full">
- <thead className="bg-gray-50 border-b border-gray-100">
- <tr>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Shift ID</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Shift Name</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Drivers</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Days</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Scheduled</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Actual</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Route</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
- <th className="px-8 py-5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-gray-100">
- {filteredShifts.map((shift) => (
- <tr key={shift.id} className="hover:bg-gray-50 transition-colors">
- <td className="px-8 py-5">
- <span className="font-mono text-sm text-gray-600">{shift.id}</span>
- </td>
- <td className="px-8 py-5">
- <div>
- <p className="font-bold text-brand-black">{shift.shiftName}</p>
- <p className="text-xs text-gray-400 font-mono">{shift.shiftCode}</p>
- </div>
- </td>
- <td className="px-8 py-5">
- <div className="flex flex-col gap-1">
- {shift.drivers.map((driver, idx) => (
- <span key={idx} className="text-sm text-gray-600">{driver}</span>
- ))}
- </div>
- </td>
- <td className="px-8 py-5">
- <div className="flex flex-wrap gap-1">
- {shift.days.map((day, idx) => (
- <span key={idx} className="px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600">
- {day}
- </span>
- ))}
- </div>
- </td>
- <td className="px-8 py-5">
- <span className="text-sm text-gray-600">{shift.scheduledTime}</span>
- </td>
- <td className="px-8 py-5">
- <span className="text-sm text-gray-600">{shift.actualTime || '-'}</span>
- </td>
- <td className="px-8 py-5">
- <span className="text-sm text-gray-600">{shift.assignedRoute}</span>
- </td>
- <td className="px-8 py-5">
- <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusBadge(shift.status)}`}>
- {shift.status}
- </span>
- </td>
- <td className="px-8 py-5">
- <div className="flex items-center gap-2">
- <ThemedButton variant="icon" onClick={() => openEditModal(shift)}>
- <Edit2 size={16} />
- </ThemedButton>
- <ThemedButton variant="icon" onClick={() => handleClone(shift)}>
- <Copy size={16} />
- </ThemedButton>
- <ThemedButton variant="icon" onClick={() => handleDelete(shift.id)} style={{ color: '#dc2626' }}>
- <Trash2 size={16} />
- </ThemedButton>
- </div>
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
-
- {filteredShifts.length === 0 && (
- <div className="flex flex-col items-center justify-center py-16 text-gray-400">
- <Calendar size={48} className="mb-4 text-gray-300" />
- <p className="text-lg font-medium text-gray-600">No shifts found</p>
- <p className="text-sm">Try adjusting your filters or create a new shift</p>
- </div>
- )}
- </div>
+ <ThemedDataTable<Shift>
+   columns={shiftColumns}
+   data={filteredShifts}
+   rowKey={(item) => item.id}
+   renderActions={(shift) => (
+     <div className="flex items-center gap-2">
+       <ThemedButton variant="icon" onClick={() => openEditModal(shift)}>
+         <Edit2 size={16} />
+       </ThemedButton>
+       <ThemedButton variant="icon" onClick={() => handleClone(shift)}>
+         <Copy size={16} />
+       </ThemedButton>
+       <ThemedButton variant="icon" onClick={() => handleDelete(shift.id)} style={{ color: '#dc2626' }}>
+         <Trash2 size={16} />
+       </ThemedButton>
+     </div>
+   )}
+   actionsHeader="Actions"
+   container={true}
+   emptyIcon={<Calendar size={48} className="text-gray-300" />}
+   emptyTitle="No shifts found"
+   emptySubtitle="Try adjusting your filters or create a new shift"
+ />
 
  {/* Add/Edit Shift Modal */}
  <ThemedModal

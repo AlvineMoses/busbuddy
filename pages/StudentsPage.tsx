@@ -3,6 +3,7 @@ import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedInput, ThemedSelect } from '../src/components/ThemedFormField';
+import { ThemedDataTable, TableColumn, ActionMenuItem } from '../src/components/ThemedDataTable';
 import { Search, Plus, MoreHorizontal, Bus, CheckCircle, Clock, XCircle, UserX, Upload, ChevronDown, Trash2, Edit2, RefreshCw, LayoutGrid, List as ListIcon, MapPin } from 'lucide-react';
 import { User } from '../types';
 import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
@@ -335,109 +336,114 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
 
  {/* Flat Table View */}
- <table className="w-full text-left">
- <thead className="bg-gray-50/50 text-gray-400 font-bold text-xs uppercase tracking-widest">
- <tr>
- <th className="px-8 py-6 pl-10">Student Name</th>
- <th className="px-8 py-6">School & Grade</th>
- <th className="px-8 py-6">Guardian</th>
- <th className="px-8 py-6 text-center">Status</th>
- <th className="px-8 py-6 text-right pr-10">Actions</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-gray-50">
- {filteredStudents.map(student => (
- <tr key={student.id} className="hover:bg-gray-50/80 transition-colors group cursor-pointer">
- <td className="px-8 py-5 pl-10">
- <div className="flex items-center gap-4">
- <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-black font-bold text-sm border border-gray-100">
- {student.name.charAt(0)}
- </div>
- <div>
- <div className="font-bold text-brand-black text-base">{student.name}</div>
- <div className="text-xs font-medium text-gray-400 mt-0.5">ID: {student.id}</div>
- </div>
- </div>
- </td>
- <td className="px-8 py-5">
- <p className="font-bold text-sm text-brand-black truncate">{student.school}</p>
- <p className="text-xs text-gray-500 font-medium mt-0.5">{student.grade}</p>
- </td>
- <td className="px-8 py-5">
- <p className="font-medium text-sm text-gray-600 truncate">{student.guardian}</p>
- </td>
- <td className="px-8 py-5 text-center">
- <div className="flex justify-center">
- {student.status === 'ON_BOARD' && (
- <div className="px-3 py-1.5 rounded-full bg-brand-green/10 text-brand-green flex items-center gap-2 border border-brand-green/20">
- <Bus size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">On Board</span>
- </div>
- )}
- {student.status === 'DROPPED_OFF' && (
- <div className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 flex items-center gap-2 border border-gray-200">
- <CheckCircle size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Dropped</span>
- </div>
- )}
- {student.status === 'WAITING' && (
- <div className="px-3 py-1.5 rounded-full bg-brand-amber/10 text-brand-amber flex items-center gap-2 border border-brand-amber/20">
- <Clock size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Waiting</span>
- </div>
- )}
- {student.status === 'ABSENT' && (
- <div className="px-3 py-1.5 rounded-full bg-red-50 text-red-500 flex items-center gap-2 border border-red-100">
- <XCircle size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Absent</span>
- </div>
- )}
- {student.status === 'DISABLED' && (
- <div className="px-3 py-1.5 rounded-full bg-gray-200 text-gray-500 flex items-center gap-2 border border-gray-300">
- <UserX size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Disabled</span>
- </div>
- )}
- </div>
- </td>
- <td className="px-8 py-5 text-right pr-10 relative">
- <button 
- onClick={(e) => toggleAction(student.id, e)}
- className="w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:bg-brand-black hover:text-white transition-all z-10 relative"
- >
- <MoreHorizontal size={20} />
- </button>
- 
- {openActionId === student.id && (
- <div className="absolute right-10 top-12 mt-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
- <button 
- onClick={() => openModal('edit', student)}
- className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors"
- >
- <Edit2 size={14} /> Edit Details
- </button>
- <button 
- onClick={() => openModal('trips', student)}
- className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors"
- >
- <Clock size={14} /> View Trips
- </button>
- <button 
- onClick={() => openModal('transfer', student)}
- className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center gap-2 transition-colors"
- >
- <RefreshCw size={14} /> Transfer
- </button>
- <div className="h-px bg-gray-50 my-1"></div>
- <button 
- onClick={() => toggleStudentDisable(student.id)}
- className={`w-full text-left px-4 py-2.5 text-sm font-bold rounded-xl flex items-center gap-2 transition-colors ${student.status === 'DISABLED' ? 'text-green-600 hover:bg-green-50' : 'text-red-500 hover:bg-red-50'}`}
- >
- {student.status === 'DISABLED' ? <CheckCircle size={14} /> : <Trash2 size={14} />} 
- {student.status === 'DISABLED' ? 'Enable' : 'Disable'}
- </button>
- </div>
- )}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
+ <ThemedDataTable<typeof filteredStudents[number]>
+   columns={[
+     {
+       key: 'name',
+       header: 'Student Name',
+       render: (student) => (
+         <div className="flex items-center gap-4">
+           <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-black font-bold text-sm border border-gray-100">
+             {student.name.charAt(0)}
+           </div>
+           <div>
+             <div className="font-bold text-brand-black text-base">{student.name}</div>
+             <div className="text-xs font-medium text-gray-400 mt-0.5">ID: {student.id}</div>
+           </div>
+         </div>
+       ),
+     },
+     {
+       key: 'school',
+       header: 'School & Grade',
+       render: (student) => (
+         <>
+           <p className="font-bold text-sm text-brand-black truncate">{student.school}</p>
+           <p className="text-xs text-gray-500 font-medium mt-0.5">{student.grade}</p>
+         </>
+       ),
+     },
+     {
+       key: 'guardian',
+       header: 'Guardian',
+       render: (student) => (
+         <p className="font-medium text-sm text-gray-600 truncate">{student.guardian}</p>
+       ),
+     },
+     {
+       key: 'status',
+       header: 'Status',
+       headerAlign: 'center',
+       render: (student) => (
+         <div className="flex justify-center">
+           {student.status === 'ON_BOARD' && (
+             <div className="px-3 py-1.5 rounded-full bg-brand-green/10 text-brand-green flex items-center gap-2 border border-brand-green/20">
+               <Bus size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">On Board</span>
+             </div>
+           )}
+           {student.status === 'DROPPED_OFF' && (
+             <div className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 flex items-center gap-2 border border-gray-200">
+               <CheckCircle size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Dropped</span>
+             </div>
+           )}
+           {student.status === 'WAITING' && (
+             <div className="px-3 py-1.5 rounded-full bg-brand-amber/10 text-brand-amber flex items-center gap-2 border border-brand-amber/20">
+               <Clock size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Waiting</span>
+             </div>
+           )}
+           {student.status === 'ABSENT' && (
+             <div className="px-3 py-1.5 rounded-full bg-red-50 text-red-500 flex items-center gap-2 border border-red-100">
+               <XCircle size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Absent</span>
+             </div>
+           )}
+           {student.status === 'DISABLED' && (
+             <div className="px-3 py-1.5 rounded-full bg-gray-200 text-gray-500 flex items-center gap-2 border border-gray-300">
+               <UserX size={12} strokeWidth={2.5} /> <span className="text-[10px] font-bold uppercase tracking-wide">Disabled</span>
+             </div>
+           )}
+         </div>
+       ),
+     },
+   ]}
+   data={filteredStudents}
+   rowKey={(student) => student.id}
+   actionsHeader="Actions"
+   actions={[
+     {
+       label: 'Edit Details',
+       icon: <Edit2 size={14} />,
+       onClick: (student) => openModal('edit', student),
+     },
+     {
+       label: 'View Trips',
+       icon: <Clock size={14} />,
+       onClick: (student) => openModal('trips', student),
+     },
+     {
+       label: 'Transfer',
+       icon: <RefreshCw size={14} />,
+       onClick: (student) => openModal('transfer', student),
+     },
+     {
+       label: 'Disable',
+       icon: <Trash2 size={14} />,
+       onClick: (student) => toggleStudentDisable(student.id),
+       className: 'text-red-500 hover:bg-red-50',
+       divider: true,
+       hidden: (student) => student.status === 'DISABLED',
+     },
+     {
+       label: 'Enable',
+       icon: <CheckCircle size={14} />,
+       onClick: (student) => toggleStudentDisable(student.id),
+       className: 'text-green-600 hover:bg-green-50',
+       divider: true,
+       hidden: (student) => student.status !== 'DISABLED',
+     },
+   ]}
+   rowClassName={() => 'cursor-pointer'}
+ />
+
  </div>
  )}
 
@@ -594,211 +600,169 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </ThemedModal>
 
  {/* Transfer Modal */}
- {modals.transfer && selectedStudent && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('transfer')} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Transfer Student</h3>
- <button onClick={() => closeModal('transfer')} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="p-4 bg-brand-lilac/10 rounded-xl text-brand-lilac text-sm font-bold mb-6">
- Current: {selectedStudent.school}
- </div>
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">New School</label>
- <select 
- onChange={(e) => setFormData({...formData, newSchool: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none"
+ <ThemedModal
+   isOpen={modals.transfer && !!selectedStudent}
+   onClose={() => closeModal('transfer')}
+   title="Transfer Student"
+   size="lg"
+   onConfirm={handleTransfer}
+   confirmLabel="Confirm Transfer"
  >
- <option value="">Select New School</option>
- {schools.filter(s => s !== selectedStudent.school).map(s => <option key={s} value={s}>{s}</option>)}
- </select>
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">New Grade (Optional)</label>
- <select 
- onChange={(e) => setFormData({...formData, newGrade: e.target.value})}
- className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none"
- >
- <option value="">Keep Current Grade ({selectedStudent.grade})</option>
- {grades.map(g => <option key={g} value={g}>{g}</option>)}
- </select>
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton variant="primary" onClick={handleTransfer}>Confirm Transfer</ThemedButton>
- </div>
- </div>
- </div>
- </div>
- , document.body)}
+   <div className="p-4 bg-brand-lilac/10 rounded-xl text-brand-lilac text-sm font-bold mb-6">
+     Current: {selectedStudent?.school}
+   </div>
+   <div className="space-y-4">
+     <ThemedSelect
+       label="New School"
+       onChange={(e) => setFormData({...formData, newSchool: e.target.value})}
+     >
+       <option value="">Select New School</option>
+       {schools.filter(s => s !== selectedStudent?.school).map(s => <option key={s} value={s}>{s}</option>)}
+     </ThemedSelect>
+     <ThemedSelect
+       label="New Grade (Optional)"
+       onChange={(e) => setFormData({...formData, newGrade: e.target.value})}
+     >
+       <option value="">Keep Current Grade ({selectedStudent?.grade})</option>
+       {grades.map(g => <option key={g} value={g}>{g}</option>)}
+     </ThemedSelect>
+   </div>
+ </ThemedModal>
 
  {/* Add Student Modal — Two-Column Layout with Map */}
- {modals.add && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('add')} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-5xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Add New Student</h3>
- <button onClick={() => closeModal('add')} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
- {/* Left Column */}
- <div className="space-y-4">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School</label>
- <select onChange={(e) => setFormData({...formData, school: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
- <option value="">Select School</option>
- {schools.map(s => <option key={s} value={s}>{s}</option>)}
- </select>
- </div>
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">First Name</label>
- <input type="text" placeholder="First name" onChange={(e) => setFormData({...formData, firstName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Name</label>
- <input type="text" placeholder="Last name" onChange={(e) => setFormData({...formData, lastName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Grade</label>
- <select onChange={(e) => setFormData({...formData, grade: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
- <option value="">Select Grade</option>
- {grades.map(g => <option key={g} value={g}>{g}</option>)}
- </select>
- </div>
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian First Name</label>
- <input type="text" placeholder="First name" onChange={(e) => setFormData({...formData, guardianFirstName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Last Name</label>
- <input type="text" placeholder="Last name" onChange={(e) => setFormData({...formData, guardianLastName: e.target.value})} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black" />
- </div>
- </div>
- <div>
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Phone</label>
- <div className="mt-2">
- <PhoneInput
- value={formData.guardianPhone || ''}
- onChange={(val) => setFormData({...formData, guardianPhone: val})}
- placeholder="712 345 678"
- />
- </div>
- </div>
- </div>
-
- {/* Right Column — Route & Map */}
- <div className="space-y-4">
- <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
- <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><MapPin size={14} /> Pickup & Dropoff</h4>
- <div className="grid grid-cols-2 gap-3">
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup From (Home)</label>
- <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
- <PlacesAutocomplete
- value={formData.pickupAddress || ''}
- onChange={(val) => setFormData({...formData, pickupAddress: val})}
- onPlaceSelect={(place) => { setFormData({...formData, pickupAddress: place.address}); setPickupMarker({ lat: place.lat, lng: place.lng }); }}
- placeholder="Search home address..."
- />
- </APIProvider>
- </div>
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup To</label>
- <input 
- type="text" 
- value={formData.school || 'School'}
- disabled
- className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500"
- />
- </div>
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff From</label>
- <input 
- type="text" 
- value={formData.school || 'School'}
- disabled
- className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500"
- />
- </div>
- <div>
- <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff To (Home)</label>
- <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
- <PlacesAutocomplete
- value={formData.dropoffAddress || ''}
- onChange={(val) => setFormData({...formData, dropoffAddress: val})}
- onPlaceSelect={(place) => { setFormData({...formData, dropoffAddress: place.address}); setDropoffMarker({ lat: place.lat, lng: place.lng }); }}
- placeholder="Search home address..."
- />
- </APIProvider>
- </div>
- </div>
- </div>
- {/* Large Map Preview */}
- <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
- <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
- <Map
- defaultCenter={NAIROBI_CENTER}
- defaultZoom={12}
- gestureHandling="cooperative"
- disableDefaultUI={true}
- style={{ width: '100%', height: '100%' }}
+ <ThemedModal
+   isOpen={modals.add}
+   onClose={() => closeModal('add')}
+   title="Add New Student"
+   size="2xl"
+   className="max-h-[90vh] overflow-y-auto"
+   footer={
+     <ThemedButton variant="primary" onClick={handleAddStudent} icon={Plus}>
+       Add Student
+     </ThemedButton>
+   }
  >
- {pickupMarker && <Marker position={pickupMarker} title="Pickup" />}
- {dropoffMarker && <Marker position={dropoffMarker} title="Dropoff" />}
- </Map>
- </APIProvider>
- </div>
- </div>
- </div>
- <div className="mt-8 flex justify-end">
- <ThemedButton variant="primary" onClick={handleAddStudent} icon={Plus}>
- Add Student
- </ThemedButton>
- </div>
- </div>
- </div>
- </div>
- , document.body)}
+   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+     {/* Left Column */}
+     <div className="space-y-4">
+       <ThemedSelect label="School" onChange={(e) => setFormData({...formData, school: e.target.value})}>
+         <option value="">Select School</option>
+         {schools.map(s => <option key={s} value={s}>{s}</option>)}
+       </ThemedSelect>
+       <div className="grid grid-cols-2 gap-3">
+         <ThemedInput label="First Name" type="text" placeholder="First name" onChange={(e) => setFormData({...formData, firstName: e.target.value})} />
+         <ThemedInput label="Last Name" type="text" placeholder="Last name" onChange={(e) => setFormData({...formData, lastName: e.target.value})} />
+       </div>
+       <ThemedSelect label="Grade" onChange={(e) => setFormData({...formData, grade: e.target.value})}>
+         <option value="">Select Grade</option>
+         {grades.map(g => <option key={g} value={g}>{g}</option>)}
+       </ThemedSelect>
+       <div className="grid grid-cols-2 gap-3">
+         <ThemedInput label="Guardian First Name" type="text" placeholder="First name" onChange={(e) => setFormData({...formData, guardianFirstName: e.target.value})} />
+         <ThemedInput label="Guardian Last Name" type="text" placeholder="Last name" onChange={(e) => setFormData({...formData, guardianLastName: e.target.value})} />
+       </div>
+       <div>
+         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Guardian Phone</label>
+         <div className="mt-2">
+           <PhoneInput
+             value={formData.guardianPhone || ''}
+             onChange={(val) => setFormData({...formData, guardianPhone: val})}
+             placeholder="712 345 678"
+           />
+         </div>
+       </div>
+     </div>
+
+     {/* Right Column — Route & Map */}
+     <div className="space-y-4">
+       <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
+         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><MapPin size={14} /> Pickup & Dropoff</h4>
+         <div className="grid grid-cols-2 gap-3">
+           <div>
+             <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup From (Home)</label>
+             <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+               <PlacesAutocomplete
+                 value={formData.pickupAddress || ''}
+                 onChange={(val) => setFormData({...formData, pickupAddress: val})}
+                 onPlaceSelect={(place) => { setFormData({...formData, pickupAddress: place.address}); setPickupMarker({ lat: place.lat, lng: place.lng }); }}
+                 placeholder="Search home address..."
+               />
+             </APIProvider>
+           </div>
+           <div>
+             <label className="text-[10px] font-bold text-gray-400 uppercase">Pickup To</label>
+             <input 
+               type="text" 
+               value={formData.school || 'School'}
+               disabled
+               className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500"
+             />
+           </div>
+           <div>
+             <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff From</label>
+             <input 
+               type="text" 
+               value={formData.school || 'School'}
+               disabled
+               className="w-full mt-0 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-500"
+             />
+           </div>
+           <div>
+             <label className="text-[10px] font-bold text-gray-400 uppercase">Dropoff To (Home)</label>
+             <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+               <PlacesAutocomplete
+                 value={formData.dropoffAddress || ''}
+                 onChange={(val) => setFormData({...formData, dropoffAddress: val})}
+                 onPlaceSelect={(place) => { setFormData({...formData, dropoffAddress: place.address}); setDropoffMarker({ lat: place.lat, lng: place.lng }); }}
+                 placeholder="Search home address..."
+               />
+             </APIProvider>
+           </div>
+         </div>
+       </div>
+       {/* Large Map Preview */}
+       <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
+         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+           <Map
+             defaultCenter={NAIROBI_CENTER}
+             defaultZoom={12}
+             gestureHandling="cooperative"
+             disableDefaultUI={true}
+             style={{ width: '100%', height: '100%' }}
+           >
+             {pickupMarker && <Marker position={pickupMarker} title="Pickup" />}
+             {dropoffMarker && <Marker position={dropoffMarker} title="Dropoff" />}
+           </Map>
+         </APIProvider>
+       </div>
+     </div>
+   </div>
+ </ThemedModal>
 
  {/* Recent Trips Modal */}
- {modals.trips && selectedStudent && createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={() => closeModal('trips')} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl animate-in zoom-in-95 pointer-events-auto">
- <div className="flex justify-between items-center mb-6">
- <h3 className="text-2xl font-bold text-brand-black">Recent History</h3>
- <button onClick={() => closeModal('trips')} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
- <div className="space-y-4">
- <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
- <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600"><CheckCircle size={18}/></div>
- <div>
- <p className="font-bold text-sm">Dropped Off at Home</p>
- <p className="text-xs text-gray-500">Today, 4:15 PM</p>
- </div>
- </div>
- <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
- <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><Bus size={18}/></div>
- <div>
- <p className="font-bold text-sm">Boarded Bus 101</p>
- <p className="text-xs text-gray-500">Today, 3:30 PM</p>
- </div>
- </div>
- </div>
- </div>
- </div>
- </div>
- , document.body)}
+ <ThemedModal
+   isOpen={modals.trips && !!selectedStudent}
+   onClose={() => closeModal('trips')}
+   title="Recent History"
+   size="lg"
+ >
+   <div className="space-y-4">
+     <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+       <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600"><CheckCircle size={18}/></div>
+       <div>
+         <p className="font-bold text-sm">Dropped Off at Home</p>
+         <p className="text-xs text-gray-500">Today, 4:15 PM</p>
+       </div>
+     </div>
+     <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><Bus size={18}/></div>
+       <div>
+         <p className="font-bold text-sm">Boarded Bus 101</p>
+         <p className="text-xs text-gray-500">Today, 3:30 PM</p>
+       </div>
+     </div>
+   </div>
+ </ThemedModal>
 
  {/* Bulk Upload Modal */}
  {modals.bulkUpload && <BulkUploadModal
@@ -916,122 +880,113 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ schools, onClose, onI
  const validCount = Object.values(validationStatus).filter(v => v === 'valid').length;
  const errorCount = Object.values(validationStatus).filter(v => v === 'error').length;
 
- return createPortal(
- <div className="fixed inset-0 z-[70] isolate">
- <div className="absolute inset-0 bg-brand-black/40 backdrop-blur-md" onClick={onClose} />
- <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
- <div className="relative bg-white rounded-[2rem] p-8 w-full max-w-5xl shadow-2xl animate-in zoom-in-95 pointer-events-auto max-h-[90vh] overflow-y-auto">
- <div className="flex justify-between items-center mb-6">
- <div>
- <h3 className="text-2xl font-bold text-brand-black">Bulk Upload Students</h3>
- <p className="text-sm text-gray-500 mt-1">Import students via CSV file</p>
- </div>
- <button onClick={onClose} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={18}/></button>
- </div>
+ return (
+   <ThemedModal
+     isOpen={true}
+     onClose={onClose}
+     title="Bulk Upload Students"
+     size="2xl"
+     showCloseButton={true}
+     className="max-h-[90vh] overflow-y-auto"
+   >
+     <p className="text-sm text-gray-500 -mt-4 mb-6">Import students via CSV file</p>
+     
+     {/* School Selection & Template Download */}
+     <div className="flex items-center gap-4 mb-6">
+       <div className="flex-1">
+         <ThemedSelect label="School for Import" value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)}>
+           {schools.map(s => <option key={s} value={s}>{s}</option>)}
+         </ThemedSelect>
+       </div>
+       <div className="pt-6">
+         <ThemedButton variant="ghost" onClick={handleDownloadTemplate} icon={Upload}>
+           Download Template
+         </ThemedButton>
+       </div>
+     </div>
 
- {/* School Selection & Template Download */}
- <div className="flex items-center gap-4 mb-6">
- <div className="flex-1">
- <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">School for Import</label>
- <select value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} className="w-full mt-2 p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-black appearance-none">
- {schools.map(s => <option key={s} value={s}>{s}</option>)}
- </select>
- </div>
- <div className="pt-6">
- <ThemedButton variant="ghost" onClick={handleDownloadTemplate} icon={Upload}>
- Download Template
- </ThemedButton>
- </div>
- </div>
+     {/* Upload Area */}
+     {uploadedData.length === 0 ? (
+       <div
+         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+         onDragLeave={() => setIsDragging(false)}
+         onDrop={handleFileDrop}
+         onClick={() => fileRef.current?.click()}
+         className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
+           isDragging ? 'border-brand-lilac bg-brand-lilac/5' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+         }`}
+       >
+         <input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={handleFileSelect} />
+         <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+           <Upload size={28} className="text-gray-400" />
+         </div>
+         <p className="text-lg font-bold text-brand-black mb-1">Drag & drop your CSV file here</p>
+         <p className="text-sm text-gray-400">or click to browse. Supports .csv and .xlsx files</p>
+       </div>
+     ) : (
+       <>
+         {/* Validation Bar */}
+         <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-xl">
+           <div className="flex items-center gap-4">
+             <span className="text-sm font-bold text-brand-black">{uploadedData.length} rows loaded</span>
+             {validCount > 0 && <span className="text-sm font-bold text-green-600">{validCount} valid</span>}
+             {errorCount > 0 && <span className="text-sm font-bold text-red-500">{errorCount} errors</span>}
+           </div>
+           <div className="flex gap-2">
+             <ThemedButton variant="ghost" onClick={handleValidateAll}>Validate All</ThemedButton>
+             <ThemedButton variant="ghost" onClick={() => { setUploadedData([]); setValidationStatus({}); }}>Clear</ThemedButton>
+           </div>
+         </div>
 
- {/* Upload Area */}
- {uploadedData.length === 0 ? (
- <div
- onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
- onDragLeave={() => setIsDragging(false)}
- onDrop={handleFileDrop}
- onClick={() => fileRef.current?.click()}
- className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
- isDragging ? 'border-brand-lilac bg-brand-lilac/5' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
- }`}
- >
- <input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={handleFileSelect} />
- <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
- <Upload size={28} className="text-gray-400" />
- </div>
- <p className="text-lg font-bold text-brand-black mb-1">Drag & drop your CSV file here</p>
- <p className="text-sm text-gray-400">or click to browse. Supports .csv and .xlsx files</p>
- </div>
- ) : (
- <>
- {/* Validation Bar */}
- <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-xl">
- <div className="flex items-center gap-4">
- <span className="text-sm font-bold text-brand-black">{uploadedData.length} rows loaded</span>
- {validCount > 0 && <span className="text-sm font-bold text-green-600">{validCount} valid</span>}
- {errorCount > 0 && <span className="text-sm font-bold text-red-500">{errorCount} errors</span>}
- </div>
- <div className="flex gap-2">
- <ThemedButton variant="ghost" onClick={handleValidateAll}>
- Validate All
- </ThemedButton>
- <ThemedButton variant="ghost" onClick={() => { setUploadedData([]); setValidationStatus({}); }}>
- Clear
- </ThemedButton>
- </div>
- </div>
+         {/* Editable Table */}
+         <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-[400px] overflow-y-auto">
+           <table className="w-full text-left text-sm">
+             <thead className="bg-gray-50 text-gray-400 font-bold text-xs uppercase tracking-widest sticky top-0 z-10">
+               <tr>
+                 <th className="px-3 py-3 w-8">#</th>
+                 <th className="px-3 py-3 w-8"></th>
+                 {CSV_TEMPLATE_COLUMNS.map(col => (
+                   <th key={col} className="px-3 py-3 whitespace-nowrap">{col}</th>
+                 ))}
+               </tr>
+             </thead>
+             <tbody className="divide-y divide-gray-50">
+               {uploadedData.map((row, i) => (
+                 <tr key={i} className={`${validationStatus[i] === 'error' ? 'bg-red-50/50' : validationStatus[i] === 'valid' ? 'bg-green-50/30' : ''}`}>
+                   <td className="px-3 py-2 text-xs text-gray-400">{i + 1}</td>
+                   <td className="px-3 py-2">
+                     {validationStatus[i] === 'valid' && <CheckCircle size={14} className="text-green-500" />}
+                     {validationStatus[i] === 'error' && <XCircle size={14} className="text-red-500" />}
+                   </td>
+                   {CSV_TEMPLATE_COLUMNS.map(col => (
+                     <td key={col} className="px-3 py-2">
+                       <input
+                         type="text"
+                         value={row[col] || ''}
+                         onChange={(e) => handleCellEdit(i, col, e.target.value)}
+                         className="w-full px-2 py-1.5 bg-transparent border border-transparent hover:border-gray-200 focus:border-brand-black rounded-lg text-sm font-medium outline-none transition-colors"
+                       />
+                     </td>
+                   ))}
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         </div>
 
- {/* Editable Table */}
- <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-[400px] overflow-y-auto">
- <table className="w-full text-left text-sm">
- <thead className="bg-gray-50 text-gray-400 font-bold text-xs uppercase tracking-widest sticky top-0 z-10">
- <tr>
- <th className="px-3 py-3 w-8">#</th>
- <th className="px-3 py-3 w-8"></th>
- {CSV_TEMPLATE_COLUMNS.map(col => (
- <th key={col} className="px-3 py-3 whitespace-nowrap">{col}</th>
- ))}
- </tr>
- </thead>
- <tbody className="divide-y divide-gray-50">
- {uploadedData.map((row, i) => (
- <tr key={i} className={`${validationStatus[i] === 'error' ? 'bg-red-50/50' : validationStatus[i] === 'valid' ? 'bg-green-50/30' : ''}`}>
- <td className="px-3 py-2 text-xs text-gray-400">{i + 1}</td>
- <td className="px-3 py-2">
- {validationStatus[i] === 'valid' && <CheckCircle size={14} className="text-green-500" />}
- {validationStatus[i] === 'error' && <XCircle size={14} className="text-red-500" />}
- </td>
- {CSV_TEMPLATE_COLUMNS.map(col => (
- <td key={col} className="px-3 py-2">
- <input
- type="text"
- value={row[col] || ''}
- onChange={(e) => handleCellEdit(i, col, e.target.value)}
- className="w-full px-2 py-1.5 bg-transparent border border-transparent hover:border-gray-200 focus:border-brand-black rounded-lg text-sm font-medium outline-none transition-colors"
- />
- </td>
- ))}
- </tr>
- ))}
- </tbody>
- </table>
- </div>
-
- {/* Import Button */}
- <div className="mt-6 flex justify-end">
- <ThemedButton
- variant="primary"
- onClick={handleImport}
- disabled={validCount === 0}
- icon={Plus}
- >
- Import {validCount > 0 ? `${validCount} Students` : 'Students'}
- </ThemedButton>
- </div>
- </>
- )}
- </div>
- </div>
- </div>
- , document.body);
+         {/* Import Button */}
+         <div className="mt-6 flex justify-end">
+           <ThemedButton
+             variant="primary"
+             onClick={handleImport}
+             disabled={validCount === 0}
+             icon={Plus}
+           >
+             Import {validCount > 0 ? `${validCount} Students` : 'Students'}
+           </ThemedButton>
+         </div>
+       </>
+     )}
+   </ThemedModal>
+ );
 };

@@ -94,6 +94,12 @@ export interface Driver {
 // Students
 export type StudentStatus = 'ON_BOARD' | 'DROPPED_OFF' | 'ABSENT' | 'WAITING' | 'DISABLED';
 
+export interface Location {
+  lat: number;
+  lng: number;
+  address: string;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -101,6 +107,9 @@ export interface Student {
   grade: string;
   guardian: string;
   status: StudentStatus;
+  pickupLocation?: Location;
+  dropoffLocation?: Location;
+  assignedRoutes?: string[]; // Route IDs this student is assigned to
 }
 
 // Assignments
