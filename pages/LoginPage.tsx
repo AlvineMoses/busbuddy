@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, UserRole } from '../types';
-import { MOCK_USERS } from '../services/mockData';
 import { Eye, EyeOff, ArrowLeft, ChevronRight, Shield, User as UserIcon, Building2, MessageSquare, Smartphone, Bell, Mail, AlertCircle, CheckCircle, GraduationCap, Briefcase } from 'lucide-react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedInput, ThemedButton, ThemedLink, ThemedLogo, ThemedPlatformName } from '../src/components/ThemedComponents';

@@ -1,156 +1,237 @@
 /**
- * API Endpoints Configuration
+ * API Endpoints Configuration - Backend Integration
  * ================================
  * 
- * SMART DATA-FLOW: Centralized endpoint definitions — single source of truth.
+ * Backend API Structure: api/v1/{Controller}/{Action}
+ * All domain endpoints use POST method (except /health endpoints which use GET)
+ * Authentication: JWT Bearer token required (except [AllowAnonymous] endpoints)
  * 
  * Principles:
- * 1. All endpoints defined WITHOUT /api prefix — ApiClient handles prefix addition automatically.
- * 2. Entity-centric grouping — one object per domain entity.
- * 3. RESTful naming conventions — verbs via HTTP methods, nouns via paths.
- * 4. Parameterized helpers — functions that produce dynamic paths (e.g. /drivers/:id).
- * 5. Zero string duplication — import from here, never hardcode paths in services.
- * 
- * When adding a new endpoint:
- *   1. Add it to the relevant entity group below.
- *   2. Use it in the corresponding service in UnifiedApiService.js.
- *   3. Add it to the Postman collection if needed.
+ * 1. All endpoints match backend route structure exactly
+ * 2. Centralized endpoint definitions — single source of truth
+ * 3. Controller-centric grouping matching backend controllers
+ * 4. Zero string duplication — import from here, never hardcode paths
  */
 
 // ============================================
-// AUTH ENDPOINTS
+// AUTHENTICATION ENDPOINTS (AllowAnonymous)
 // ============================================
 export const AUTH = {
-  LOGIN:                  '/auth/login',
-  LOGOUT:                 '/auth/logout',
-  ME:                     '/auth/me',
-  VERIFY_OTP:             '/auth/verify-otp',
-  RESEND_OTP_LOGIN:       '/auth/resend-otp',
-  FORGOT_PASSWORD:        '/auth/forgot-password',
-  PREFERRED_OTP_CHANNEL:  '/auth/preferred_otp_channel',
-  RESEND_OTP:             '/auth/resend-otp-forgot-password',
-  RESET_PASSWORD:         '/auth/reset-password',
-  REFRESH_TOKEN:          '/auth/refresh-token',
-  USER_ACCOUNTS:          '/auth/user-accounts',
-  VERIFY_ACCOUNT:         '/verify/account',
+  AUTHENTICATE_USER:      '/v1/Authentication/AuthenticateUser',
+  AUTHENTICATE_OTP:       '/v1/Authentication/AuthenticateOTP',
+  OTP_VERIFICATION:       '/v1/Authentication/OTPVerification',
+  SET_NEW_PASSWORD:       '/v1/Authentication/SetNewPassword',
 } as const;
 
 // ============================================
-// SCHOOL ENDPOINTS
+// CORPORATE ENDPOINTS (Maps to School/Organization)
 // ============================================
-export const SCHOOLS = {
-  BASE:             '/schools',
-  BY_ID:            (id: string) => `/schools/${id}`,
-  STATS:            (id: string) => `/schools/${id}/stats`,
+export const CORPORATE = {
+  REGISTRATION:           '/v1/Corporate/CorporateRegistration',
+  LIST:                   '/v1/Corporate/CorporateList',
+  ALL_ACTION_LIST:        '/v1/Corporate/CorporateAllActionList',
+  ADD_EDIT_SERVICE:       '/v1/Corporate/AddEditCorporateService',
+  SUSPEND:                '/v1/Corporate/SuspendCorporate',
+  STAFF_LIST:             '/v1/Corporate/StaffListByCorporate',
+  GET_ALL_DEPARTMENTS:    '/v1/Corporate/GetAllDepartmentByCorporate',
+  ADD_REGISTRATION_V2:    '/v1/Corporate/AddCorporateRegV2',
+  ADD_EDIT_SHUTTLE_STOP:  '/v1/Corporate/AddEditShuttleStop',
+  GET_SHUTTLE_STOP:       '/v1/Corporate/GetShuttleStop',
+  GET_CORPORATES:         '/v1/Corporate/GetCorporates',
+  ADD_EDIT_PARAMETER:     '/v1/Corporate/AddEditCorporateParameter',
 } as const;
 
 // ============================================
-// DRIVER ENDPOINTS
+// DEPARTMENT ENDPOINTS
 // ============================================
-export const DRIVERS = {
-  BASE:             '/drivers',
-  BY_ID:            (id: string) => `/drivers/${id}`,
-  GENERATE_OTP:     (id: string) => `/drivers/${id}/generate-otp`,
-  QR_CODE:          (id: string) => `/drivers/${id}/qr-code`,
-  STATUS:           (id: string) => `/drivers/${id}/status`,
-  LIVE:             '/drivers/live',
+export const DEPARTMENT = {
+  ADD_EDIT:               '/v1/Department/AddEditDepartment',
+  APPROVAL:               '/v1/Department/DepartmentApproval',
+  LIST:                   '/v1/Department/DepartmentList',
+  GET_DETAILS:            '/v1/Department/GetDepartmentDetails',
+} as const;
+
+// ============================================
+// STAFF ENDPOINTS (Maps to Students/Riders)
+// ============================================
+export const STAFF = {
+  ADD_EDIT:               '/v1/Staff/AddEditStaff',
+  GET_DETAILS:            '/v1/Staff/GetStaffDetails',
+  GET_LIST:               '/v1/Staff/GetStaffList',
+  SUSPEND:                '/v1/Staff/SuspendStaff',
+  TRANSFER:               '/v1/Staff/TransferStaff',
+  GET_LITTLE_DETAILS:     '/v1/Staff/GetLittleStaffDetails',
+  ADD_EDIT_LITTLE:        '/v1/Staff/AddEditLittleStaffDetails',
+  ADD_EDIT_V2:            '/v1/Staff/AddEditStafV2',
 } as const;
 
 // ============================================
 // ROUTE ENDPOINTS
 // ============================================
-export const ROUTES = {
-  BASE:             '/routes',
-  BY_ID:            (id: string) => `/routes/${id}`,
-  TRIPS:            (id: string) => `/routes/${id}/trips`,
-  EXPORT:           '/routes/export',
-  LIVE:             '/routes/live',
+export const ROUTE = {
+  ADD_EDIT:               '/v1/Route/AddEditRoute',
+  GET_LIST:               '/v1/Route/GetRoutList',
+  GET_DETAILS:            '/v1/Route/GetRouteDetails',
+  GET_BOOKED:             '/v1/Route/GetBookedRoute',
+  ENABLE_DISABLE:         '/v1/Route/EnableDisableShuttleRoute',
+} as const;
+
+// ============================================
+// DRIVER ENDPOINTS
+// ============================================
+export const DRIVER = {
+  GET_PRIVATE_LIST:       '/v1/DriverList/GetPrivateDriverList',
+  GET_LIST:               '/v1/DriverList/GetDriverList',
+  ONLINE_LOCATIONS:       '/v1/DriverList/DriveronlineLocations',
+  EDIT_ASSIGNED:          '/v1/DriverList/EditAssignedDriver',
+  ADD_EDIT_PRIVATE:       '/v1/DriverList/AddEditPrivateDriver',
+  LIST_V2:                '/v1/DriverList/DriverListV2',
+  GET_DETAILS:            '/v1/DriverList/GetDriverDetails',
+  UPDATE_OVERTIME:        '/v1/DriverList/UpdatetDriverOvertime',
+  GET_PARTNERS_VEHICLES:  '/v1/DriverList/GetPartnersWithVehicles',
+  ASSIGN_VEHICLE:         '/v1/DriverList/GetAssignVehicleToDriver',
+} as const;
+
+// ============================================
+// DRIVER SHIFT ENDPOINTS
+// ============================================
+export const DRIVER_SHIFT = {
+  ADD_EDIT:               '/v1/DriverShift/AddEditDriverShift',
+  GET_DETAILS:            '/v1/DriverShift/GetDriverShiftDetails',
+  DETAILS_REPORT:         '/v1/DriverShift/DriverShiftDetailsReport',
 } as const;
 
 // ============================================
 // TRIP ENDPOINTS
 // ============================================
 export const TRIPS = {
-  BASE:             '/trips',
-  BY_ID:            (id: string) => `/trips/${id}`,
-  FLAG:             (id: string) => `/trips/${id}/flag`,
-  PLAYBACK:         (id: string) => `/trips/${id}/playback`,
-  EVENTS:           (id: string) => `/trips/${id}/events`,
-  STATS:            '/trips/stats',
+  GET_ALL:                '/v1/Trips/GetAllTrips',
+  ALL_DETAILS:            '/v1/Trips/AllTripsDetails',
+  GET_DETAILS:            '/v1/Trips/GetTripDetails',
 } as const;
 
 // ============================================
-// STUDENT ENDPOINTS
+// LIVE TRIP ENDPOINTS
 // ============================================
-export const STUDENTS = {
-  BASE:             '/students',
-  BY_ID:            (id: string) => `/students/${id}`,
-  DISABLE:          (id: string) => `/students/${id}/disable`,
-  TRANSFER:         (id: string) => `/students/${id}/transfer`,
-  BULK_UPLOAD:      '/students/bulk-upload',
+export const LIVE_TRIP = {
+  GET_DETAILS:            '/v1/LiveTrip/GetLiveTripDetails',
 } as const;
 
 // ============================================
-// ASSIGNMENT ENDPOINTS
+// SHUTTLE TRIP ENDPOINTS
 // ============================================
-export const ASSIGNMENTS = {
-  BASE:             '/assignments',
-  BY_ID:            (id: string) => `/assignments/${id}`,
-  CONFLICTS:        '/assignments/conflicts',
+export const SHUTTLE_TRIPS = {
+  GET_TRIPS:              '/v1/ShuttleTrips/GetShuttleTrips',
+  DETAILS:                '/v1/ShuttleTrips/ShuttleTripsDetails',
+  ADD_EDIT_DRIVER_RIDER:  '/v1/ShuttleTrips/AddEditDriverwithRiderAssing',
+  ADD_EDIT_DRIVER:        '/v1/ShuttleTrips/AddEditShuttleDriver',
+  GET_DRIVER_LIST:        '/v1/ShuttleTrips/GetShuttleDriverList',
+  GET_ALL_DRIVER_RIDER:   '/v1/ShuttleTrips/GetAllDriverWithRiderList',
 } as const;
 
 // ============================================
-// SHIFT ENDPOINTS
+// PRIVATE TRIP ENDPOINTS
 // ============================================
-export const SHIFTS = {
-  BASE:             '/shifts',
-  BY_ID:            (id: string) => `/shifts/${id}`,
-  DUPLICATE:        (id: string) => `/shifts/${id}/duplicate`,
+export const PRIVATE_TRIP = {
+  GET:                    '/v1/PrivateTrip/GetPrivateTrip',
+  DETAILS:                '/v1/PrivateTrip/PrivateTripDetails',
 } as const;
 
 // ============================================
-// NOTIFICATION ENDPOINTS
+// SHUTTLE BOOKING ENDPOINTS
 // ============================================
-export const NOTIFICATIONS = {
-  BASE:             '/notifications',
-  BY_ID:            (id: string) => `/notifications/${id}`,
-  READ:             (id: string) => `/notifications/${id}/read`,
-  READ_ALL:         '/notifications/read-all',
-  UNREAD_COUNT:     '/notifications/unread-count',
+export const SHUTTLE_BOOKING = {
+  GET_DETAILS:            '/v1/ShuttleBooking/GetShuttlebookingDetails',
+  EDIT:                   '/v1/ShuttleBooking/EditRouteBooking',
+  CANCEL:                 '/v1/ShuttleBooking/CancelledRouteBooking',
+  GET_BOOKED_RIDER:       '/v1/ShuttleBooking/GetBookedRiderDetails',
 } as const;
 
 // ============================================
-// SETTINGS ENDPOINTS
+// SCHEDULE BOOKING ENDPOINTS
 // ============================================
-export const SETTINGS = {
-  BASE:             '/settings',
-  UPLOAD_IMAGE:     '/settings/upload-image',
-  PERMISSIONS:      '/settings/permissions',
+export const SCHEDULE_BOOKING = {
+  ADD_EDIT_REQUEST:       '/v1/ScheduleBooking/AddEditBookingRequest',
+  GET_REQUEST_DETAILS:    '/v1/ScheduleBooking/GetBookingRequestDetails',
+  CANCEL:                 '/v1/ScheduleBooking/CancelScheduleTrip',
+  GET_TRIP:               '/v1/ScheduleBooking/GetScheduleTrip',
+  TRIP_DETAILS:           '/v1/ScheduleBooking/ScheduleTripsDetails',
+  TRIP_REPORT:            '/v1/ScheduleBooking/ScheduleTripReport',
+  REQUEST_DETAILS_REPORT: '/v1/ScheduleBooking/GetBookingRequestDetailsReport',
 } as const;
 
 // ============================================
 // DASHBOARD ENDPOINTS
 // ============================================
 export const DASHBOARD = {
-  METRICS:          '/dashboard/metrics',
-  LIVE_FEED:        '/dashboard/live-feed',
+  GET:                    '/v1/Dashboard/GetDashboard',
 } as const;
 
 // ============================================
-// AGGREGATE EXPORT — Allows `import { API } from '@/src/config/apiEndpoints'`
+// MENU ENDPOINTS
+// ============================================
+export const MENU = {
+  GET_LIST:               '/v1/Menu/GetMenuList',
+  GET_USER_LIST:          '/v1/Menu/GetUserMenuList',
+  LIST_2:                 '/v1/Menu/MenuList2',
+  ADD_EDIT_BY_ROLE:       '/v1/Menu/AddEditMenulistByRole',
+  GET_BY_ROLE:            '/v1/Menu/GetMenulistByRole',
+} as const;
+
+// ============================================
+// HEADER ENDPOINTS
+// ============================================
+export const HEADER = {
+  CHANGE_PASSWORD:        '/v1/Header/ChangePassword',
+  GET_NOTIFICATION:       '/v1/Header/GetNotification',
+  GET_INFO:               '/v1/Header/GetHeaderInfo',
+} as const;
+
+// ============================================
+// DISPATCH ENDPOINTS
+// ============================================
+export const DISPATCH = {
+  ADD_PRIVATE_TRIP:       '/v1/Dispatch/AddDispatchPrivateTrip',
+} as const;
+
+// ============================================
+// REPORT ENDPOINTS
+// ============================================
+export const REPORT = {
+  SHUTTLE_TRIP:           '/v1/Report/ShuttleTripReport',
+} as const;
+
+// ============================================
+// HEALTH ENDPOINTS (GET method, no auth)
+// ============================================
+export const HEALTH = {
+  HEALTH:                 '/health',
+  DB:                     '/health/db',
+} as const;
+
+// ============================================
+// AGGREGATE EXPORT
 // ============================================
 export const API = {
   AUTH,
-  SCHOOLS,
-  DRIVERS,
-  ROUTES,
+  CORPORATE,
+  DEPARTMENT,
+  STAFF,
+  ROUTE,
+  DRIVER,
+  DRIVER_SHIFT,
   TRIPS,
-  STUDENTS,
-  ASSIGNMENTS,
-  SHIFTS,
-  NOTIFICATIONS,
-  SETTINGS,
+  LIVE_TRIP,
+  SHUTTLE_TRIPS,
+  PRIVATE_TRIP,
+  SHUTTLE_BOOKING,
+  SCHEDULE_BOOKING,
   DASHBOARD,
+  MENU,
+  HEADER,
+  DISPATCH,
+  REPORT,
+  HEALTH,
 } as const;
 
 export default API;

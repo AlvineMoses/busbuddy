@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
@@ -10,8 +10,8 @@ import { OperationsPage } from './pages/OperationsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ToastContainer } from './components/ToastContainer';
-import { User, UserRole } from './types';
-import { SCHOOLS } from './services/mockData';
+import { User, UserRole, School } from './types';
+import { schoolService } from './src/services/UnifiedApiService';
 import store from './src/store';
 import { fetchSettings } from './src/store/slices/settingsSlice';
 import { setUser as setUserAction, logoutUser } from './src/store/slices/authSlice';
@@ -26,8 +26,20 @@ function AppContent() {
   const notifications = useSelector((state: RootState) => state.entities.notifications);
   const navigate = useNavigate();
   const location = useLocation();
+  const [schools, setSchools] = useState<School[]>([]);
 
-  const currentSchool = SCHOOLS.find(s => s.id === currentSchoolId) || null;
+  const currentSchool = schools.find(s => s.id === currentSchoolId) || null;
+
+  // Load schools when user is authenticated
+  useEffect(() => {
+    if (currentUser) {
+      schoolService.getAll().then(result => {
+        setSchools(result.schools);
+      }).catch(error => {
+        console.error('Failed to load schools:', error);
+      });
+    }
+  }, [currentUser]);
 
   // SMART DATA-FLOW: Load settings from localStorage on app startup
   useEffect(() => {
@@ -69,6 +81,7 @@ function AppContent() {
     <Layout 
       currentUser={currentUser}
       currentSchool={currentSchool}
+      schools={schools}
       onSchoolChange={handleSchoolChange}
       activePage={activePage}
       onNavigate={(page: string) => navigate(`/${page}`)}

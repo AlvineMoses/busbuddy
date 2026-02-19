@@ -1,18 +1,13 @@
 /**
  * AuthService - Centralized Authentication State Management
  *
- * SMART DATA-FLOW Principles:
- * ─────────────────────────────
- * 1. SINGLE SOURCE OF TRUTH — All auth state (token, user, session) lives here.
- * 2. TOKEN LIFECYCLE — Login stores token, logout clears it, refresh renews it.
- * 3. PERSISTENCE — Token + user persisted to localStorage for session survival.
- * 4. API-READY — Mock implementations use the same interface as real API calls.
- * 5. EVENT-DRIVEN — Notifies listeners on auth state changes (login, logout, expiry).
+ * Integrated with real backend via UnifiedApiService.
+ * No more demo mode - all authentication goes through real API.
  */
 
 import { apiClient } from './ApiClient';
 import { API } from '../config/apiEndpoints';
-import { MOCK_USERS } from '../../services/mockData';
+import { authService as apiAuthService, clearUserContext } from './UnifiedApiService';
 import { UserRole, type User } from '../../types';
 
 // ============================================
@@ -100,23 +95,6 @@ const STORAGE_KEYS = {
 } as const;
 
 // ============================================
-// DEMO MODE HELPER
-// ============================================
-
-const _isDemoMode = (): boolean => {
-  try {
-    const raw = localStorage.getItem('busbuddy_settings');
-    if (raw) {
-      const settings = JSON.parse(raw);
-      if (settings.featureFlags && typeof settings.featureFlags.demoMode === 'boolean') {
-        return settings.featureFlags.demoMode;
-      }
-    }
-  } catch { /* default */ }
-  return true; // Default: demo mode ON
-};
-
-// ============================================
 // AUTH SERVICE
 // ============================================
 
@@ -144,49 +122,29 @@ class AuthService {
   // ──────────────────────────────────────────
 
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    // ── DEMO MODE ──
-    if (_isDemoMode()) {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const user = MOCK_USERS.find(u => u.email === credentials.email);
-          if (!user) {
-            reject(new Error('Invalid credentials'));
-            return;
-          }
-          const token = `mock_token_${user.id}_${Date.now()}`;
-          const refreshToken = `mock_refresh_${user.id}_${Date.now()}`;
-          this._setSession(user, token, refreshToken);
-          resolve({ status: 'success', user, token });
-        }, 600);
-      });
-    }
-
-    // ── PRODUCTION MODE ──
-    const data = await apiClient.post<any>(
-      API.AUTH.LOGIN,
-      credentials as unknown as Record<string, unknown>,
-      { cache: false }
-    );
-
-    // Direct login — API returned access_token
-    if (data.access_token) {
-      apiClient.setAuthToken(data.access_token);
-      const user = await this._fetchCurrentUser();
-      this._setSession(user, data.access_token, data.refresh_token || null);
-      return { status: 'success', user, token: data.access_token };
-    }
-
-    // OTP required — API returned otp_channel_token
-    if (data.otp_channel_token) {
+    try {
+      // Use real backend authentication
+      const result = await apiAuthService.login(credentials.email, credentials.password);
+      
+      this._setSession(result.user, result.token, null);
+      
       return {
-        status: 'otp_required',
-        otp_channel_token: data.otp_channel_token,
-        otp_options: data.otp_options,
-        message: data.message,
+        status: 'success',
+        user: result.user,
+        token: result.token,
       };
+    } catch (error: any) {
+      // Check if OTP is required (based on error response)
+      if (error.details?.otp_required || error.details?.otp_channel_token) {
+        return {
+          status: 'otp_required',
+          otp_channel_token: error.details.otp_channel_token,
+          otp_options: error.details.otp_options,
+          message: error.message,
+        };
+      }
+      throw error;
     }
-
-    throw new Error(data.message || 'Login failed');
   }
 
   loginDirect(user: User): LoginResult {
@@ -225,28 +183,19 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
-    if (!_isDemoMode() && this._token) {
-      try {
-        await apiClient.post(API.AUTH.LOGOUT, {}, { cache: false });
-      } catch {
-        // Proceed with local cleanup even if API call fails
-      }
-    }
+    await apiAuthService.logout();
+    clearUserContext();
     this._clearSession();
   }
 
   async verifySession(): Promise<User | null> {
     if (!this._token) return null;
 
-    // ── DEMO MODE ──
-    if (_isDemoMode()) return this._user;
-
-    // ── PRODUCTION MODE ──
     try {
-      const user = await this._fetchCurrentUser();
-      this._user = user;
+      const result = await apiAuthService.me();
+      this._user = result.user;
       this._persist();
-      return user;
+      return result.user;
     } catch {
       this._clearSession();
       return null;
@@ -307,35 +256,8 @@ class AuthService {
   async refreshAccessToken(): Promise<string | null> {
     if (!this._refreshToken) return null;
 
-    // ── DEMO MODE ──
-    if (_isDemoMode()) {
-      const newToken = `mock_token_${this._user?.id}_${Date.now()}`;
-      this._token = newToken;
-      apiClient.setAuthToken(newToken);
-      this._persist();
-      return newToken;
-    }
-
-    // ── PRODUCTION MODE ──
-    try {
-      const data = await apiClient.post<any>(
-        API.AUTH.REFRESH_TOKEN,
-        { refresh_token: this._refreshToken } as unknown as Record<string, unknown>,
-        { cache: false }
-      );
-      if (data.access_token) {
-        this._token = data.access_token;
-        if (data.refresh_token) this._refreshToken = data.refresh_token;
-        apiClient.setAuthToken(data.access_token);
-        this._persist();
-        return data.access_token;
-      }
-      throw new Error('No access_token in refresh response');
-    } catch (err) {
-      console.error('AuthService: Token refresh failed:', err);
-      this._clearSession();
-      return null;
-    }
+    // Refresh token not implemented in backend yet - return null for now
+    return null;
   }
 
   /**

@@ -16,11 +16,11 @@ import {
   Truck
 } from 'lucide-react';
 import { User, UserRole, School, Notification, NotificationType } from '../types';
-import { SCHOOLS } from '../services/mockData';
 
 interface LayoutProps {
   currentUser: User;
   currentSchool: School | null;
+  schools: School[];
   onSchoolChange: (schoolId: string) => void;
   activePage: string;
   onNavigate: (page: string) => void;
@@ -31,7 +31,8 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ 
   currentUser, 
-  currentSchool, 
+  currentSchool,
+  schools = [],
   onSchoolChange, 
   activePage, 
   onNavigate, 
@@ -173,7 +174,7 @@ export const Layout: React.FC<LayoutProps> = ({
                           {!currentSchool && <Check size={14} className="text-brand-green"/>}
                         </button>
                         <div className="h-px bg-gray-50 my-1"></div>
-                        {SCHOOLS.map(school => (
+                        {schools.map(school => (
                           <button
                             key={school.id}
                             onClick={() => { onSchoolChange(school.id); setIsSchoolSelectorOpen(false); }}

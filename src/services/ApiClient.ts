@@ -124,7 +124,7 @@ class ApiClient {
 
   constructor() {
     this.baseURL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_BASE_URL || 'https://corporate.little.africa/new_backend';
-    this.apiPrefix = '/api';
+    this.apiPrefix = ''; // Backend endpoints already include /api/v1 prefix
 
     this.cache = new Map();
     this.pendingRequests = new Map();
