@@ -76,7 +76,7 @@ function AppContent() {
       <Routes>
         <Route path="/dashboard" element={<Dashboard onNavigate={(page: string) => navigate(`/${page}`)} />} />
         <Route path="/routes" element={<RoutesPage />} />
-        <Route path="/operations" element={<OperationsPage currentUser={currentUser} />} />
+        <Route path="/operations" element={<OperationsPage />} />
         <Route path="/schools" element={<SchoolsPage currentUser={currentUser} />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />

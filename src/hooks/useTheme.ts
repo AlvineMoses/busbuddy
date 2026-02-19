@@ -87,7 +87,7 @@ export const useTheme = (): ThemeData => {
     testimonials: settings.testimonials || [],
 
     // Feature flags
-    featureFlags: settings.featureFlags || { socialSignIn: false, whiteLabelling: false, betaPaymentGateway: false, demoMode: true },
+    featureFlags: (settings.featureFlags || { socialSignIn: false, whiteLabelling: false, betaPaymentGateway: false, demoMode: true }) as FeatureFlags,
 
     // Full settings object (for advanced use)
     settings,

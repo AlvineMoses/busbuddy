@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
-import { User } from '../types';
 import { DriversPage } from './DriversPage';
 import { ShiftsPage } from './ShiftsPage';
 import { AssignmentsPage } from './AssignmentsPage';
+import useAppStore from '../src/store/AppStore';
 
-interface OperationsPageProps {
- currentUser: User;
-}
-
-export const OperationsPage: React.FC<OperationsPageProps> = ({ currentUser }) => {
+export const OperationsPage: React.FC = () => {
+ // SMART DATA-FLOW: Get user from Zustand store
+ const currentUser = useAppStore((state: any) => state.auth.user);
  const [activeTab, setActiveTab] = useState<'drivers' | 'shifts' | 'assignments'>('drivers');
  const { colors } = useTheme();
 

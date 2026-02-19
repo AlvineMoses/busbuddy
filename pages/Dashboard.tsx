@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { useRouteData, useDriverData } from '../src/hooks/useAppData';
-import { useSelector } from 'react-redux';
+import useAppStore from '../src/store/AppStore';
 import { 
  Bus, 
  Clock, 
@@ -64,7 +64,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  // SMART DATA-FLOW: Use centralized hooks
  const { routes } = useRouteData();
  const { drivers } = useDriverData();
- const user = useSelector((state: any) => state.app?.user);
+ const user = useAppStore((state: any) => state.auth.user);
  const { colors } = useTheme();
  const [feedTab, setFeedTab] = useState<'drivers' | 'fleet'>('fleet');
  const [driverSubTab, setDriverSubTab] = useState<'all' | 'online' | 'on-trip'>('all');
@@ -82,6 +82,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  schools: 3,
  students: 1240
  };
+
+ // Safety check: if user is undefined, return default metrics
+ if (!user) {
+ return [
+ { label: 'Month Trips', value: baseMetrics.monthTrips.toLocaleString(), subtext: 'Total completed', icon: Bus, theme: 'lilac' },
+ { label: 'Distance (Km)', value: baseMetrics.monthKm.toLocaleString(), subtext: 'Total covered', icon: Navigation, theme: 'green' },
+ { label: 'Active Trips', value: baseMetrics.activeTrips, subtext: 'Currently live', icon: Clock, theme: 'amber' },
+ { label: 'Students', value: baseMetrics.students.toLocaleString(), subtext: 'Enrolled', icon: Users, theme: 'orange' }
+ ];
+ }
 
  if (user.role === UserRole.SUPER_ADMIN) {
  return [
@@ -146,7 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  </div>
 
  {/* Map & Feed Section */}
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[750px]">
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-187.5">
  
  {/* Live Feed Panel */}
  <div className="bg-white/60 backdrop-blur-md rounded-[3rem] shadow-soft-xl border border-white/60 flex flex-col overflow-hidden">
@@ -177,7 +187,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
  {feedTab === 'fleet' ? (
  routes.map(route => (
- <div key={route.id} className="p-4 rounded-[2rem] bg-white border border-gray-50 hover:shadow-lg transition-all flex items-center justify-between group cursor-pointer">
+ <div key={route.id} className="p-4 rounded-4xl bg-white border border-gray-50 hover:shadow-lg transition-all flex items-center justify-between group cursor-pointer">
  <div className="flex items-center gap-4">
  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${route.health === 'NORMAL' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
  <Bus size={20} />
@@ -192,7 +202,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  ))
  ) : (
  filteredDrivers.map(driver => (
- <div key={driver.id} className="p-4 rounded-[2rem] bg-white border border-gray-50 hover:shadow-lg transition-all flex items-center justify-between group cursor-pointer">
+ <div key={driver.id} className="p-4 rounded-4xl bg-white border border-gray-50 hover:shadow-lg transition-all flex items-center justify-between group cursor-pointer">
  <div className="flex items-center gap-4">
  <img src={driver.avatar} className="w-12 h-12 rounded-2xl object-cover" />
  <div>

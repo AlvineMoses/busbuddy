@@ -237,7 +237,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ currentUser }) => {
  </div>
  ) : (
  /* List View */
- <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 min-h-[500px]">
+ <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 min-h-125">
  <ThemedDataTable
    columns={[
      {

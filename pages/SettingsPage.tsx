@@ -7,7 +7,7 @@ import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, 
 import { EndpointsSettingsTab } from './EndpointsSettingsTab';
 import useAppStore from '../src/store/AppStore';
 import { UserRole } from '../types';
-import { SCHOOLS } from '../services/mockData';
+import { useSchoolData } from '../src/hooks/useAppData';
 import { 
   fetchSettings, 
   updateSettings, 
@@ -60,6 +60,8 @@ interface Testimonial {
 }
 
 export const SettingsPage: React.FC = () => {
+  // SMART DATA-FLOW: Use hooks for data
+  const { schools } = useSchoolData();
   const dispatch = useDispatch<any>();
   const settings = useSelector((state: any) => state.settings);
   const currentUser = useAppStore((state: any) => state.auth.user);
@@ -1127,7 +1129,7 @@ export const SettingsPage: React.FC = () => {
                              {(settings.whiteLabelSchools || []).length > 0 ? (
                                <div className="flex flex-wrap gap-2">
                                  {(settings.whiteLabelSchools || []).map((schoolId: string) => {
-                                   const school = SCHOOLS.find(s => s.id === schoolId);
+                                   const school = schools.find(s => s.id === schoolId);
                                    return school ? (
                                      <span key={schoolId} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-black/5 rounded-full text-xs font-bold text-brand-black">
                                        {school.name}

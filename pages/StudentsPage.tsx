@@ -325,7 +325,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  </div>
  ) : (
  /* List View */
- <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 min-h-[600px] overflow-hidden">
+ <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 min-h-150 overflow-hidden">
  
  {/* Filter Toolbar */}
  <div className="p-8 border-b border-gray-50 flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
@@ -346,7 +346,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
  <select 
  value={schoolFilter}
  onChange={(e) => setSchoolFilter(e.target.value)}
- className="appearance-none bg-white pl-5 pr-10 py-4 rounded-full text-sm font-bold text-gray-600 hover:text-brand-black shadow-sm border border-gray-200 transition-all cursor-pointer min-w-[160px]"
+ className="appearance-none bg-white pl-5 pr-10 py-4 rounded-full text-sm font-bold text-gray-600 hover:text-brand-black shadow-sm border border-gray-200 transition-all cursor-pointer min-w-40"
  >
  <option value="">All Schools</option>
  {schools.map(s => <option key={s} value={s}>{s}</option>)}
@@ -356,10 +356,10 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
 
  {/* Grade Filter */}
  <div className="relative group">
- <select 
+ <select
  value={gradeFilter}
  onChange={(e) => setGradeFilter(e.target.value)}
- className="appearance-none bg-white pl-5 pr-10 py-4 rounded-full text-sm font-bold text-gray-600 hover:text-brand-black shadow-sm border border-gray-200 transition-all cursor-pointer min-w-[140px]"
+ className="appearance-none bg-white pl-5 pr-10 py-4 rounded-full text-sm font-bold text-gray-600 hover:text-brand-black shadow-sm border border-gray-200 transition-all cursor-pointer min-w-35"
  >
  <option value="">All Grades</option>
  {grades.map(g => <option key={g} value={g}>{g}</option>)}
@@ -369,10 +369,10 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
 
  {/* Status Filter */}
  <div className="relative group">
- <select 
+ <select
  value={statusFilter}
  onChange={(e) => setStatusFilter(e.target.value)}
- className="appearance-none bg-white pl-5 pr-10 py-4 rounded-full text-sm font-bold text-gray-600 hover:text-brand-black shadow-sm border border-gray-200 transition-all cursor-pointer min-w-[140px]"
+ className="appearance-none bg-white pl-5 pr-10 py-4 rounded-full text-sm font-bold text-gray-600 hover:text-brand-black shadow-sm border border-gray-200 transition-all cursor-pointer min-w-35"
  >
  <option value="">All Status</option>
  {statuses.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
@@ -632,7 +632,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
            </div>
          </div>
          {/* Large Map Preview */}
-         <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
+         <div className="rounded-2xl overflow-hidden border border-gray-200 h-85">
            <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
              <Map
                defaultCenter={pickupMarker || NAIROBI_CENTER}
@@ -847,7 +847,7 @@ export const StudentsPage: React.FC<StudentsPageProps> = ({ currentUser, showHea
          </div>
        </div>
        {/* Large Map Preview */}
-       <div className="rounded-2xl overflow-hidden border border-gray-200 h-[340px]">
+       <div className="rounded-2xl overflow-hidden border border-gray-200 h-85">
          <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
            <Map
              defaultCenter={NAIROBI_CENTER}
@@ -1072,7 +1072,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ schools, onClose, onI
          </div>
 
          {/* Editable Table */}
-         <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-[400px] overflow-y-auto">
+         <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-100 overflow-y-auto">
            <table className="w-full text-left text-sm">
              <thead className="bg-gray-50 text-gray-400 font-bold text-xs uppercase tracking-widest sticky top-0 z-10">
                <tr>

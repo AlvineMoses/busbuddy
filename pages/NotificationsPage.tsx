@@ -2,64 +2,20 @@ import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { Bell, CheckCircle, AlertCircle, Info, X, Check, Trash2 } from 'lucide-react';
-
-interface Notification {
- id: string;
- type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR';
- title: string;
- message: string;
- timestamp: string;
- read: boolean;
- actionable?: boolean;
-}
-
-const MOCK_NOTIFICATIONS: Notification[] = [
- {
- id: 'N-001',
- type: 'WARNING',
- title: 'Route Delay Detected',
- message: 'Route A - North is running 15 minutes behind schedule',
- timestamp: '2024-02-15T08:30:00',
- read: false,
- actionable: true
- },
- {
- id: 'N-002',
- type: 'SUCCESS',
- title: 'Trip Completed',
- message: 'Morning pickup for Greenfield Academy completed successfully',
- timestamp: '2024-02-15T08:15:00',
- read: false
- },
- {
- id: 'N-003',
- type: 'INFO',
- title: 'New Driver Registered',
- message: 'Emily Rodriguez has been added to the system',
- timestamp: '2024-02-15T07:45:00',
- read: true
- },
- {
- id: 'N-004',
- type: 'ERROR',
- title: 'Vehicle Breakdown',
- message: 'Bus KCA-123X reported mechanical issue. Route reassigned.',
- timestamp: '2024-02-14T15:20:00',
- read: true,
- actionable: true
- },
- {
- id: 'N-005',
- type: 'INFO',
- title: 'System Maintenance',
- message: 'Scheduled maintenance on Saturday 2-4 AM',
- timestamp: '2024-02-14T10:00:00',
- read: true
- }
-];
+import { useNotifications } from '../src/hooks/useAppData';
+import { Notification } from '../types';
 
 export const NotificationsPage: React.FC = () => {
- const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+ // SMART DATA-FLOW: Use centralized notifications hook
+ const { 
+ notifications = [], 
+ unreadCount,
+ markAsRead: markNotificationRead,
+ markAllAsRead: markAllNotificationsRead,
+ deleteNotification,
+ isLoading,
+ error
+ } = useNotifications();
  const { colors } = useTheme();
  const [filter, setFilter] = useState<'ALL' | 'UNREAD' | 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'>('ALL');
 
@@ -68,22 +24,6 @@ export const NotificationsPage: React.FC = () => {
  if (filter === 'UNREAD') return !n.read;
  return n.type === filter;
  });
-
- const unreadCount = notifications.filter(n => !n.read).length;
-
- const markAsRead = (id: string) => {
- setNotifications(notifications.map(n =>
- n.id === id ? { ...n, read: true } : n
- ));
- };
-
- const markAllAsRead = () => {
- setNotifications(notifications.map(n => ({ ...n, read: true })));
- };
-
- const deleteNotification = (id: string) => {
- setNotifications(notifications.filter(n => n.id !== id));
- };
 
  const getIcon = (type: string) => {
  switch (type) {
@@ -129,7 +69,7 @@ export const NotificationsPage: React.FC = () => {
  </p>
  </div>
  {unreadCount > 0 && (
- <ThemedButton variant="ghost" onClick={markAllAsRead} icon={Check}>
+ <ThemedButton variant="ghost" onClick={markAllNotificationsRead} icon={Check}>
  Mark All as Read
  </ThemedButton>
  )}
@@ -206,13 +146,13 @@ export const NotificationsPage: React.FC = () => {
  {filteredNotifications.map((notification) => (
  <div
  key={notification.id}
- className={`bg-white rounded-[2rem] p-6 shadow-soft-xl border transition-all ${
+ className={`bg-white rounded-4xl p-6 shadow-soft-xl border transition-all ${
  notification.read ? 'border-gray-100' : 'border-/20 shadow-xl'
  } hover:shadow-2xl group`}
  >
  <div className="flex items-start gap-4">
  {/* Icon */}
- <div className="flex-shrink-0 mt-1">
+ <div className="shrink-0 mt-1">
  {getIcon(notification.type)}
  </div>
 
@@ -235,7 +175,7 @@ export const NotificationsPage: React.FC = () => {
  <div className="flex items-center gap-3">
  {!notification.read && (
  <button
- onClick={() => markAsRead(notification.id)}
+ onClick={() => markNotificationRead(notification.id)}
  className="text-xs font-bold text- hover:underline"
  >
  Mark as Read

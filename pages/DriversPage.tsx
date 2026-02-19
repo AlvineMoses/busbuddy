@@ -255,7 +255,7 @@ export const DriversPage: React.FC<DriversPageProps> = ({ currentUser, showHeade
  </div>
  ) : (
  /* List View */
- <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 min-h-[600px] overflow-hidden">
+ <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 min-h-150 overflow-hidden">
  
  {/* Controls */}
  <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row gap-4 justify-between items-center">
