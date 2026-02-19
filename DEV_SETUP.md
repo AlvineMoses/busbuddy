@@ -24,11 +24,11 @@ The browser sends `Referer: http://corp.little.global:8080/...` which matches th
 - **React 19** + TypeScript
 - **Tailwind CSS v4** via `@tailwindcss/vite`
 - **React Router v6** - URL routing
-- **Zustand** - State management
+- **Redux Toolkit** - Centralized state management
 - **Google Maps** via `@vis.gl/react-google-maps`
 
 ## Architecture
-- **Smart Data-Flow** with centralized `useAppData` hooks
+- **Smart Data-Flow** with centralized Redux store and typed hooks
 - **URL-based routing** (`/dashboard`, `/routes`, `/operations`, `/schools`, `/settings`, `/notifications`)
 - **Consolidated operations** page with tabs (Drivers, Shifts, Assignments)
 - **Embedded pages** pattern with `showHeader` prop for reusable components

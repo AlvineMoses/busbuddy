@@ -3,11 +3,12 @@ import { useTheme } from '../src/hooks/useTheme';
 import { DriversPage } from './DriversPage';
 import { ShiftsPage } from './ShiftsPage';
 import { AssignmentsPage } from './AssignmentsPage';
-import useAppStore from '../src/store/AppStore';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../src/store';
 
 export const OperationsPage: React.FC = () => {
- // SMART DATA-FLOW: Get user from Zustand store
- const currentUser = useAppStore((state: any) => state.auth.user);
+ // SMART DATA-FLOW: Get user from Redux store
+ const currentUser = useSelector((state: RootState) => state.auth.user);
  const [activeTab, setActiveTab] = useState<'drivers' | 'shifts' | 'assignments'>('drivers');
  const { colors } = useTheme();
 

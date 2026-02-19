@@ -71,7 +71,7 @@ const RouteDetailsPanel = ({
       transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col overflow-hidden
       translate-x-0
     `}>
-      <div className="p-8 pb-4 flex justify-between items-start bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
+      <div className="p-8 pb-4 flex justify-between items-start bg-linear-to-b from-gray-50 to-white border-b border-gray-100">
         <div>
           <h3 className="font-bold text-2xl text-brand-black">{route.name}</h3>
           <div className="flex items-center gap-2 mt-2">

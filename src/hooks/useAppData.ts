@@ -8,7 +8,7 @@
  * 3. AUTO-FETCH — Data is fetched on mount with proper cache-aware sequencing.
  * 4. DERIVED STATE — Computed filtering (by school) happens in hooks, not in store.
  * 5. CONSISTENT INTERFACE — Every entity hook returns { data, actions, isLoading, error }.
- * 6. SELECTOR OPTIMIZATION — Entity hooks read only the slice they need from Zustand.
+ * 6. SELECTOR OPTIMIZATION — Entity hooks read only the slice they need from Redux.
  *
  * Usage:
  *   // Full access
@@ -21,7 +21,8 @@
  */
 
 import { useEffect, useMemo } from 'react';
-import useAppStore from '../store/AppStore';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store';
 import type {
   School,
   TransportRoute,
@@ -31,10 +32,23 @@ import type {
   Assignment,
   Shift,
   Notification,
-  User,
 } from '../../types';
-import type { SettingsData, DashboardMetricsResult } from '../services/UnifiedApiService';
-import type { AppState } from '../store/AppStore';
+
+// Import all thunks from slices
+import { loginUser, logoutUser, setUser } from '../store/slices/authSlice';
+import {
+  fetchSchools, createSchool, updateSchool, deleteSchool,
+  fetchDrivers, createDriver, updateDriver, deleteDriver, generateDriverOtp, getDriverQrCode,
+  fetchRoutes, createRoute, updateRoute, deleteRoute, exportRoutes,
+  fetchTrips, flagTripIncident, getTripPlayback, getTripStats,
+  fetchStudents, createStudent, updateStudent, deleteStudent, toggleStudentDisable, transferStudent, bulkUploadStudents,
+  fetchAssignments, createAssignment, updateAssignment, deleteAssignment, getAssignmentConflicts,
+  fetchShifts, createShift, updateShift, deleteShift, duplicateShift,
+  fetchNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification,
+  fetchSettings as fetchSettingsEntity, updateSettings as updateSettingsEntity,
+  fetchDashboardMetrics,
+} from '../store/slices/entitiesSlice';
+import { setActivePage, setSelectedSchool, toggleSidebar } from '../store/slices/uiSlice';
 
 // ============================================
 // MAIN HOOK — All entities, all actions
@@ -46,7 +60,12 @@ import type { AppState } from '../store/AppStore';
  * For single-entity access, prefer the specialized hooks below.
  */
 export const useAppData = () => {
-  const store = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Select all state
+  const auth = useSelector((state: RootState) => state.auth);
+  const entities = useSelector((state: RootState) => state.entities);
+  const ui = useSelector((state: RootState) => state.ui);
 
   // Auto-fetch all entities on mount with intelligent sequencing
   useEffect(() => {
@@ -54,22 +73,22 @@ export const useAppData = () => {
       try {
         // Phase 1: Independent entities (parallel — no dependencies)
         await Promise.all([
-          store.fetchSchools(),
-          store.fetchDrivers(),
-          store.fetchStudents(),
-          store.fetchNotifications(),
+          dispatch(fetchSchools({})),
+          dispatch(fetchDrivers({})),
+          dispatch(fetchStudents({})),
+          dispatch(fetchNotifications(undefined)),
         ]);
 
         // Phase 2: Routes depend on schools being loaded
-        await store.fetchRoutes();
+        await dispatch(fetchRoutes({}));
 
         // Phase 3: Trips depend on routes being loaded
-        await store.fetchTrips();
+        await dispatch(fetchTrips({}));
 
         // Phase 4: Operational entities
         await Promise.all([
-          store.fetchAssignments(),
-          store.fetchShifts(),
+          dispatch(fetchAssignments({})),
+          dispatch(fetchShifts({})),
         ]);
       } catch (error) {
         console.error('useAppData: Data initialization failed:', error);
@@ -82,95 +101,117 @@ export const useAppData = () => {
 
   return {
     // ── Auth ──
-    user: store.auth.user,
-    isAuthenticated: store.auth.isAuthenticated,
-    login: store.login,
-    logout: store.logout,
+    user: auth.user,
+    isAuthenticated: auth.isAuthenticated,
+    login: (credentials: any) => dispatch(loginUser(credentials)),
+    logout: () => dispatch(logoutUser()),
+    setUser: (user: any) => dispatch(setUser(user)),
 
     // ── Entities ──
-    schools: store.entities.schools,
-    drivers: store.entities.drivers,
-    routes: store.entities.routes,
-    trips: store.entities.trips,
-    students: store.entities.students,
-    assignments: store.entities.assignments,
-    shifts: store.entities.shifts,
-    notifications: store.entities.notifications,
-    settings: store.entities.settings,
-    dashboardMetrics: store.entities.dashboardMetrics,
+    schools: entities.schools,
+    drivers: entities.drivers,
+    routes: entities.routes,
+    trips: entities.trips,
+    students: entities.students,
+    assignments: entities.assignments,
+    shifts: entities.shifts,
+    notifications: entities.notifications,
+    settings: entities.settings,
+    dashboardMetrics: entities.dashboardMetrics,
 
     // ── Meta (loading/error per entity) ──
-    meta: store.meta,
+    meta: entities.meta,
 
     // ── UI State ──
-    ui: store.ui,
-    setActivePage: store.setActivePage,
-    setSelectedSchool: store.setSelectedSchool,
-    toggleSidebar: store.toggleSidebar,
+    ui,
+    setActivePage: (page: string) => dispatch(setActivePage(page)),
+    setSelectedSchool: (schoolId: string) => dispatch(setSelectedSchool(schoolId)),
+    toggleSidebar: () => dispatch(toggleSidebar()),
 
     // ── School actions ──
-    createSchool: store.createSchool,
-    updateSchool: store.updateSchool,
-    deleteSchool: store.deleteSchool,
-    refreshSchools: () => store.fetchSchools(true),
+    createSchool: (data: Partial<School>) => dispatch(createSchool(data)),
+    updateSchool: (id: string, updates: Partial<School>) => dispatch(updateSchool({ id, updates })),
+    deleteSchool: (id: string) => dispatch(deleteSchool(id)),
+    refreshSchools: () => dispatch(fetchSchools({ force: true })),
 
     // ── Driver actions ──
-    createDriver: store.createDriver,
-    updateDriver: store.updateDriver,
-    deleteDriver: store.deleteDriver,
-    refreshDrivers: () => store.fetchDrivers(true),
-    generateDriverOtp: store.generateDriverOtp,
-    getDriverQrCode: store.getDriverQrCode,
+    createDriver: (data: Partial<Driver>) => dispatch(createDriver(data)),
+    updateDriver: (id: string, updates: Partial<Driver>) => dispatch(updateDriver({ id, updates })),
+    deleteDriver: (id: string) => dispatch(deleteDriver(id)),
+    refreshDrivers: () => dispatch(fetchDrivers({ force: true })),
+    generateDriverOtp: async (id: string) => {
+      const result = await dispatch(generateDriverOtp(id));
+      if (generateDriverOtp.fulfilled.match(result)) {
+        return result.payload;
+      }
+      throw new Error('Failed to generate OTP');
+    },
+    getDriverQrCode: async (id: string) => {
+      const result = await dispatch(getDriverQrCode(id));
+      if (getDriverQrCode.fulfilled.match(result)) {
+        return result.payload;
+      }
+      throw new Error('Failed to get QR code');
+    },
 
     // ── Route actions ──
-    createRoute: store.createRoute,
-    updateRoute: store.updateRoute,
-    deleteRoute: store.deleteRoute,
-    refreshRoutes: () => store.fetchRoutes(true),
-    exportRoutes: store.exportRoutes,
+    createRoute: (data: Partial<TransportRoute>) => dispatch(createRoute(data)),
+    updateRoute: (id: string, updates: Partial<TransportRoute>) => dispatch(updateRoute({ id, updates })),
+    deleteRoute: (id: string) => dispatch(deleteRoute(id)),
+    refreshRoutes: () => dispatch(fetchRoutes({ force: true })),
+    exportRoutes: (format?: string) => dispatch(exportRoutes(format)),
 
     // ── Trip actions ──
-    refreshTrips: () => store.fetchTrips(true),
-    flagTripIncident: store.flagTripIncident,
-    getTripPlayback: store.getTripPlayback,
-    getTripStats: store.getTripStats,
+    refreshTrips: () => dispatch(fetchTrips({ force: true })),
+    flagTripIncident: (id: string, reason: string) => dispatch(flagTripIncident({ id, reason })),
+    getTripPlayback: (id: string) => dispatch(getTripPlayback(id)),
+    getTripStats: (period?: string) => dispatch(getTripStats(period)),
 
     // ── Student actions ──
-    createStudent: store.createStudent,
-    updateStudent: store.updateStudent,
-    deleteStudent: store.deleteStudent,
-    refreshStudents: () => store.fetchStudents(true),
-    toggleStudentDisable: store.toggleStudentDisable,
-    transferStudent: store.transferStudent,
-    bulkUploadStudents: store.bulkUploadStudents,
+    createStudent: (data: Partial<Student>) => dispatch(createStudent(data)),
+    updateStudent: (id: string, updates: Partial<Student>) => dispatch(updateStudent({ id, updates })),
+    deleteStudent: (id: string) => dispatch(deleteStudent(id)),
+    refreshStudents: () => dispatch(fetchStudents({ force: true })),
+    toggleStudentDisable: (id: string) => dispatch(toggleStudentDisable(id)),
+    transferStudent: (id: string, targetSchoolId: string) => dispatch(transferStudent({ id, targetSchoolId })),
+    bulkUploadStudents: (file: File) => dispatch(bulkUploadStudents(file)),
 
     // ── Assignment actions ──
-    createAssignment: store.createAssignment,
-    updateAssignment: store.updateAssignment,
-    deleteAssignment: store.deleteAssignment,
-    refreshAssignments: () => store.fetchAssignments(true),
-    getAssignmentConflicts: store.getAssignmentConflicts,
+    createAssignment: (data: Partial<Assignment>) => dispatch(createAssignment(data)),
+    updateAssignment: (id: string, updates: Partial<Assignment>) => dispatch(updateAssignment({ id, updates })),
+    deleteAssignment: (id: string) => dispatch(deleteAssignment(id)),
+    refreshAssignments: () => dispatch(fetchAssignments({ force: true })),
+    getAssignmentConflicts: () => dispatch(getAssignmentConflicts()),
 
     // ── Shift actions ──
-    createShift: store.createShift,
-    updateShift: store.updateShift,
-    deleteShift: store.deleteShift,
-    duplicateShift: store.duplicateShift,
-    refreshShifts: () => store.fetchShifts(true),
+    createShift: (data: Partial<Shift>) => dispatch(createShift(data)),
+    updateShift: (id: string, updates: Partial<Shift>) => dispatch(updateShift({ id, updates })),
+    deleteShift: (id: string) => dispatch(deleteShift(id)),
+    duplicateShift: (id: string) => dispatch(duplicateShift(id)),
+    refreshShifts: () => dispatch(fetchShifts({ force: true })),
 
     // ── Notification actions ──
-    markNotificationRead: store.markNotificationRead,
-    markAllNotificationsRead: store.markAllNotificationsRead,
-    deleteNotification: store.deleteNotification,
+    markNotificationRead: (id: string) => dispatch(markNotificationRead(id)),
+    markAllNotificationsRead: () => dispatch(markAllNotificationsRead()),
+    deleteNotification: (id: string) => dispatch(deleteNotification(id)),
 
     // ── Settings actions ──
-    updateSettings: store.updateSettings,
+    updateSettings: (updates: any) => dispatch(updateSettingsEntity(updates)),
 
     // ── Dashboard ──
-    fetchDashboardMetrics: store.fetchDashboardMetrics,
+    fetchDashboardMetrics: (force = false) => dispatch(fetchDashboardMetrics({ force })),
 
     // ── Bulk ──
-    refreshAll: store.refreshAll,
+    refreshAll: async (force = false) => {
+      await Promise.all([
+        dispatch(fetchSchools({ force })),
+        dispatch(fetchDrivers({ force })),
+        dispatch(fetchRoutes({ force })),
+        dispatch(fetchTrips({ force })),
+        dispatch(fetchStudents({ force })),
+        dispatch(fetchNotifications()),
+      ]);
+    },
   };
 };
 
@@ -183,14 +224,14 @@ export const useAppData = () => {
  * Reads only schools slice — fewer re-renders than useAppData.
  */
 export const useSchoolData = () => {
-  const schools = useAppStore((state: AppState) => state.entities.schools);
-  const meta = useAppStore((state: AppState) => state.meta.schools);
-  const selectedSchoolId = useAppStore((state: AppState) => state.ui.selectedSchoolId);
-  const {
-    fetchSchools, createSchool, updateSchool, deleteSchool,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const schools = useSelector((state: RootState) => state.entities.schools);
+  const meta = useSelector((state: RootState) => state.entities.meta.schools);
+  const selectedSchoolId = useSelector((state: RootState) => state.ui.selectedSchoolId);
 
-  useEffect(() => { fetchSchools(); }, [fetchSchools]);
+  useEffect(() => {
+    dispatch(fetchSchools({}));
+  }, [dispatch]);
 
   const selectedSchool = useMemo(
     () => selectedSchoolId ? schools.find((s: School) => s.id === selectedSchoolId) : null,
@@ -200,10 +241,10 @@ export const useSchoolData = () => {
   return {
     schools,
     selectedSchool,
-    createSchool,
-    updateSchool,
-    deleteSchool,
-    refreshSchools: () => fetchSchools(true),
+    createSchool: (data: Partial<School>) => dispatch(createSchool(data)),
+    updateSchool: (id: string, updates: Partial<School>) => dispatch(updateSchool({ id, updates })),
+    deleteSchool: (id: string) => dispatch(deleteSchool(id)),
+    refreshSchools: () => dispatch(fetchSchools({ force: true })),
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -213,23 +254,34 @@ export const useSchoolData = () => {
  * Driver data with CRUD and special actions (OTP, QR).
  */
 export const useDriverData = () => {
-  const drivers = useAppStore((state: AppState) => state.entities.drivers);
-  const meta = useAppStore((state: AppState) => state.meta.drivers);
-  const {
-    fetchDrivers, createDriver, updateDriver, deleteDriver,
-    generateDriverOtp, getDriverQrCode,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const drivers = useSelector((state: RootState) => state.entities.drivers);
+  const meta = useSelector((state: RootState) => state.entities.meta.drivers);
 
-  useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
+  useEffect(() => {
+    dispatch(fetchDrivers({}));
+  }, [dispatch]);
 
   return {
     drivers,
-    createDriver,
-    updateDriver,
-    deleteDriver,
-    refreshDrivers: () => fetchDrivers(true),
-    generateOtp: generateDriverOtp,
-    getQrCode: getDriverQrCode,
+    createDriver: (data: Partial<Driver>) => dispatch(createDriver(data)),
+    updateDriver: (id: string, updates: Partial<Driver>) => dispatch(updateDriver({ id, updates })),
+    deleteDriver: (id: string) => dispatch(deleteDriver(id)),
+    refreshDrivers: () => dispatch(fetchDrivers({ force: true })),
+    generateOtp: async (id: string) => {
+      const result = await dispatch(generateDriverOtp(id));
+      if (generateDriverOtp.fulfilled.match(result)) {
+        return result.payload;
+      }
+      throw new Error('Failed to generate OTP');
+    },
+    getQrCode: async (id: string) => {
+      const result = await dispatch(getDriverQrCode(id));
+      if (getDriverQrCode.fulfilled.match(result)) {
+        return result.payload;
+      }
+      throw new Error('Failed to get QR code');
+    },
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -240,15 +292,15 @@ export const useDriverData = () => {
  * `routes` = filtered by selected school. `allRoutes` = unfiltered.
  */
 export const useRouteData = () => {
-  const routes = useAppStore((state: AppState) => state.entities.routes);
-  const schools = useAppStore((state: AppState) => state.entities.schools);
-  const selectedSchoolId = useAppStore((state: AppState) => state.ui.selectedSchoolId);
-  const meta = useAppStore((state: AppState) => state.meta.routes);
-  const {
-    fetchRoutes, createRoute, updateRoute, deleteRoute, exportRoutes,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const routes = useSelector((state: RootState) => state.entities.routes);
+  const schools = useSelector((state: RootState) => state.entities.schools);
+  const selectedSchoolId = useSelector((state: RootState) => state.ui.selectedSchoolId);
+  const meta = useSelector((state: RootState) => state.entities.meta.routes);
 
-  useEffect(() => { fetchRoutes(); }, [fetchRoutes]);
+  useEffect(() => {
+    dispatch(fetchRoutes({}));
+  }, [dispatch]);
 
   // Derived: filter routes by selected school
   const filteredRoutes = useMemo(
@@ -260,11 +312,11 @@ export const useRouteData = () => {
     routes: filteredRoutes,
     allRoutes: routes,
     schools,
-    createRoute,
-    updateRoute,
-    deleteRoute,
-    refreshRoutes: () => fetchRoutes(true),
-    exportRoutes,
+    createRoute: (data: Partial<TransportRoute>) => dispatch(createRoute(data)),
+    updateRoute: (id: string, updates: Partial<TransportRoute>) => dispatch(updateRoute({ id, updates })),
+    deleteRoute: (id: string) => dispatch(deleteRoute(id)),
+    refreshRoutes: () => dispatch(fetchRoutes({ force: true })),
+    exportRoutes: (format?: string) => dispatch(exportRoutes(format)),
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -275,15 +327,15 @@ export const useRouteData = () => {
  * `trips` = filtered. `allTrips` = unfiltered.
  */
 export const useTripData = () => {
-  const trips = useAppStore((state: AppState) => state.entities.trips);
-  const routes = useAppStore((state: AppState) => state.entities.routes);
-  const selectedSchoolId = useAppStore((state: AppState) => state.ui.selectedSchoolId);
-  const meta = useAppStore((state: AppState) => state.meta.trips);
-  const {
-    fetchTrips, flagTripIncident, getTripPlayback, getTripStats,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const trips = useSelector((state: RootState) => state.entities.trips);
+  const routes = useSelector((state: RootState) => state.entities.routes);
+  const selectedSchoolId = useSelector((state: RootState) => state.ui.selectedSchoolId);
+  const meta = useSelector((state: RootState) => state.entities.meta.trips);
 
-  useEffect(() => { fetchTrips(); }, [fetchTrips]);
+  useEffect(() => {
+    dispatch(fetchTrips({}));
+  }, [dispatch]);
 
   // Derived: filter trips by selected school (through route.schoolId)
   const filteredTrips = useMemo(
@@ -300,10 +352,10 @@ export const useTripData = () => {
   return {
     trips: filteredTrips,
     allTrips: trips,
-    refreshTrips: () => fetchTrips(true),
-    flagIncident: flagTripIncident,
-    getPlayback: getTripPlayback,
-    getStats: getTripStats,
+    refreshTrips: () => dispatch(fetchTrips({ force: true })),
+    flagIncident: (id: string, reason: string) => dispatch(flagTripIncident({ id, reason })),
+    getPlayback: (id: string) => dispatch(getTripPlayback(id)),
+    getStats: (period?: string) => dispatch(getTripStats(period)),
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -313,24 +365,23 @@ export const useTripData = () => {
  * Student data with CRUD and special actions (disable, transfer, bulk upload).
  */
 export const useStudentData = () => {
-  const students = useAppStore((state: AppState) => state.entities.students);
-  const meta = useAppStore((state: AppState) => state.meta.students);
-  const {
-    fetchStudents, createStudent, updateStudent, deleteStudent,
-    toggleStudentDisable, transferStudent, bulkUploadStudents,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const students = useSelector((state: RootState) => state.entities.students);
+  const meta = useSelector((state: RootState) => state.entities.meta.students);
 
-  useEffect(() => { fetchStudents(); }, [fetchStudents]);
+  useEffect(() => {
+    dispatch(fetchStudents({}));
+  }, [dispatch]);
 
   return {
     students,
-    createStudent,
-    updateStudent,
-    deleteStudent,
-    refreshStudents: () => fetchStudents(true),
-    toggleDisable: toggleStudentDisable,
-    transfer: transferStudent,
-    bulkUpload: bulkUploadStudents,
+    createStudent: (data: Partial<Student>) => dispatch(createStudent(data)),
+    updateStudent: (id: string, updates: Partial<Student>) => dispatch(updateStudent({ id, updates })),
+    deleteStudent: (id: string) => dispatch(deleteStudent(id)),
+    refreshStudents: () => dispatch(fetchStudents({ force: true })),
+    toggleDisable: (id: string) => dispatch(toggleStudentDisable(id)),
+    transfer: (id: string, targetSchoolId: string) => dispatch(transferStudent({ id, targetSchoolId })),
+    bulkUpload: (file: File) => dispatch(bulkUploadStudents(file)),
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -340,22 +391,21 @@ export const useStudentData = () => {
  * Assignment data with CRUD and conflict detection.
  */
 export const useAssignmentData = () => {
-  const assignments = useAppStore((state: AppState) => state.entities.assignments);
-  const meta = useAppStore((state: AppState) => state.meta.assignments);
-  const {
-    fetchAssignments, createAssignment, updateAssignment, deleteAssignment,
-    getAssignmentConflicts,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const assignments = useSelector((state: RootState) => state.entities.assignments);
+  const meta = useSelector((state: RootState) => state.entities.meta.assignments);
 
-  useEffect(() => { fetchAssignments(); }, [fetchAssignments]);
+  useEffect(() => {
+    dispatch(fetchAssignments({}));
+  }, [dispatch]);
 
   return {
     assignments,
-    createAssignment,
-    updateAssignment,
-    deleteAssignment,
-    refreshAssignments: () => fetchAssignments(true),
-    getConflicts: getAssignmentConflicts,
+    createAssignment: (data: Partial<Assignment>) => dispatch(createAssignment(data)),
+    updateAssignment: (id: string, updates: Partial<Assignment>) => dispatch(updateAssignment({ id, updates })),
+    deleteAssignment: (id: string) => dispatch(deleteAssignment(id)),
+    refreshAssignments: () => dispatch(fetchAssignments({ force: true })),
+    getConflicts: () => dispatch(getAssignmentConflicts()),
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -365,21 +415,21 @@ export const useAssignmentData = () => {
  * Shift data with CRUD and duplicate action.
  */
 export const useShiftData = () => {
-  const shifts = useAppStore((state: AppState) => state.entities.shifts);
-  const meta = useAppStore((state: AppState) => state.meta.shifts);
-  const {
-    fetchShifts, createShift, updateShift, deleteShift, duplicateShift,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const shifts = useSelector((state: RootState) => state.entities.shifts);
+  const meta = useSelector((state: RootState) => state.entities.meta.shifts);
 
-  useEffect(() => { fetchShifts(); }, [fetchShifts]);
+  useEffect(() => {
+    dispatch(fetchShifts({}));
+  }, [dispatch]);
 
   return {
     shifts,
-    createShift,
-    updateShift,
-    deleteShift,
-    duplicateShift,
-    refreshShifts: () => fetchShifts(true),
+    createShift: (data: Partial<Shift>) => dispatch(createShift(data)),
+    updateShift: (id: string, updates: Partial<Shift>) => dispatch(updateShift({ id, updates })),
+    deleteShift: (id: string) => dispatch(deleteShift(id)),
+    duplicateShift: (id: string) => dispatch(duplicateShift(id)),
+    refreshShifts: () => dispatch(fetchShifts({ force: true })),
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -389,20 +439,17 @@ export const useShiftData = () => {
  * Auth hook — login, logout, user state.
  */
 export const useAuth = () => {
-  const user = useAppStore((state: AppState) => state.auth.user);
-  const isAuthenticated = useAppStore((state: AppState) => state.auth.isAuthenticated);
-  const isLoading = useAppStore((state: AppState) => state.auth.isLoading);
-  const error = useAppStore((state: AppState) => state.auth.error);
-  const { login, logout, setUser } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const auth = useSelector((state: RootState) => state.auth);
 
   return {
-    user,
-    isAuthenticated,
-    isLoading,
-    error,
-    login,
-    logout,
-    setUser,
+    user: auth.user,
+    isAuthenticated: auth.isAuthenticated,
+    isLoading: auth.isLoading,
+    error: auth.error,
+    login: (credentials: any) => dispatch(loginUser(credentials)),
+    logout: () => dispatch(logoutUser()),
+    setUser: (user: any) => dispatch(setUser(user)),
   };
 };
 
@@ -410,12 +457,12 @@ export const useAuth = () => {
  * Notification hook with unread count.
  */
 export const useNotifications = () => {
-  const notifications = useAppStore((state: AppState) => state.entities.notifications);
-  const {
-    fetchNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification,
-  } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const notifications = useSelector((state: RootState) => state.entities.notifications);
 
-  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+  useEffect(() => {
+    dispatch(fetchNotifications());
+  }, [dispatch]);
 
   const unreadCount = useMemo(
     () => notifications.filter((n: Notification) => !n.read).length,
@@ -425,10 +472,10 @@ export const useNotifications = () => {
   return {
     notifications,
     unreadCount,
-    markAsRead: markNotificationRead,
-    markAllAsRead: markAllNotificationsRead,
-    deleteNotification,
-    refresh: fetchNotifications,
+    markAsRead: (id: string) => dispatch(markNotificationRead(id)),
+    markAllAsRead: () => dispatch(markAllNotificationsRead()),
+    deleteNotification: (id: string) => dispatch(deleteNotification(id)),
+    refresh: () => dispatch(fetchNotifications()),
   };
 };
 
@@ -436,17 +483,17 @@ export const useNotifications = () => {
  * Settings hook — loads on mount if not already loaded.
  */
 export const useSettings = () => {
-  const settings = useAppStore((state: AppState) => state.entities.settings);
-  const meta = useAppStore((state: AppState) => state.meta.settings);
-  const { fetchSettings, updateSettings } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const settings = useSelector((state: RootState) => state.entities.settings);
+  const meta = useSelector((state: RootState) => state.entities.meta.settings);
 
   useEffect(() => {
-    if (!settings) fetchSettings();
-  }, [settings, fetchSettings]);
+    if (!settings) dispatch(fetchSettingsEntity());
+  }, [settings, dispatch]);
 
   return {
     settings,
-    updateSettings,
+    updateSettings: (updates: any) => dispatch(updateSettingsEntity(updates)),
     isLoading: meta.loading,
     error: meta.error,
   };
@@ -456,20 +503,20 @@ export const useSettings = () => {
  * Dashboard metrics hook — fetches on mount with short TTL.
  */
 export const useDashboardData = () => {
-  const metrics = useAppStore((state: AppState) => state.entities.dashboardMetrics);
-  const routes = useAppStore((state: AppState) => state.entities.routes);
-  const meta = useAppStore((state: AppState) => state.meta.dashboard);
-  const { fetchDashboardMetrics, fetchRoutes } = useAppStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const metrics = useSelector((state: RootState) => state.entities.dashboardMetrics);
+  const routes = useSelector((state: RootState) => state.entities.routes);
+  const meta = useSelector((state: RootState) => state.entities.meta.dashboard);
 
   useEffect(() => {
-    fetchDashboardMetrics();
-    fetchRoutes();
-  }, [fetchDashboardMetrics, fetchRoutes]);
+    dispatch(fetchDashboardMetrics({}));
+    dispatch(fetchRoutes({}));
+  }, [dispatch]);
 
   return {
     metrics,
     routes,
-    refresh: () => fetchDashboardMetrics(true),
+    refresh: () => dispatch(fetchDashboardMetrics({ force: true })),
     isLoading: meta.loading,
     error: meta.error,
   };

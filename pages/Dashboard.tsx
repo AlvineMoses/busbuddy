@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useTheme } from '../src/hooks/useTheme';
 import { ThemedButton } from '../src/components/ThemedComponents';
 import { useRouteData, useDriverData } from '../src/hooks/useAppData';
-import useAppStore from '../src/store/AppStore';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../src/store';
 import { 
  Bus, 
  Clock, 
@@ -64,7 +65,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
  // SMART DATA-FLOW: Use centralized hooks
  const { routes } = useRouteData();
  const { drivers } = useDriverData();
- const user = useAppStore((state: any) => state.auth.user);
+ const user = useSelector((state: RootState) => state.auth.user);
  const { colors } = useTheme();
  const [feedTab, setFeedTab] = useState<'drivers' | 'fleet'>('fleet');
  const [driverSubTab, setDriverSubTab] = useState<'all' | 'online' | 'on-trip'>('all');

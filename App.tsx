@@ -12,15 +12,18 @@ import { SettingsPage } from './pages/SettingsPage';
 import { ToastContainer } from './components/ToastContainer';
 import { User, UserRole } from './types';
 import { SCHOOLS } from './services/mockData';
-import useAppStore from './src/store/AppStore';
 import store from './src/store';
 import { fetchSettings } from './src/store/slices/settingsSlice';
+import { setUser as setUserAction, logoutUser } from './src/store/slices/authSlice';
+import { setSelectedSchool } from './src/store/slices/uiSlice';
+import { useSelector } from 'react-redux';
+import type { RootState, AppDispatch } from './src/store';
 
 function AppContent() {
-  const { auth, ui, entities, setSelectedSchool, setUser, logout } = useAppStore();
-  const dispatch = useDispatch();
-  const currentUser = auth.user;
-  const currentSchoolId = ui.selectedSchoolId;
+  const dispatch = useDispatch<AppDispatch>();
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const currentSchoolId = useSelector((state: RootState) => state.ui.selectedSchoolId);
+  const notifications = useSelector((state: RootState) => state.entities.notifications);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,25 +36,25 @@ function AppContent() {
 
   useEffect(() => {
     if (currentUser?.role === UserRole.SCHOOL_ADMIN && currentUser.schoolId) {
-      setSelectedSchool(currentUser.schoolId);
+      dispatch(setSelectedSchool(currentUser.schoolId));
     } else if (currentUser?.role === UserRole.SUPER_ADMIN && !currentSchoolId) {
-      setSelectedSchool('');
+      dispatch(setSelectedSchool(''));
     }
-  }, [currentUser, currentSchoolId, setSelectedSchool]);
+  }, [currentUser, currentSchoolId, dispatch]);
 
   const handleLogin = (user: User) => {
-    setUser(user);
+    dispatch(setUserAction(user));
     navigate('/dashboard');
   };
 
   const handleLogout = () => {
-    logout();
-    setSelectedSchool('');
+    dispatch(logoutUser());
+    dispatch(setSelectedSchool(''));
     navigate('/');
   };
 
   const handleSchoolChange = (schoolId: string) => {
-    setSelectedSchool(schoolId);
+    dispatch(setSelectedSchool(schoolId));
   };
 
   if (!currentUser) {
@@ -70,7 +73,7 @@ function AppContent() {
       activePage={activePage}
       onNavigate={(page: string) => navigate(`/${page}`)}
       onLogout={handleLogout}
-      notifications={entities.notifications || []}
+      notifications={notifications || []}
     >
       <ToastContainer />
       <Routes>

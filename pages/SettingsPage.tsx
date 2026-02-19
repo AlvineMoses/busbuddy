@@ -5,9 +5,9 @@ import { ThemedModal } from '../src/components/ThemedModal';
 import { ThemedDataTable } from '../src/components/ThemedDataTable';
 import { Bell, Shield, Save, User, Check, PieChart, Users, Bus, Map as MapIcon, Layers, Plus, Server, Code, Palette, Image as ImageIcon, MessageSquare, CloudUpload, RotateCcw, X, Info, FlaskConical, Globe, ChevronDown, Trash2 } from 'lucide-react';
 import { EndpointsSettingsTab } from './EndpointsSettingsTab';
-import useAppStore from '../src/store/AppStore';
 import { UserRole } from '../types';
 import { useSchoolData } from '../src/hooks/useAppData';
+import { setUser as setUserAction } from '../src/store/slices/authSlice';
 import { 
   fetchSettings, 
   updateSettings, 
@@ -64,8 +64,7 @@ export const SettingsPage: React.FC = () => {
   const { schools } = useSchoolData();
   const dispatch = useDispatch<any>();
   const settings = useSelector((state: any) => state.settings);
-  const currentUser = useAppStore((state: any) => state.auth.user);
-  const setUser = useAppStore((state: any) => state.setUser);
+  const currentUser = useSelector((state: any) => state.auth.user);
   const isSuperAdmin = currentUser?.role === UserRole.SUPER_ADMIN;
   const [activeTab, setActiveTab] = useState('general');
 
@@ -183,13 +182,13 @@ export const SettingsPage: React.FC = () => {
       // @ts-ignore - async thunk from JS file
       await (dispatch as any)(updateSettings(dataToSave)).unwrap();
 
-      // Sync profile changes back to the Zustand auth user
+      // Sync profile changes back to the Redux auth user
       if (currentUser && (settings.profileName !== currentUser.name || settings.profileEmail !== currentUser.email)) {
-        setUser({
+        dispatch(setUserAction({
           ...currentUser,
           name: settings.profileName || currentUser.name,
           email: settings.profileEmail || currentUser.email,
-        });
+        }));
       }
       
       dispatch(addToast({
